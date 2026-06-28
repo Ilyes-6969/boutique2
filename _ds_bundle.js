@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":3,"namespace":"ADITCGDesignSystem_df75b7","components":[{"name":"QtyStepper","sourcePath":"components/commerce/QtyStepper.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Tag","sourcePath":"components/core/Tag.jsx"},{"name":"PriceTag","sourcePath":"components/product/PriceTag.jsx"},{"name":"ProductCard","sourcePath":"components/product/ProductCard.jsx"}],"sourceHashes":{"components/commerce/QtyStepper.jsx":"acfe183e1fe4","components/core/Badge.jsx":"7fd6a2089410","components/core/Button.jsx":"a03e2b9d1a95","components/core/Tag.jsx":"43c2c77fec9e","components/product/PriceTag.jsx":"01e26d70f4a4","components/product/ProductCard.jsx":"bc36f88ccd12","ui_kits/leclub151/Admin.jsx":"6825495af51e","ui_kits/leclub151/Cart.jsx":"30577da3889d","ui_kits/leclub151/Catalogue.jsx":"338336c92218","ui_kits/leclub151/Checkout.jsx":"f4f9f6cfc507","ui_kits/leclub151/Chrome.jsx":"8f5814f3c546","ui_kits/leclub151/Home.jsx":"60e1d6ccf773","ui_kits/leclub151/Legal.jsx":"b66e006b2f47","ui_kits/leclub151/Product.jsx":"858a99dddf98","ui_kits/leclub151/data.js":"804136f633da","ui_kits/leclub151/i18n.js":"ddb23cbdc0c1","ui_kits/leclub151/reveal.js":"3b11e3f322ed"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":3,"namespace":"ADITCGDesignSystem_df75b7","components":[{"name":"QtyStepper","sourcePath":"components/commerce/QtyStepper.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Tag","sourcePath":"components/core/Tag.jsx"},{"name":"PriceTag","sourcePath":"components/product/PriceTag.jsx"},{"name":"ProductCard","sourcePath":"components/product/ProductCard.jsx"}],"sourceHashes":{"components/commerce/QtyStepper.jsx":"acfe183e1fe4","components/core/Badge.jsx":"7fd6a2089410","components/core/Button.jsx":"a03e2b9d1a95","components/core/Tag.jsx":"43c2c77fec9e","components/product/PriceTag.jsx":"01e26d70f4a4","components/product/ProductCard.jsx":"bc36f88ccd12","ui_kits/leclub151/Admin.jsx":"6825495af51e","ui_kits/leclub151/Cart.jsx":"30577da3889d","ui_kits/leclub151/Catalogue.jsx":"338336c92218","ui_kits/leclub151/Checkout.jsx":"f4f9f6cfc507","ui_kits/leclub151/Chrome.jsx":"727b8334602f","ui_kits/leclub151/Home.jsx":"60e1d6ccf773","ui_kits/leclub151/Legal.jsx":"b66e006b2f47","ui_kits/leclub151/Product.jsx":"858a99dddf98","ui_kits/leclub151/data.js":"804136f633da","ui_kits/leclub151/i18n.js":"ddb23cbdc0c1","ui_kits/leclub151/reveal.js":"3b11e3f322ed"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -3402,7 +3402,7 @@ function Announcement() {
       borderBottom: '1px solid rgba(255,255,255,0.08)'
     }
   }, /*#__PURE__*/React.createElement("div", {
-    className: "container-wide",
+    className: "container-wide lc-ann",
     style: {
       display: 'flex',
       alignItems: 'center',
@@ -3413,6 +3413,7 @@ function Announcement() {
       letterSpacing: '0.06em'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "lc-ann-side",
     style: {
       display: 'flex',
       gap: 14
@@ -3441,6 +3442,7 @@ function Announcement() {
   }, /*#__PURE__*/React.createElement(Pokeball, {
     size: 13
   }), " ", t('ann_free')), /*#__PURE__*/React.createElement("div", {
+    className: "lc-ann-side",
     style: {
       display: 'flex',
       gap: 16

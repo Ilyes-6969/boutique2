@@ -158,8 +158,8 @@ function Announcement() {
   const socials = [['Facebook', 'https://facebook.com'], ['Instagram', 'https://instagram.com'], ['YouTube', 'https://youtube.com'], ['Discord', 'https://discord.com']];
   return (
     <div style={{ background: 'var(--header-2)', color: 'rgba(234,239,251,0.9)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-      <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 16, minHeight: 38, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em' }}>
-        <div style={{ display: 'flex', gap: 14 }}>
+      <div className="container-wide lc-ann" style={{ display: 'flex', alignItems: 'center', gap: 16, minHeight: 38, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em' }}>
+        <div className="lc-ann-side" style={{ display: 'flex', gap: 14 }}>
           {socials.map(([s, url]) => (
             <a key={s} className="lc-util" href={url} target="_blank" rel="noreferrer" style={{ color: 'rgba(234,239,251,0.6)', textTransform: 'uppercase' }}>{s}</a>
           ))}
@@ -167,7 +167,7 @@ function Announcement() {
         <div style={{ flex: 1, textAlign: 'center', textTransform: 'uppercase', color: 'rgba(234,239,251,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
           <Pokeball size={13} /> {t('ann_free')}
         </div>
-        <div style={{ display: 'flex', gap: 16 }}>
+        <div className="lc-ann-side" style={{ display: 'flex', gap: 16 }}>
           <a href="#" className="lc-util" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'rgba(234,239,251,0.6)', textTransform: 'uppercase' }}>{t('ann_contact')}</a>
           <a href="#" onClick={(e) => { e.preventDefault(); openModal('account'); }} style={{ color: 'var(--yellow)', textTransform: 'uppercase', fontWeight: 600 }}>{t('ann_login')}</a>
         </div>
