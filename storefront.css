@@ -1,0 +1,92 @@
+/* leclub151 — shared storefront styles (linked by every page) */
+
+@keyframes lcFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes lcPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 100px; }
+
+/* ---- Pokéball theme-switch transition ---- */
+#lc-theme-fx { position: fixed; inset: 0; z-index: 9999; pointer-events: none; display: flex; align-items: center; justify-content: center; }
+#lc-theme-fx .wipe { position: absolute; inset: 0; animation: lcIris 820ms cubic-bezier(0.65,0,0.35,1) forwards; }
+@keyframes lcIris {
+  0%   { clip-path: circle(0% at 50% 50%); }
+  26%  { clip-path: circle(150% at 50% 50%); }
+  54%  { clip-path: circle(150% at 50% 50%); }
+  100% { clip-path: circle(0% at 50% 50%); }
+}
+#lc-theme-fx .ball { position: relative; width: 104px; height: 104px; transform-style: preserve-3d; animation: lcBall 820ms cubic-bezier(0.5,1.5,0.45,1) forwards; }
+@keyframes lcBall {
+  0%   { transform: perspective(600px) scale(0) rotateY(-360deg); opacity: 0; }
+  22%  { transform: perspective(600px) scale(1.18) rotateY(-120deg); opacity: 1; }
+  40%  { transform: perspective(600px) scale(1) rotateY(0deg); opacity: 1; }
+  58%  { transform: perspective(600px) scale(1.06) rotateY(40deg); opacity: 1; }
+  74%  { transform: perspective(600px) scale(1) rotateY(0deg); opacity: 1; }
+  100% { transform: perspective(600px) scale(0) rotateY(360deg); opacity: 0; }
+}
+/* 3D page tilt — desktop only (added via JS) */
+#root.lc-3d { transform-origin: 50% 50%; animation: lcPageTilt 820ms cubic-bezier(0.65,0,0.35,1); }
+@keyframes lcPageTilt {
+  0%   { transform: perspective(1400px) rotateX(0deg) scale(1); }
+  28%  { transform: perspective(1400px) rotateX(8deg) scale(0.94); }
+  54%  { transform: perspective(1400px) rotateX(8deg) scale(0.94); }
+  100% { transform: perspective(1400px) rotateX(0deg) scale(1); }
+}
+#lc-theme-fx .flash { position: absolute; width: 104px; height: 104px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.6) 40%, transparent 70%); animation: lcFlash 820ms ease-out forwards; }
+@keyframes lcFlash {
+  0%, 40% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.6); opacity: 1; }
+  66% { transform: scale(3.4); opacity: 0.5; }
+  80%, 100% { transform: scale(5); opacity: 0; }
+}
+#lc-theme-fx .ray { position: absolute; width: 220%; height: 220%; background: conic-gradient(from 0deg, transparent 0 10deg, rgba(255,255,255,0.10) 10deg 20deg, transparent 20deg 30deg, rgba(255,255,255,0.10) 30deg 40deg); animation: lcRay 820ms linear forwards; opacity: 0; }
+@keyframes lcRay {
+  0%, 38% { opacity: 0; transform: rotate(0deg) scale(0.4); }
+  52% { opacity: 0.8; }
+  100% { opacity: 0; transform: rotate(120deg) scale(1.2); }
+}
+/* Theme-switch flourish is user-triggered & brief — keep it playing even under reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  #lc-theme-fx .wipe { animation: lcIris 820ms cubic-bezier(0.65,0,0.35,1) forwards !important; }
+  #lc-theme-fx .ball { animation: lcBall 820ms cubic-bezier(0.5,1.5,0.45,1) forwards !important; }
+  #lc-theme-fx .flash { animation: lcFlash 820ms ease-out forwards !important; }
+  #lc-theme-fx .ray { animation: lcRay 820ms linear forwards !important; }
+  #root.lc-3d { animation: lcPageTilt 820ms cubic-bezier(0.65,0,0.35,1) !important; }
+}
+
+/* ---- Add-to-cart bump ---- */
+@keyframes lcBump { 0% { transform: scale(1); } 30% { transform: scale(1.45); } 60% { transform: scale(0.88); } 100% { transform: scale(1); } }
+.lc-bump { animation: lcBump 0.42s ease; }
+
+/* utility-bar link hover */
+.lc-util { transition: color 0.15s ease; }
+.lc-util:hover { color: var(--yellow) !important; }
+
+/* ---- Accessibility & polish ---- */
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+:focus:not(:focus-visible) { outline: none; }
+a, button { -webkit-tap-highlight-color: transparent; }
+img { -webkit-user-drag: none; user-select: none; }
+::selection { background: var(--accent); color: #fff; }
+.lc-skip {
+  position: fixed; left: 16px; top: -80px; z-index: 10000;
+  background: var(--ink); color: var(--on-ink);
+  padding: 12px 18px; border-radius: 10px;
+  font-family: var(--font-body); font-weight: 700; font-size: 14px;
+  box-shadow: var(--shadow-lg); text-decoration: none;
+  border: 2px solid var(--yellow); transition: top 0.2s ease;
+}
+.lc-skip:focus { top: 16px; }
+
+/* ---- Section entrance (CSS-only — can NEVER get stuck hidden) ----
+   A CSS animation always completes to its `to` state (opacity 1); if animations
+   are disabled/unsupported the element just uses its default (visible). No JS,
+   no IntersectionObserver dependency, so content can never stay invisible. */
+@keyframes lcRise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+main section { animation: lcRise 0.55s cubic-bezier(0.2,0.8,0.2,1) both; }
+/* legacy hooks kept inert (in case any cached JS references them) */
+.lc-reveal, .lc-reveal.lc-in { opacity: 1; transform: none; }
+/* ---- Hero ken-burns drift ---- */
+@keyframes lcKenburns { 0% { transform: scale(1) translate3d(0,0,0); } 100% { transform: scale(1.09) translate3d(-1.4%,-1%,0); } }
+/* ---- Pokéball hover spin ---- */
+.lc-pb > svg { transition: transform 0.7s cubic-bezier(0.2,0.8,0.2,1); }
+.lc-pb:hover > svg { transform: rotate(360deg); }

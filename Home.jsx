@@ -1,0 +1,146 @@
+/* leclub151 — Accueil. Works with an EMPTY catalogue (no demo products).
+   When products are added (via WordPress/WooCommerce or the back-office),
+   the rayons appear automatically. */
+
+function Home({ navigate }) {
+  const DS = window.ADITCGDesignSystem_df75b7;
+  const Store = window.LC151.Store;
+  const all = Store.all();
+  const has = all.length > 0;
+  const by = (t) => all.filter((p) => p.type === t);
+  const preorders = all.filter((p) => p.preorder);
+  const nouveautes = [...new Map(all.filter((p) => (p.badge && p.badge.tone === 'new') || p.type === 'sealed').map((p) => [p.id, p])).values()].slice(0, 8);
+
+  return (
+    <div>
+      {/* HERO */}
+      <section style={{ position: 'relative', overflow: 'hidden', borderBottom: '1.5px solid var(--line)', background: 'var(--paper)' }}>
+        {/* real graded-cards photo, desaturated + faded into the page */}
+        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(assets/hero-cards.png)', backgroundSize: 'cover', backgroundPosition: 'center right', opacity: 0.9, pointerEvents: 'none', animation: 'lcKenburns 22s ease-in-out infinite alternate', transformOrigin: 'center' }}></div>
+        {/* gradient scrim: solid paper on the left → transparent on the right, plus a bottom fade */}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--paper) 0%, var(--paper) 28%, rgba(0,0,0,0) 78%)', pointerEvents: 'none' }}></div>
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, var(--paper) 0%, rgba(0,0,0,0) 42%)', pointerEvents: 'none' }}></div>
+
+        <div className="container-wide" style={{ position: 'relative', padding: '76px 24px 80px', minHeight: 420 }}>
+          <div style={{ maxWidth: 560 }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(34px, 5vw, 66px)', letterSpacing: '-0.03em', lineHeight: 1.02, marginBottom: 20 }}>
+              Votre boutique<br />Pokémon, à <span style={{ position: 'relative', whiteSpace: 'nowrap', borderBottom: '5px solid var(--yellow)', paddingBottom: 2 }}>Vienne</span>.
+            </h1>
+            <p style={{ fontSize: 17.5, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 480, marginBottom: 30 }}>
+              On déniche, on authentifie et on conseille — du Set de Base aux dernières sorties. Cartes à l'unité, pièces gradées, scellé et accessoires, à retirer en magasin ou livrés chez vous.
+            </p>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
+              <DS.Button variant="accent" size="lg" as="a" href="#" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'all'); }}>Explorer la boutique</DS.Button>
+              <DS.Button variant="outline" size="lg" as="a" href="#" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'graded'); }}>Cartes gradées</DS.Button>
+            </div>
+            <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', fontSize: 13.5, color: 'var(--ink-2)' }}>
+              {[['✓', 'Authentifié'], ['⤓', 'Expédié sous 48 h'], ['↺', 'Retours 14 jours']].map(([ic, t]) => (
+                <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                  <span aria-hidden="true" style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid var(--yellow)', color: 'var(--yellow)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>{ic}</span>
+                  <span style={{ fontWeight: 500 }}>{t}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* REASSURANCE STRIP */}
+      <section style={{ background: 'var(--card)', borderBottom: '1.5px solid var(--line)' }}>
+        <div className="container-wide" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '20px 24px' }}>
+          {[['✓', 'Authentifié', 'Chaque pièce vérifiée'], ['⤓', 'Livraison offerte', 'Dès 100 € d’achat'], ['◈', 'Paiement sécurisé', 'CB · PayPal · Apple Pay']].map(([ic, t, s]) => (
+            <div key={t} className="lc-reassure" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
+              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: 'var(--accent)' }}>{ic}</span>
+              <div>
+                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5 }}>{t}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{s}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CATEGORY TILES */}
+      <section className="container-wide" style={{ padding: '48px 24px 8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          {[["Cartes à l'unité", 'single', 'Du Set de Base à aujourd’hui'], ['Cartes gradées', 'graded', 'PSA · BGS authentifiées'], ['Scellé', 'sealed', 'Displays · ETB · coffrets'], ['Accessoires', 'accessory', 'Sleeves · classeurs · tapis']].map(([t, key, sub]) => (
+            <a key={key} href="#" onClick={(e) => { e.preventDefault(); navigate('catalogue', key); }}
+              style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>{t}</span>
+              <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{sub}</span>
+              <span style={{ marginTop: 8, fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><Pokeball size={14} />Découvrir →</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
+      {/* RAYONS (only when products exist) or EMPTY STATE */}
+      {has ? (
+        <div className="container-wide" style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 48 }}>
+          <ProductRow eyebrow="Tout juste arrivé" title="Nouveautés" products={nouveautes} navigate={navigate} onSeeAll={() => navigate('catalogue', 'all')} />
+          <ProductRow eyebrow="Réservez les prochaines sorties" title="Précommandes" products={preorders} navigate={navigate} onSeeAll={() => navigate('catalogue', 'preorder')} />
+          <ProductRow eyebrow="Sous coque, certifiées" title="Cartes gradées PSA" products={by('graded')} navigate={navigate} onSeeAll={() => navigate('catalogue', 'graded')} />
+          <ProductRow eyebrow="Scellé & coffrets" title="Produits scellés" products={by('sealed')} navigate={navigate} onSeeAll={() => navigate('catalogue', 'sealed')} />
+          <ProductRow eyebrow="Du Set de Base à aujourd'hui" title="Cartes à l'unité" products={by('single')} navigate={navigate} onSeeAll={() => navigate('catalogue', 'single')} />
+        </div>
+      ) : (
+        <section className="container-wide" style={{ padding: '56px 24px 64px' }}>
+          <div style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: '48px 32px', textAlign: 'center', maxWidth: 720, margin: '0 auto' }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', marginBottom: 12 }}>On garnit les rayons</h2>
+            <p style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 500, margin: '0 auto 24px' }}>
+              La boutique en ligne ouvre très bientôt. En attendant, passez nous voir rue de la Juiverie — ou dites-nous la carte que vous cherchez, on l'a souvent en réserve.
+            </p>
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <DS.Button variant="accent" as="a" href="#" onClick={(e) => { e.preventDefault(); openModal('contact'); }}>Nous écrire</DS.Button>
+              <DS.Button variant="outline" as="a" href="#" onClick={(e) => { e.preventDefault(); openModal('newsletter'); }}>Prévenez-moi du lancement</DS.Button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* NOTRE BOUTIQUE À VIENNE */}
+      <section className="container-wide" style={{ padding: '8px 24px 16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1.5px solid var(--line)', background: 'var(--card)' }}>
+          <div style={{ padding: '36px 36px 38px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 14 }}><Pokeball size={14} />Boutique physique</div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em', marginBottom: 12 }}>Retrouvez-nous à Vienne</h2>
+            <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 440, marginBottom: 22 }}>
+              Poussez la porte de la boutique pour voir les pièces en vrai, faire estimer vos cartes ou retirer une commande. On adore parler collection.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 24 }}>
+              {[['Adresse', 'Rue de la Juiverie\n38200 Vienne'], ['Horaires', 'Mar–Sam · 10h–19h\nDimanche · 14h–18h'], ['Téléphone', '04 74 00 00 00'], ['Services', 'Estimation · Retrait\nAchat de collections']].map(([k, v]) => (
+                <div key={k}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 5 }}>{k}</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 500, lineHeight: 1.45, whiteSpace: 'pre-line' }}>{v}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <DS.Button variant="accent" onClick={() => openModal('contact')}>Nous contacter</DS.Button>
+              <DS.Button variant="outline" as="a" href="https://maps.google.com/?q=Rue+de+la+Juiverie+Vienne" target="_blank">Itinéraire →</DS.Button>
+            </div>
+          </div>
+          <div style={{ position: 'relative', background: 'var(--header-bg)', minHeight: 340, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 18px, transparent 18px 36px)' }}></div>
+            <div style={{ position: 'relative', textAlign: 'center', color: '#fff' }}>
+              <Pokeball size={64} style={{ marginBottom: 14 }} />
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontStyle: 'italic', fontSize: 30, color: '#fff' }}>leclub<span style={{ color: 'var(--yellow)' }}>151</span></div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)', marginTop: 8 }}>Vienne · Isère (38)</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* SHOP POLICY BAND */}
+      <section style={{ background: 'var(--ink)', color: 'var(--on-ink)' }}>
+        <div className="container-wide" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '40px 24px', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 12 }}><Pokeball size={26} />Passez nous voir — on adore parler cartes</div>
+          </div>
+          <DS.Button variant="accent" size="lg" as="a" href="#" onClick={(e) => { e.preventDefault(); openModal('contact'); }}>Nous trouver</DS.Button>
+        </div>
+      </section>
+    </div>
+  );
+}
+Object.assign(window, { Home });

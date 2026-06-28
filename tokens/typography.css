@@ -1,0 +1,93 @@
+/* ============================================
+   leclub151 — Typography tokens
+   Bricolage Grotesque = display (editorial, characterful)
+   Hanken Grotesk      = body, UI, labels, prices, meta (one clean sans)
+============================================ */
+
+:root {
+  --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', system-ui, sans-serif;
+  --font-body: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  /* "mono" kept as a token name but rendered in the body sans so labels,
+     prices and meta share one clean typeface across the whole site. */
+  --font-mono: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+
+  /* Display scale — tight tracking, heavy weights */
+  --display-1-size: clamp(44px, 6.5vw, 92px);
+  --display-1-weight: 800;
+  --display-1-tracking: -0.035em;
+  --display-1-leading: 0.96;
+
+  --display-2-size: clamp(30px, 4vw, 52px);
+  --display-2-weight: 700;
+  --display-2-tracking: -0.025em;
+  --display-2-leading: 1.04;
+
+  --display-3-size: clamp(21px, 2.4vw, 30px);
+  --display-3-weight: 700;
+  --display-3-tracking: -0.015em;
+  --display-3-leading: 1.18;
+
+  /* Body */
+  --body-size: 16px;
+  --body-leading: 1.55;
+
+  /* Mono label — uppercase, wide tracking */
+  --label-size: 11px;
+  --label-tracking: 0.16em;
+  --label-weight: 500;
+}
+
+/* Display utility classes (shipped to consumers) */
+.display-1 {
+  font-family: var(--font-display);
+  font-weight: var(--display-1-weight);
+  font-size: var(--display-1-size);
+  line-height: var(--display-1-leading);
+  letter-spacing: var(--display-1-tracking);
+  color: var(--ink);
+}
+.display-2 {
+  font-family: var(--font-display);
+  font-weight: var(--display-2-weight);
+  font-size: var(--display-2-size);
+  line-height: var(--display-2-leading);
+  letter-spacing: var(--display-2-tracking);
+  color: var(--ink);
+}
+.display-3 {
+  font-family: var(--font-display);
+  font-weight: var(--display-3-weight);
+  font-size: var(--display-3-size);
+  line-height: var(--display-3-leading);
+  letter-spacing: var(--display-3-tracking);
+  color: var(--ink);
+}
+
+/* Eyebrow / kicker — mono, uppercase, leading dot */
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--label-size);
+  text-transform: uppercase;
+  letter-spacing: var(--label-tracking);
+  font-weight: var(--label-weight);
+  color: var(--ink-2);
+}
+.label.accent { color: var(--ink); }
+.label.accent::before {
+  content: '';
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* Price — mono numerals, ink, tabular */
+.price {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}

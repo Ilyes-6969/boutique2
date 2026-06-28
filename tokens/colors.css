@@ -1,0 +1,124 @@
+/* ============================================
+   leclub151 — Color tokens
+   PALETTE inspired by a classic Pokémon TCG store:
+   deep navy blue · Pokéball red · gold/yellow · white.
+   Red = primary CTAs · Navy = headers/text/dark surfaces ·
+   Gold = highlights/accents · Blue = secondary.
+============================================ */
+
+:root {
+  /* ---- ACCENT — Pokéball red (primary CTAs) ---- */
+  --accent: #EE1515;
+  --accent-deep: #C70D0D;
+  --accent-soft: #FBD6D6;
+  --accent-wash: #FDEDED;
+
+  /* ---- GOLD — highlights, "new", hero underline, footer headings ---- */
+  --yellow: #FFCB05;
+  --yellow-deep: #E0AE00;
+  --on-yellow: #15224F;
+  /* legacy alias used around the site for the secondary accent → gold */
+  --teal: #FFCB05;
+  --teal-deep: #E0AE00;
+  --teal-soft: #FFF0B8;
+  --teal-wash: #FFF8DD;
+
+  /* ---- BLUE — secondary actions, links ---- */
+  --blue: #1F4FB0;
+  --blue-deep: #163C8A;
+  --on-blue: #FFFFFF;
+
+  /* ---- INK — deep navy (text + headers + dark surfaces) ---- */
+  --ink: #15224F;             /* primary text / navy bands / nav */
+  --ink-soft: #25356B;        /* secondary headings */
+  --ink-2: #586089;           /* secondary text */
+  --muted: #8A90A8;           /* tertiary / meta / placeholder */
+
+  /* ---- PAPER — cool white & light blue-greys ---- */
+  --paper: #EEF1F8;           /* page background — light cool grey */
+  --paper-2: #E3E8F3;         /* sunken / alt band / image stage */
+  --card: #FFFFFF;            /* card / raised surface — white */
+  --line: #D7DEEC;            /* borders, dividers */
+  --line-strong: #BFC8DD;     /* stronger hairline / input border */
+
+  /* ---- STATUS ---- */
+  --green: #1F9D57;           /* in stock, success */
+  --green-soft: #E2F3E8;
+  --red: #D8232A;             /* rupture / error / price-drop */
+  --red-soft: #FBE2E1;
+
+  /* ---- FEATURE GRADIENTS (navy hero/collection cards) ---- */
+  --grad-green: linear-gradient(165deg, #1b357f 0%, #0c1640 100%); /* @kind color */
+  --grad-red: linear-gradient(165deg, #b1250b 0%, #5e1305 100%); /* @kind color */
+  --live: #EE1515;            /* LIVE / hot pill */
+
+  /* ---- SEMANTIC ALIASES ---- */
+  --text-body: var(--ink);
+  --text-muted: var(--ink-2);
+  --surface-page: var(--paper);
+  --surface-band: var(--paper-2);
+  --surface-card: var(--card);
+  --border-default: var(--line);
+  --action-primary: var(--accent);   /* red primary buttons */
+  --action-accent: var(--accent);
+
+  /* navy header & footer */
+  --header-bg: #142255;
+  --header-2: #0E1A45;
+  --footer-bg: #0E1A45;
+  --footer-text: #FFFFFF;
+
+  /* Text colour that reads on the fills */
+  --on-accent: #FFFFFF;       /* white on red */
+  --on-ink: #FFFFFF;          /* white on navy */
+}
+
+/* ============================================
+   DARK MODE — "Pokémon night" deep navy
+============================================ */
+[data-theme="dark"] {
+  --accent: #FF3B3B;
+  --accent-deep: #EE1515;
+  --accent-soft: rgba(255, 59, 59, 0.20);
+  --accent-wash: rgba(255, 59, 59, 0.10);
+
+  --yellow: #FFD633;
+  --yellow-deep: #FFCB05;
+  --on-yellow: #0A1230;
+  --teal: #FFD633;
+  --teal-deep: #FFCB05;
+  --teal-soft: rgba(255, 214, 51, 0.20);
+  --teal-wash: rgba(255, 214, 51, 0.08);
+
+  --blue: #5C82E0;
+  --blue-deep: #3B62C4;
+  --on-blue: #0A1230;
+
+  --ink: #EAEFFB;             /* near-white text */
+  --ink-soft: #C9D3EC;
+  --ink-2: #97A2C4;
+  --muted: #6B749A;
+
+  --paper: #0A1230;           /* deep navy page */
+  --paper-2: #111B40;         /* alt band / image stage */
+  --card: #141F49;            /* card surface */
+  --line: #243154;           /* borders */
+  --line-strong: #354670;
+
+  --green: #36C07E;
+  --green-soft: rgba(31, 157, 87, 0.20);
+  --red: #FF5A5A;
+  --red-soft: rgba(216, 35, 42, 0.22);
+
+  --grad-green: linear-gradient(165deg, #1b357f 0%, #0a1233 100%); /* @kind color */
+  --grad-red: linear-gradient(165deg, #b1250b 0%, #4a0f03 100%); /* @kind color */
+  --live: #FF3B3B;
+
+  --header-bg: #0C1538;
+  --header-2: #070E2A;
+  --footer-bg: #070E2A;
+  --footer-text: #EAEFFB;
+
+  --on-accent: #FFFFFF;
+  --on-ink: #0A1230;
+}
