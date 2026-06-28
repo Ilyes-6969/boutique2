@@ -10,6 +10,8 @@ function Home({ navigate }) {
   const by = (t) => all.filter((p) => p.type === t);
   const preorders = all.filter((p) => p.preorder);
   const nouveautes = [...new Map(all.filter((p) => (p.badge && p.badge.tone === 'new') || p.type === 'sealed').map((p) => [p.id, p])).values()].slice(0, 8);
+  const ventes = [...new Map(['d1', 'd4', 'd5', 'd3', 'd6', 'd8'].map((id) => Store.get(id)).filter(Boolean).map((p) => [p.id, p])).values()];
+  const ventesFill = ventes.length ? ventes : all.slice(0, 8);
 
   return (
     <div>
@@ -60,6 +62,25 @@ function Home({ navigate }) {
         </div>
       </section>
 
+      {/* NOS UNIVERS (jeux TCG) */}
+      <section className="container-wide" style={{ padding: '40px 24px 8px' }}>
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Nos univers</div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>Tous vos jeux de cartes</h2>
+        </div>
+        <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
+          {[['Pokémon', 'boutique.html', '#FFCB05', 'Le cœur de la boutique', false], ['Disney Lorcana', 'lorcana.html', '#1E63C8', 'Singles & chapitres', true], ['One Piece', 'one-piece.html', '#D8232A', 'Romance Dawn & +', true], ['Magic', 'magic.html', '#E08A2B', 'The Gathering', true], ['Yu-Gi-Oh!', 'yugioh.html', '#6A3FB5', 'Cartes & coffrets', true]].map(([t, href, color, sub, soon]) => (
+            <a key={href} href={href}
+              style={{ position: 'relative', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: 6, overflow: 'hidden' }}>
+              <span style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: color }}></span>
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, letterSpacing: '-0.01em' }}>{t}</span>
+              <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{sub}</span>
+              <span style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: soon ? 'var(--muted)' : 'var(--accent)', fontWeight: 600 }}>{soon ? 'Bientôt disponible' : 'Explorer →'}</span>
+            </a>
+          ))}
+        </div>
+      </section>
+
       {/* CATEGORY TILES */}
       <section className="container-wide" style={{ padding: '48px 24px 8px' }}>
         <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
@@ -68,7 +89,7 @@ function Home({ navigate }) {
               style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>{t}</span>
               <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{sub}</span>
-              <span style={{ marginTop: 8, fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><Pokeball size={14} />Découvrir →</span>
+              <span style={{ marginTop: 8, fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>Découvrir →</span>
             </a>
           ))}
         </div>
@@ -79,9 +100,7 @@ function Home({ navigate }) {
         <div className="container-wide" style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 48 }}>
           <ProductRow eyebrow="Tout juste arrivé" title="Nouveautés" products={nouveautes} navigate={navigate} onSeeAll={() => navigate('catalogue', 'all')} />
           <ProductRow eyebrow="Réservez les prochaines sorties" title="Précommandes" products={preorders} navigate={navigate} onSeeAll={() => navigate('catalogue', 'preorder')} />
-          <ProductRow eyebrow="Sous coque, certifiées" title="Cartes gradées PSA" products={by('graded')} navigate={navigate} onSeeAll={() => navigate('catalogue', 'graded')} />
-          <ProductRow eyebrow="Scellé & coffrets" title="Produits scellés" products={by('sealed')} navigate={navigate} onSeeAll={() => navigate('catalogue', 'sealed')} />
-          <ProductRow eyebrow="Du Set de Base à aujourd'hui" title="Cartes à l'unité" products={by('single')} navigate={navigate} onSeeAll={() => navigate('catalogue', 'single')} />
+          <ProductRow eyebrow="Les préférées des collectionneurs" title="Meilleures ventes" products={ventesFill} navigate={navigate} onSeeAll={() => navigate('catalogue', 'all')} />
         </div>
       ) : (
         <section className="container-wide" style={{ padding: '56px 24px 64px' }}>
@@ -135,7 +154,7 @@ function Home({ navigate }) {
       <section style={{ background: 'var(--ink)', color: 'var(--on-ink)' }}>
         <div className="container-wide" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '40px 24px', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 12 }}><Pokeball size={26} />Passez nous voir — on adore parler cartes</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em' }}>Passez nous voir — on adore parler cartes</div>
           </div>
           <DS.Button variant="accent" size="lg" as="a" href="#" onClick={(e) => { e.preventDefault(); openModal('contact'); }}>Nous trouver</DS.Button>
         </div>

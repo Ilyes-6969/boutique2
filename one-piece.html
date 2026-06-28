@@ -1,4 +1,4 @@
-<!-- @dsCard group="leclub151" viewport="1440x900" name="leclub151 — Mentions légales" subtitle="Page légale (gabarit à compléter)" -->
+<!-- @dsCard group="leclub151" viewport="1440x900" name="leclub151 — One Piece Card Game" subtitle="Rayon One Piece Card Game (bientôt disponible)" -->
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -10,7 +10,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mentions légales — leclub151</title>
+<title>One Piece Card Game — leclub151</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='50' cy='50' r='46'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23c)'%3E%3Crect width='100' height='50' fill='%23EE1515'/%3E%3Crect y='50' width='100' height='50' fill='%23fff'/%3E%3Crect y='44' width='100' height='12' fill='%231a1a1a'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%231a1a1a' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='14' fill='%23fff' stroke='%231a1a1a' stroke-width='6'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="../../styles.css">
 <link rel="stylesheet" href="storefront2.css">
@@ -25,17 +25,21 @@
 <script src="data.js"></script>
 <script src="i18n.js"></script>
 <script type="text/babel" src="Chrome.jsx"></script>
-<script type="text/babel" src="Legal.jsx"></script>
+<script type="text/babel" src="Catalogue.jsx"></script>
 <script type="text/babel" src="Checkout.jsx"></script>
 <script type="text/babel">
   function Page() {
     const nav = window.lcNavigate;
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get('cat') || 'all';
+    const q = params.get('q') || '';
+    const game = 'onepiece';
     return (
       <React.Fragment>
         <a href="#lc-main" className="lc-skip">Aller au contenu principal</a>
         <Announcement />
-        <Header navigate={nav} active="" onCart={() => nav('cart')} />
-        <main id="lc-main"><LegalPage navigate={nav} kind="mentions" /></main>
+        <Header navigate={nav} active="catalogue" onCart={() => nav('cart')} />
+        <main id="lc-main"><Catalogue navigate={nav} initialFilter={cat} initialQuery={q} initialGame={game} /></main>
         <Footer navigate={nav} />
         <ModalHost />
       </React.Fragment>

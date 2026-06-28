@@ -247,6 +247,8 @@ function Header({ navigate, active, onCart }) {
   const t = useLang();
   const count = cart.count();
   const loggedIn = auth.isLoggedIn();
+  const [query, setQuery] = React.useState('');
+  const runSearch = () => { window.location.href = 'boutique.html?q=' + encodeURIComponent(query.trim()); };
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--header-bg)', borderBottom: '3px solid var(--accent)' }}>
       {/* main row */}
@@ -255,8 +257,8 @@ function Header({ navigate, active, onCart }) {
         <div className="lc-search" style={{ flex: 1, maxWidth: 540, marginLeft: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px 0 16px', height: 44, borderRadius: 'var(--radius-pill)', border: '1.5px solid transparent', background: 'var(--card)' }}>
             <span style={{ fontSize: 15, color: 'var(--muted)' }}>⌕</span>
-            <input placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') navigate('catalogue', 'all'); }} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
-            <button onClick={() => navigate('catalogue', 'all')} style={{ height: 34, padding: '0 16px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
+            <button onClick={runSearch} style={{ height: 34, padding: '0 16px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -303,6 +305,7 @@ const NAV = [
     { title: 'Marques', items: ['Ultra Pro', 'Ultimate Guard', 'Dragon Shield', 'Gamegenic'] },
   ] },
   { key: 'preorder', label: 'Précommande' },
+  { key: 'univers', label: 'Autres jeux', games: [['Pokémon', 'boutique.html'], ['Disney Lorcana', 'lorcana.html'], ['One Piece', 'one-piece.html'], ['Magic: The Gathering', 'magic.html'], ['Yu-Gi-Oh!', 'yugioh.html']] },
   { key: 'catalogue', label: 'Toute la boutique' },
 ];
 
@@ -316,10 +319,10 @@ function MegaNav({ navigate, active }) {
         {NAV.map((c) => {
           const on = active === c.key || (c.key === 'home' && active === 'home');
           return (
-            <a key={c.key} href="#" className="lc-nav-link" onMouseEnter={() => setOpen(c.cols ? c.key : null)}
-              onClick={(e) => { e.preventDefault(); go(c); }}
+            <a key={c.key} href="#" className="lc-nav-link" onMouseEnter={() => setOpen(c.cols || c.games ? c.key : null)}
+              onClick={(e) => { e.preventDefault(); if (!c.games) go(c); }}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 15px', fontSize: 13.5, fontWeight: 600, color: on ? '#fff' : 'rgba(234,239,251,0.72)', borderBottom: '3px solid', borderColor: on ? 'var(--yellow)' : 'transparent', whiteSpace: 'nowrap' }}>
-              {t('nav_' + c.key)}{c.cols && <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>}
+              {(window.lcI18n && window.lcI18n.t('nav_' + c.key) !== 'nav_' + c.key) ? t('nav_' + c.key) : c.label}{(c.cols || c.games) && <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>}
             </a>
           );
         })}
@@ -327,10 +330,23 @@ function MegaNav({ navigate, active }) {
       </div>
 
       {/* dropdown panel */}
-      {NAV.filter((c) => c.cols).map((c) => (
+      {NAV.filter((c) => c.cols || c.games).map((c) => (
         open === c.key ? (
           <div key={c.key} onMouseEnter={() => setOpen(c.key)}
             style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card)', borderTop: '1.5px solid var(--line)', borderBottom: '1.5px solid var(--line)', boxShadow: 'var(--shadow)', zIndex: 60 }}>
+            {c.games ? (
+              <div className="container-wide" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, padding: '22px 24px 26px' }}>
+                {c.games.map(([label, href]) => (
+                  <a key={href} href={href}
+                    style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', color: 'var(--ink)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--line)'; }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{label}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: href === 'boutique.html' ? 'var(--accent)' : 'var(--muted)' }}>{href === 'boutique.html' ? 'Explorer' : 'Bientôt'}</span>
+                  </a>
+                ))}
+              </div>
+            ) : (
             <div className="container-wide" style={{ display: 'flex', gap: 56, padding: '26px 24px 30px' }}>
               {c.cols.map((col) => (
                 <div key={col.title}>
@@ -351,6 +367,7 @@ function MegaNav({ navigate, active }) {
                 <a href="#" onClick={(e) => { e.preventDefault(); go(c); }} style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tout voir →</a>
               </div>
             </div>
+            )}
           </div>
         ) : null
       ))}
@@ -593,7 +610,7 @@ function ProductRow({ eyebrow, title, products, navigate, onSeeAll }) {
     <section style={{ marginBottom: 8 }}>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18, gap: 16 }}>
         <div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: 10 }}><Pokeball size={22} />{title}</h2>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>{title}</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <a href="#" onClick={(e) => { e.preventDefault(); onSeeAll && onSeeAll(); }} style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Tout voir →</a>
