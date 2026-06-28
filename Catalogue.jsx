@@ -13,7 +13,7 @@ function Catalogue({ navigate, initialFilter }) {
   const wp = Store.wpStatus();              // { state: off|loading|ok|error, error }
   const loading = wp.state === 'loading';
   const errored = wp.state === 'error';
-  const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 20 };
+  const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 18 };
   const stateBox = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '72px 24px' };
 
   let list = PRODUCTS.filter((p) => filter === 'all' ? true : filter === 'preorder' ? p.preorder : p.type === filter);

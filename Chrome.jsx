@@ -252,7 +252,7 @@ function Header({ navigate, active, onCart }) {
       {/* main row */}
       <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 24, height: 76 }}>
         <Logo onClick={() => navigate('home')} size={26} />
-        <div style={{ flex: 1, maxWidth: 540, marginLeft: 12 }}>
+        <div className="lc-search" style={{ flex: 1, maxWidth: 540, marginLeft: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px 0 16px', height: 44, borderRadius: 'var(--radius-pill)', border: '1.5px solid transparent', background: 'var(--card)' }}>
             <span style={{ fontSize: 15, color: 'var(--muted)' }}>⌕</span>
             <input placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') navigate('catalogue', 'all'); }} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
@@ -312,7 +312,7 @@ function MegaNav({ navigate, active }) {
   const go = (item) => { setOpen(null); navigate(item.key === 'home' ? 'home' : 'catalogue', item.key === 'home' ? undefined : item.key === 'catalogue' ? 'all' : item.key); };
   return (
     <nav style={{ borderTop: '1px solid rgba(255,255,255,0.12)', position: 'relative', background: 'var(--header-2)' }} onMouseLeave={() => setOpen(null)}>
-      <div className="container-wide" style={{ display: 'flex', gap: 2, height: 48, alignItems: 'stretch' }}>
+      <div className="container-wide lc-nav-scroll" style={{ display: 'flex', gap: 2, height: 48, alignItems: 'stretch' }}>
         {NAV.map((c) => {
           const on = active === c.key || (c.key === 'home' && active === 'home');
           return (
@@ -446,7 +446,7 @@ function Footer({ navigate }) {
         </div>
       </div>
       <div className="container-wide" style={{ padding: '56px 24px 30px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr 1fr 1fr', gap: 44, marginBottom: 40, alignItems: 'start' }}>
+        <div className="lc-foot-grid" style={{ display: 'grid', gridTemplateColumns: '1.7fr 1fr 1fr 1fr', gap: 44, marginBottom: 40, alignItems: 'start' }}>
           <div>
             <div style={{ marginBottom: 18 }}><Logo size={30} onClick={() => navigate('home')} /></div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
@@ -837,7 +837,7 @@ function AddressesModal({ onClose }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div><label style={lbl}>Nom complet</label><input style={fld('name')} value={a.name} onChange={(e) => set('name', e.target.value)} /></div>
         <div><label style={lbl}>Adresse</label><input style={fld('addr')} value={a.addr} onChange={(e) => set('addr', e.target.value)} placeholder="N° et rue" /></div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+        <div className="lc-addr-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
           <div><label style={lbl}>Code postal</label><input style={fld('zip')} value={a.zip} onChange={(e) => set('zip', e.target.value)} /></div>
           <div><label style={lbl}>Ville</label><input style={fld('city')} value={a.city} onChange={(e) => set('city', e.target.value)} /></div>
         </div>

@@ -1,4 +1,4 @@
-/* @ds-bundle: {"format":3,"namespace":"ADITCGDesignSystem_df75b7","components":[{"name":"QtyStepper","sourcePath":"components/commerce/QtyStepper.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Tag","sourcePath":"components/core/Tag.jsx"},{"name":"PriceTag","sourcePath":"components/product/PriceTag.jsx"},{"name":"ProductCard","sourcePath":"components/product/ProductCard.jsx"}],"sourceHashes":{"components/commerce/QtyStepper.jsx":"acfe183e1fe4","components/core/Badge.jsx":"7fd6a2089410","components/core/Button.jsx":"a03e2b9d1a95","components/core/Tag.jsx":"43c2c77fec9e","components/product/PriceTag.jsx":"01e26d70f4a4","components/product/ProductCard.jsx":"bc36f88ccd12","ui_kits/leclub151/Admin.jsx":"6825495af51e","ui_kits/leclub151/Cart.jsx":"0881c26dd0e2","ui_kits/leclub151/Catalogue.jsx":"12fae7243b58","ui_kits/leclub151/Checkout.jsx":"5130c2b195c6","ui_kits/leclub151/Chrome.jsx":"7684dea2d7e5","ui_kits/leclub151/Home.jsx":"ea445d999620","ui_kits/leclub151/Legal.jsx":"b66e006b2f47","ui_kits/leclub151/Product.jsx":"283ded79732b","ui_kits/leclub151/data.js":"804136f633da","ui_kits/leclub151/i18n.js":"ddb23cbdc0c1","ui_kits/leclub151/reveal.js":"3b11e3f322ed"},"inlinedExternals":[],"unexposedExports":[]} */
+/* @ds-bundle: {"format":3,"namespace":"ADITCGDesignSystem_df75b7","components":[{"name":"QtyStepper","sourcePath":"components/commerce/QtyStepper.jsx"},{"name":"Badge","sourcePath":"components/core/Badge.jsx"},{"name":"Button","sourcePath":"components/core/Button.jsx"},{"name":"Tag","sourcePath":"components/core/Tag.jsx"},{"name":"PriceTag","sourcePath":"components/product/PriceTag.jsx"},{"name":"ProductCard","sourcePath":"components/product/ProductCard.jsx"}],"sourceHashes":{"components/commerce/QtyStepper.jsx":"acfe183e1fe4","components/core/Badge.jsx":"7fd6a2089410","components/core/Button.jsx":"a03e2b9d1a95","components/core/Tag.jsx":"43c2c77fec9e","components/product/PriceTag.jsx":"01e26d70f4a4","components/product/ProductCard.jsx":"bc36f88ccd12","ui_kits/leclub151/Admin.jsx":"6825495af51e","ui_kits/leclub151/Cart.jsx":"30577da3889d","ui_kits/leclub151/Catalogue.jsx":"338336c92218","ui_kits/leclub151/Checkout.jsx":"f4f9f6cfc507","ui_kits/leclub151/Chrome.jsx":"8f5814f3c546","ui_kits/leclub151/Home.jsx":"60e1d6ccf773","ui_kits/leclub151/Legal.jsx":"b66e006b2f47","ui_kits/leclub151/Product.jsx":"858a99dddf98","ui_kits/leclub151/data.js":"804136f633da","ui_kits/leclub151/i18n.js":"ddb23cbdc0c1","ui_kits/leclub151/reveal.js":"3b11e3f322ed"},"inlinedExternals":[],"unexposedExports":[]} */
 
 (() => {
 
@@ -1884,6 +1884,7 @@ function CartPage({
     variant: "accent",
     onClick: () => navigate('catalogue', 'all')
   }, "Explorer la boutique")) : /*#__PURE__*/React.createElement("div", {
+    className: "lc-cart-grid",
     style: {
       display: 'grid',
       gridTemplateColumns: '1.6fr 0.9fr',
@@ -2140,8 +2141,8 @@ function Catalogue({
   const errored = wp.state === 'error';
   const gridStyle = {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-    gap: 20
+    gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))',
+    gap: 18
   };
   const stateBox = {
     display: 'flex',
@@ -2825,6 +2826,7 @@ function CheckoutModal({
       cursor: 'pointer'
     }
   }, "Continuer mes achats")) : /*#__PURE__*/React.createElement("div", {
+    className: "lc-checkout-grid",
     style: {
       display: 'grid',
       gridTemplateColumns: '1.3fr 0.9fr',
@@ -3575,6 +3577,7 @@ function Header({
     onClick: () => navigate('home'),
     size: 26
   }), /*#__PURE__*/React.createElement("div", {
+    className: "lc-search",
     style: {
       flex: 1,
       maxWidth: 540,
@@ -3780,7 +3783,7 @@ function MegaNav({
     },
     onMouseLeave: () => setOpen(null)
   }, /*#__PURE__*/React.createElement("div", {
-    className: "container-wide",
+    className: "container-wide lc-nav-scroll",
     style: {
       display: 'flex',
       gap: 2,
@@ -4160,6 +4163,7 @@ function Footer({
       padding: '56px 24px 30px'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "lc-foot-grid",
     style: {
       display: 'grid',
       gridTemplateColumns: '1.7fr 1fr 1fr 1fr',
@@ -5380,6 +5384,7 @@ function AddressesModal({
     onChange: e => set('addr', e.target.value),
     placeholder: "N\xB0 et rue"
   })), /*#__PURE__*/React.createElement("div", {
+    className: "lc-addr-grid",
     style: {
       display: 'grid',
       gridTemplateColumns: '1fr 2fr',
@@ -5694,6 +5699,7 @@ function Home({
       padding: '48px 24px 8px'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "lc-cat-tiles",
     style: {
       display: 'grid',
       gridTemplateColumns: 'repeat(4, 1fr)',
@@ -5837,6 +5843,7 @@ function Home({
       padding: '8px 24px 16px'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "lc-shop-grid",
     style: {
       display: 'grid',
       gridTemplateColumns: '1.1fr 0.9fr',
@@ -5881,6 +5888,7 @@ function Home({
       marginBottom: 22
     }
   }, "Poussez la porte de la boutique pour voir les pi\xE8ces en vrai, faire estimer vos cartes ou retirer une commande. On adore parler collection."), /*#__PURE__*/React.createElement("div", {
+    className: "lc-addr-grid",
     style: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
@@ -6285,7 +6293,7 @@ function Product({
       color: 'var(--ink)'
     }
   }, " ", product.name))), /*#__PURE__*/React.createElement("section", {
-    className: "container-wide",
+    className: "container-wide lc-prod-grid",
     style: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
@@ -6294,6 +6302,7 @@ function Product({
       alignItems: 'start'
     }
   }, /*#__PURE__*/React.createElement("div", {
+    className: "lc-prod-gallery",
     style: {
       position: 'sticky',
       top: 92
@@ -6477,6 +6486,7 @@ function Product({
       marginBottom: 26
     }
   }, "Dans la m\xEAme s\xE9rie"), /*#__PURE__*/React.createElement("div", {
+    className: "lc-grid-auto",
     style: {
       display: 'grid',
       gridTemplateColumns: 'repeat(4, 1fr)',

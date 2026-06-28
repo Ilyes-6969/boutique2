@@ -45,9 +45,9 @@ function Product({ navigate, productId, onCart }) {
         </div>
       </section>
 
-      <section className="container-wide" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, padding: '20px 24px 72px', alignItems: 'start' }}>
+      <section className="container-wide lc-prod-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, padding: '20px 24px 72px', alignItems: 'start' }}>
         {/* GALLERY */}
-        <div style={{ position: 'sticky', top: 92 }}>
+        <div className="lc-prod-gallery" style={{ position: 'sticky', top: 92 }}>
           <div style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
             {product.image ? (
               <img src={product.image} alt={product.name} style={{ maxHeight: 440, filter: 'drop-shadow(0 22px 36px rgba(26,23,20,0.30))' }} />
@@ -105,7 +105,7 @@ function Product({ navigate, productId, onCart }) {
       <section style={{ borderTop: '1.5px solid var(--line)' }}>
         <div className="container-wide" style={{ padding: '56px 24px 80px' }}>
           <h2 className="display-3" style={{ marginBottom: 26 }}>Dans la même série</h2>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+          <div className="lc-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
             {relList.map((p) => <StoreCard key={p.id} product={p} navigate={navigate} />)}
           </div>
         </div>

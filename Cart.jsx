@@ -127,7 +127,7 @@ function CartPage({ navigate }) {
             <DS.Button variant="accent" onClick={() => navigate('catalogue', 'all')}>Explorer la boutique</DS.Button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr', gap: 32, alignItems: 'start' }}>
+          <div className="lc-cart-grid" style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr', gap: 32, alignItems: 'start' }}>
             <div style={{ border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--card)' }}>
               {items.map((line) => {
                 const p = window.LC151.get(line.id);
