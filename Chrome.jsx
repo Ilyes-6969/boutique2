@@ -281,6 +281,14 @@ function Header({ navigate, active, onCart }) {
           </button>
         </div>
       </div>
+      {/* Recherche mobile (visible uniquement sur petit écran, voir storefront2.css) */}
+      <div className="lc-search-mobile" style={{ padding: '0 16px 12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px 0 14px', height: 42, borderRadius: 'var(--radius-pill)', background: 'var(--card)' }}>
+          <span style={{ fontSize: 15, color: 'var(--muted)' }}>⌕</span>
+          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }} aria-label={t('search_ph')} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
+          <button onClick={runSearch} style={{ height: 32, padding: '0 14px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
+        </div>
+      </div>
       <MegaNav navigate={navigate} active={active} />
     </header>
   );
@@ -320,7 +328,7 @@ function MegaNav({ navigate, active }) {
           const on = active === c.key || (c.key === 'home' && active === 'home');
           return (
             <a key={c.key} href="#" className="lc-nav-link" onMouseEnter={() => setOpen(c.cols || c.games ? c.key : null)}
-              onClick={(e) => { e.preventDefault(); if (!c.games) go(c); }}
+              onClick={(e) => { e.preventDefault(); if (c.games) { window.location.href = 'boutique.html'; } else { go(c); } }}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 15px', fontSize: 13.5, fontWeight: 600, color: on ? '#fff' : 'rgba(234,239,251,0.72)', borderBottom: '3px solid', borderColor: on ? 'var(--yellow)' : 'transparent', whiteSpace: 'nowrap' }}>
               {(window.lcI18n && window.lcI18n.t('nav_' + c.key) !== 'nav_' + c.key) ? t('nav_' + c.key) : c.label}{(c.cols || c.games) && <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>}
             </a>
@@ -575,7 +583,7 @@ function StoreCard({ product, navigate }) {
         )}
         {product.image ? (
           <div style={{ aspectRatio: '1 / 1', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22, overflow: 'hidden' }}>
-            <img src={product.image} alt={product.name} loading="lazy" decoding="async" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.18))', transition: 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1)', transform: hover ? 'scale(1.06)' : 'scale(1)' }} />
+            <img src={product.image} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' rx='8' fill='%23efe9da'/%3E%3Ctext x='50' y='80' font-family='sans-serif' font-size='28' font-weight='bold' fill='%23b9ad95' text-anchor='middle'%3E151%3C/text%3E%3C/svg%3E"; }} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.18))', transition: 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1)', transform: hover ? 'scale(1.06)' : 'scale(1)' }} />
           </div>
         ) : <ProductStage glyph={product.glyph} />}
       </div>
@@ -670,13 +678,23 @@ function LcSuccess({ message, onClose }) {
 
 function FormModal({ title, fields, cta, success, onClose }) {
   const [sent, setSent] = React.useState(false);
+  const submit = (e) => {
+    e.preventDefault();
+    try {
+      const fd = new FormData(e.currentTarget);
+      const obj = {};
+      fd.forEach((v, k) => { obj[k] = v; });
+      if (window.LC151 && window.LC151.notify) window.LC151.notify(title, obj);   // envoi réel si configuré
+    } catch (err) {}
+    setSent(true);
+  };
   return (
     <ModalShell title={title} onClose={onClose}>
       {sent ? <LcSuccess message={success} onClose={onClose} /> : (
-        <form onSubmit={(e) => { e.preventDefault(); setSent(true); }}>
+        <form onSubmit={submit}>
           {fields.map((f) => f.type === 'textarea'
-            ? <textarea key={f.ph} required placeholder={f.ph} rows={4} style={{ ...lcField, resize: 'vertical' }} />
-            : <input key={f.ph} type={f.type || 'text'} required placeholder={f.ph} style={lcField} />)}
+            ? <textarea key={f.ph} name={f.ph} required placeholder={f.ph} rows={4} style={{ ...lcField, resize: 'vertical' }} />
+            : <input key={f.ph} name={f.ph} type={f.type || 'text'} required placeholder={f.ph} style={lcField} />)}
           <button type="submit" style={lcCta()}>{cta}</button>
         </form>
       )}

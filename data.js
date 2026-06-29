@@ -396,34 +396,44 @@
   // - Si on saisit une URL (http…)  → POST JSON brut (webhook Make / Zapier / n8n / serveur).
   // - Sinon on considère que c'est une CLÉ Web3Forms (gratuit) → e-mail formaté.
   // Sans rien de configuré : ne fait rien (comportement d'avant, commande en local).
-  function notifyOrderWebhook(order) {
+  // Envoi générique vers le webhook / la clé Web3Forms configuré(e).
+  // Sert aux commandes ET aux formulaires (contact, newsletter).
+  function postWebhook(jsonPayload, web3Fields) {
     const dest = (orderHook || '').trim();
-    if (!dest) return;
+    if (!dest) return false;
     try {
       if (/^https?:\/\//i.test(dest)) {
-        fetch(dest, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ source: 'leclub151', type: 'new_order', order: order }),
-        }).catch(function () {});
+        fetch(dest, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload) }).catch(function () {});
       } else {
-        const lines = (order.items || []).map(function (i) { return '- ' + i.name + ' ×' + i.qty + ' : ' + i.price + ' €'; }).join('\n');
-        fetch('https://api.web3forms.com/submit', {
-          method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            access_key: dest,
-            subject: 'Nouvelle commande ' + order.number + ' — leclub151',
-            from_name: 'Boutique leclub151',
-            Commande: order.number,
-            Client: (order.name || '') + ' <' + (order.email || '') + '>',
-            Total: order.total + ' €',
-            Livraison: order.method,
-            Adresse: order.address || '—',
-            Articles: '\n' + lines,
-            Paiement: order.paid ? 'Payé en ligne' : 'À régler au retrait',
-          }),
-        }).catch(function () {});
+        fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(Object.assign({ access_key: dest }, web3Fields)) }).catch(function () {});
       }
-    } catch (e) {}
+      return true;
+    } catch (e) { return false; }
+  }
+  function notifyOrderWebhook(order) {
+    const lines = (order.items || []).map(function (i) { return '- ' + i.name + ' ×' + i.qty + ' : ' + i.price + ' €'; }).join('\n');
+    postWebhook(
+      { source: 'leclub151', type: 'new_order', order: order },
+      {
+        subject: 'Nouvelle commande ' + order.number + ' — leclub151',
+        from_name: 'Boutique leclub151',
+        Commande: order.number,
+        Client: (order.name || '') + ' <' + (order.email || '') + '>',
+        Total: order.total + ' €',
+        Livraison: order.method,
+        Adresse: order.address || '—',
+        Articles: '\n' + lines,
+        Paiement: order.paid ? 'Payé en ligne' : 'À régler au retrait',
+      }
+    );
+  }
+  // Contact / newsletter — réutilise la même configuration de réception.
+  function notifyForm(subject, fields) {
+    const f = fields || {};
+    return postWebhook(
+      Object.assign({ source: 'leclub151', type: 'form', subject: subject }, f),
+      Object.assign({ subject: subject + ' — leclub151', from_name: 'Site leclub151' }, f)
+    );
   }
   const SHIPPING = {
     standard: { key: 'standard', label: 'Livraison standard', eta: '2–4 jours ouvrés', price: 4.9 },
@@ -463,6 +473,7 @@
     PRODUCTS, FILTERS, Cart, Store, Auth, Alerts, Orders, FREE_SHIP,
     get: (id) => Store.get(id),
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
+    notify: notifyForm,   // formulaires contact / newsletter → même réception que les commandes
   };
 })();
 
@@ -486,7 +497,7 @@
     bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:9999;width:min(680px,calc(100% - 24px));background:var(--card,#fff);color:var(--ink,#1a1a1a);border:1.5px solid var(--line-strong,#ddd);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.18);padding:16px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-family:system-ui,sans-serif';
     bar.innerHTML =
       '<div style="flex:1;min-width:220px;font-size:13.5px;line-height:1.5">' +
-        'Nous utilisons des cookies pour le bon fonctionnement du site (panier, session) et, avec votre accord, la mesure d’audience. ' +
+        'Nous utilisons des cookies pour le bon fonctionnement du site (panier, session), ainsi qu’une mesure d’audience anonyme et sans cookie. ' +
         '<a href="confidentialite.html" style="color:var(--accent,#ee1515);font-weight:600">En savoir plus</a>.' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-shrink:0">' +
@@ -500,4 +511,17 @@
     });
     document.body.appendChild(bar);
   });
+})();
+
+/* ---- Mesure d'audience Vercel (anonyme, sans cookie) ----
+   Activez « Web Analytics » dans votre projet Vercel (gratuit) pour voir les
+   visites. Si ce n'est pas activé, le script est simplement ignoré. */
+(function () {
+  try {
+    window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    var s = document.createElement('script');
+    s.defer = true;
+    s.src = '/_vercel/insights/script.js';
+    (document.head || document.documentElement).appendChild(s);
+  } catch (e) {}
 })();

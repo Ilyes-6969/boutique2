@@ -113,9 +113,13 @@ main section { animation: lcRise 0.55s cubic-bezier(0.2,0.8,0.2,1) both; }
   .lc-prod-grid, .lc-cart-grid, .lc-checkout-grid, .lc-shop-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
   .lc-prod-gallery { position: static !important; }
 }
+/* Recherche mobile : masquée sur grand écran, affichée sous l'en-tête sur mobile */
+.lc-search-mobile { display: none; }
+
 @media (max-width: 680px) {
   .container, .container-wide { padding-left: 16px !important; padding-right: 16px !important; }
   .lc-search { display: none !important; }
+  .lc-search-mobile { display: block !important; }
   .lc-ann-side { display: none !important; }
   .lc-ann { justify-content: center !important; }
   .lc-nav-scroll { overflow-x: auto !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
