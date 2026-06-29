@@ -7,7 +7,9 @@
   // Demo products across every category for testing. Replace with your real
   // catalogue via WordPress / WooCommerce (admin.html) — these disappear once
   // a WooCommerce site is connected and returns products.
-  const img = (set, n) => `https://assets.tcgdex.net/en/base/${set}/${n}/high.webp`;
+  // Images de cartes via le CDN pokemontcg.io (le même que les logos de sets
+  // ci-dessous) — une seule source d'images, fiable, pour tout le catalogue.
+  const img = (set, n) => `https://images.pokemontcg.io/${set}/${n}.png`;
   const DEFAULTS = [
     // ----- Cartes à l'unité -----
     { id: 'd1', name: 'Dracaufeu — Set de Base', set: 'Set de Base · 1999', num: '4/102', type: 'single',
@@ -41,10 +43,10 @@
       desc: "Booster scellé Flammes Obsidiennes (EV3), 10 cartes, version française." },
     // ----- Accessoires -----
     { id: 'd10', name: 'Sleeves Ultra Pro — Pack 100', set: 'Ultra Pro · Matte', num: 'x100', type: 'accessory',
-      cat: 'Protège-cartes', price: 9.9, image: 'https://images.pokemontcg.io/sv3pt5/logo.png', glyph: 'SLEEVES', inStock: true,
+      cat: 'Protège-cartes', price: 9.9, image: 'assets/acc-sleeves.svg', glyph: 'SLEEVES', inStock: true,
       desc: "100 protège-cartes Ultra Pro finition matte, format standard." },
     { id: 'd11', name: 'Classeur 360 cartes', set: 'Ultimate Guard', num: '360', type: 'accessory',
-      cat: 'Classeur', price: 24.9, image: 'https://images.pokemontcg.io/base1/logo.png', glyph: 'CLASSEUR', inStock: true,
+      cat: 'Classeur', price: 24.9, image: 'assets/acc-binder.svg', glyph: 'CLASSEUR', inStock: true,
       desc: "Classeur 360 cartes à fermeture zip, pochettes Side-Loading." },
     // ----- Précommandes -----
     { id: 'd12', name: "Display — Couronne Stellaire", set: 'Sortie 10-10-2026 · FR', num: '36 boosters', type: 'sealed',
@@ -94,10 +96,10 @@
       badge: { tone: 'sale', label: 'Promo' }, desc: "Coffret Collection Destinées de Paldea, scellé FR." },
     // ===== Accessoires (suite) =====
     { id: 'd26', name: 'Toploaders — Pack 25', set: 'Ultra Pro · Rigide', num: 'x25', type: 'accessory',
-      cat: 'Protection rigide', price: 6.9, image: 'https://images.pokemontcg.io/sv3/logo.png', glyph: 'TOPLOADER', inStock: true,
+      cat: 'Protection rigide', price: 6.9, image: 'assets/acc-toploader.svg', glyph: 'TOPLOADER', inStock: true,
       desc: "25 toploaders rigides Ultra Pro, format standard." },
     { id: 'd27', name: 'Tapis de jeu — Pokéball', set: 'Playmat · Néoprène', num: '60×35 cm', type: 'accessory',
-      cat: 'Tapis de jeu', price: 19.9, image: 'https://images.pokemontcg.io/base1/logo.png', glyph: 'TAPIS', inStock: true,
+      cat: 'Tapis de jeu', price: 19.9, image: 'assets/acc-playmat.svg', glyph: 'TAPIS', inStock: true,
       desc: "Tapis de jeu néoprène anti-dérapant, motif Pokéball." },
   ];
 

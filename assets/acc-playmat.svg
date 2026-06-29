@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" role="img" aria-label="Tapis de jeu Pokéball">
+  <defs>
+    <linearGradient id="p1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#202c52"/><stop offset="1" stop-color="#11193a"/>
+    </linearGradient>
+    <radialGradient id="pglow" cx="50%" cy="42%" r="60%">
+      <stop offset="0" stop-color="#33457f"/><stop offset="1" stop-color="#11193a"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="205" cy="338" rx="160" ry="26" fill="#000" opacity=".14"/>
+  <g transform="rotate(-2 200 210)">
+    <rect x="44" y="120" width="320" height="190" rx="16" fill="#0d1430"/>
+    <rect x="40" y="112" width="320" height="190" rx="16" fill="url(#p1)" stroke="#0a1029" stroke-width="3"/>
+    <rect x="40" y="112" width="320" height="190" rx="16" fill="url(#pglow)" opacity=".8"/>
+    <rect x="54" y="126" width="292" height="162" rx="10" fill="none" stroke="#ffcb05" stroke-width="2" opacity=".5" stroke-dasharray="6 6"/>
+    <g transform="translate(200 207)">
+      <circle r="62" fill="#fff"/>
+      <path d="M-62 0 A62 62 0 0 1 62 0 Z" fill="#ee1515"/>
+      <rect x="-62" y="-9" width="124" height="18" fill="#15224f"/>
+      <circle r="20" fill="#fff" stroke="#15224f" stroke-width="9"/>
+    </g>
+    <text x="200" y="285" text-anchor="middle" font-family="Verdana,sans-serif" font-size="15" font-weight="bold" fill="#ffcb05" opacity=".9" letter-spacing="3">leclub151</text>
+  </g>
+</svg>
