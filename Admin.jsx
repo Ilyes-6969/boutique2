@@ -49,6 +49,34 @@ function WpConnect({ Store, showToast }) {
   );
 }
 
+function OrderNotify({ showToast }) {
+  const Orders = window.LC151.Orders;
+  const [, force] = React.useReducer((x) => x + 1, 0);
+  React.useEffect(() => Orders.subscribe(force), []);
+  const [val, setVal] = React.useState(Orders.getWebhook());
+  const isSet = !!Orders.getWebhook();
+  const apply = () => { Orders.setWebhook(val); showToast(val ? 'Réception des commandes activée' : 'Réception des commandes désactivée'); };
+  return (
+    <div style={{ background: WP.white, border: '1px solid ' + WP.border, borderLeft: '4px solid ' + WP.green, borderRadius: 4, padding: '14px 16px', marginBottom: 18, boxShadow: '0 1px 1px rgba(0,0,0,0.04)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontWeight: 600, fontSize: 13.5, color: WP.green }}>Réception des commandes (e-mail)</span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto', fontSize: 12, color: WP.muted }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: isSet ? WP.green : WP.muted }}></span>{isSet ? 'Activée' : 'Non configurée'}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <input value={val} onChange={(e) => setVal(e.target.value)} placeholder="Clé Web3Forms (gratuit) ou URL de webhook"
+          onKeyDown={(e) => { if (e.key === 'Enter') apply(); }}
+          style={{ flex: 1, minWidth: 240, padding: '7px 11px', border: '1px solid ' + WP.border, borderRadius: 3, fontSize: 13, fontFamily: WP.mono, outline: 'none', color: WP.text }} />
+        <button onClick={apply} style={{ fontFamily: WP.font, fontSize: 13, fontWeight: 600, padding: '7px 16px', borderRadius: 3, border: 'none', background: WP.green, color: '#fff', cursor: 'pointer' }}>Enregistrer</button>
+      </div>
+      <p style={{ fontSize: 12, color: WP.muted, marginTop: 9, lineHeight: 1.55 }}>
+        Pour recevoir un e-mail à chaque commande : créez une clé gratuite sur <span style={{ fontFamily: WP.mono }}>web3forms.com</span> (saisissez votre e-mail, copiez l'« Access Key » ici). Vous pouvez aussi coller une URL de webhook (Make, Zapier, n8n, ou votre serveur). Sans configuration, les commandes restent enregistrées localement uniquement.
+      </p>
+    </div>
+  );
+}
+
 function AdminApp() {
   const Store = useStoreAdmin();
   const { fmt, FILTERS } = window.LC151;
@@ -123,6 +151,7 @@ function AdminApp() {
           <p style={{ fontSize: 13, color: WP.muted, marginBottom: 18 }}>Gérez le catalogue WooCommerce : modifiez les prix, le stock et les promotions. Les changements s'appliquent au site en direct.</p>
 
           <WpConnect Store={Store} showToast={showToast} />
+          <OrderNotify showToast={showToast} />
 
           {/* tabs + search */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 10, flexWrap: 'wrap' }}>

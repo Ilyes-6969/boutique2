@@ -62,8 +62,10 @@ function CheckoutModal({ onClose }) {
     setErrors(e); return Object.keys(e).length === 0;
   };
 
+  const [paying, setPaying] = React.useState(false);
   const goPay = () => { if (validateShip()) { setErrors({}); setStep('paiement'); } };
   const placeOrder = () => {
+    if (paying) return;
     if (!validatePay()) return;
     // Re-resolve every line against the LIVE catalogue — never trust the cart blindly.
     const resolved = items
@@ -71,16 +73,27 @@ function CheckoutModal({ onClose }) {
       .filter(Boolean);
     if (resolved.length === 0) { setErrors({ cart: 1 }); return; }        // nothing left to buy
     if (resolved.some(({ p }) => p.inStock === false)) { setErrors({ stock: 1 }); return; } // went OOS
-    const o = Orders.add({
-      email: ship.email, name: ship.name,
-      items: resolved.map(({ p, l }) => ({ name: p.name, qty: l.qty, price: p.price })),
-      subtotal, shipping: shippingCost, total,
-      method: ship.method, address: ship.addr + ', ' + ship.zip + ' ' + ship.city,
-      paid: ship.method !== 'pickup',
-    });
-    setOrder(o);
-    cart.clear();
-    setStep('confirme');
+    setErrors({});
+    const lines = resolved.map(({ p, l }) => ({ name: p.name, qty: l.qty, price: p.price }));
+    const finalize = (result) => {
+      const o = Orders.add({
+        email: ship.email, name: ship.name,
+        items: lines,
+        subtotal, shipping: shippingCost, total,
+        method: ship.method, address: ship.addr + ', ' + ship.zip + ' ' + ship.city,
+        paid: ship.method !== 'pickup' ? !!(result && result.paid) : false,
+        payRef: result ? result.ref : null,
+      });
+      setOrder(o); cart.clear(); setPaying(false); setStep('confirme');
+    };
+    // Couche paiement isolée (payments.js) — simulation aujourd'hui, vrai PSP
+    // (Stripe / Qonto / SumUp) demain : un seul fichier à changer.
+    const card = { method: ship.method, card: pay.card, exp: pay.exp, cvc: pay.cvc, holder: pay.holder };
+    const payFlow = (window.LCPay && window.LCPay.process)
+      ? window.LCPay.process({ items: lines, total: total }, card)
+      : Promise.resolve({ paid: ship.method !== 'pickup', ref: null });
+    setPaying(true);
+    payFlow.then(finalize).catch(function () { setPaying(false); setErrors({ card: 1 }); });
   };
 
   const steps = [['livraison', 'Livraison'], ['paiement', 'Paiement'], ['confirme', 'Confirmation']];
@@ -202,7 +215,7 @@ function CheckoutModal({ onClose }) {
                   {(errors.stock || errors.cart) && <div style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>{errors.cart ? 'Votre panier est vide.' : 'Un article n’est plus disponible — retirez-le du panier pour continuer.'}</div>}
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>
-                    <button onClick={placeOrder} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>{ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total)}</button>
+                    <button onClick={placeOrder} disabled={paying} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: paying ? 'wait' : 'pointer', opacity: paying ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>
                   </div>
                 </React.Fragment>
               )}

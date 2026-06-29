@@ -384,8 +384,45 @@
 
   // ---- Orders (commandes passées) ----
   const K_ORDERS = 'lc151_orders';
+  const K_HOOK = 'lc151_order_webhook';   // clé Web3Forms OU URL webhook (Make/Zapier/n8n…)
   let orders = load(K_ORDERS, []);
+  let orderHook = '';
+  try { orderHook = localStorage.getItem(K_HOOK) || ''; } catch (e) {}
   const orderListeners = new Set();
+
+  // Envoie la commande au propriétaire dès qu'elle est passée.
+  // - Si on saisit une URL (http…)  → POST JSON brut (webhook Make / Zapier / n8n / serveur).
+  // - Sinon on considère que c'est une CLÉ Web3Forms (gratuit) → e-mail formaté.
+  // Sans rien de configuré : ne fait rien (comportement d'avant, commande en local).
+  function notifyOrderWebhook(order) {
+    const dest = (orderHook || '').trim();
+    if (!dest) return;
+    try {
+      if (/^https?:\/\//i.test(dest)) {
+        fetch(dest, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ source: 'leclub151', type: 'new_order', order: order }),
+        }).catch(function () {});
+      } else {
+        const lines = (order.items || []).map(function (i) { return '- ' + i.name + ' ×' + i.qty + ' : ' + i.price + ' €'; }).join('\n');
+        fetch('https://api.web3forms.com/submit', {
+          method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            access_key: dest,
+            subject: 'Nouvelle commande ' + order.number + ' — leclub151',
+            from_name: 'Boutique leclub151',
+            Commande: order.number,
+            Client: (order.name || '') + ' <' + (order.email || '') + '>',
+            Total: order.total + ' €',
+            Livraison: order.method,
+            Adresse: order.address || '—',
+            Articles: '\n' + lines,
+            Paiement: order.paid ? 'Payé en ligne' : 'À régler au retrait',
+          }),
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  }
   const SHIPPING = {
     standard: { key: 'standard', label: 'Livraison standard', eta: '2–4 jours ouvrés', price: 4.9 },
     relais: { key: 'relais', label: 'Point relais', eta: '3–5 jours ouvrés', price: 3.9 },
@@ -407,7 +444,15 @@
       orders.unshift(full);
       save(K_ORDERS, orders);
       orderListeners.forEach((fn) => fn());
+      notifyOrderWebhook(full);   // → prévient le propriétaire (e-mail / webhook) si configuré
       return full;
+    },
+    // Réception des commandes (clé Web3Forms ou URL webhook), réglée dans l'admin.
+    getWebhook: () => orderHook,
+    setWebhook(v) {
+      orderHook = (v || '').trim();
+      try { if (orderHook) localStorage.setItem(K_HOOK, orderHook); else localStorage.removeItem(K_HOOK); } catch (e) {}
+      orderListeners.forEach((fn) => fn());
     },
     subscribe(fn) { orderListeners.add(fn); return () => orderListeners.delete(fn); },
   };
