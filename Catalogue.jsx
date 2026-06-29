@@ -43,7 +43,8 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
         </div>
       </section>
 
-      {/* TOOLBAR */}
+      {/* TOOLBAR (masquée sur les rayons « bientôt disponibles ») */}
+      {!comingSoon && (
       <div style={{ position: 'sticky', top: 124, zIndex: 30, background: 'var(--paper-2)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1.5px solid var(--line)' }}>
         <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -60,6 +61,7 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
           </div>
         </div>
       </div>
+      )}
 
       {/* GRID */}
       <section className="container-wide" style={{ padding: '36px 24px 80px' }}>

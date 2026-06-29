@@ -465,3 +465,39 @@
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
   };
 })();
+
+/* ---- Bandeau cookies (RGPD) — léger, sans dépendance ----
+   S'affiche tant que le visiteur n'a pas choisi. Le choix est mémorisé.
+   Ne s'affiche pas dans le back-office (admin.html). */
+(function () {
+  var K = 'lc151_cookie_consent';
+  function ready(fn) {
+    if (document.readyState !== 'loading') fn();
+    else document.addEventListener('DOMContentLoaded', fn);
+  }
+  ready(function () {
+    try {
+      if (document.getElementById('admin-root')) return;       // pas dans l'admin
+      if (localStorage.getItem(K)) return;                     // choix déjà fait
+    } catch (e) {}
+    var bar = document.createElement('div');
+    bar.setAttribute('role', 'dialog');
+    bar.setAttribute('aria-label', 'Gestion des cookies');
+    bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:9999;width:min(680px,calc(100% - 24px));background:var(--card,#fff);color:var(--ink,#1a1a1a);border:1.5px solid var(--line-strong,#ddd);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.18);padding:16px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-family:system-ui,sans-serif';
+    bar.innerHTML =
+      '<div style="flex:1;min-width:220px;font-size:13.5px;line-height:1.5">' +
+        'Nous utilisons des cookies pour le bon fonctionnement du site (panier, session) et, avec votre accord, la mesure d’audience. ' +
+        '<a href="confidentialite.html" style="color:var(--accent,#ee1515);font-weight:600">En savoir plus</a>.' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;flex-shrink:0">' +
+        '<button data-lc-cookie="refuse" style="height:38px;padding:0 14px;border-radius:8px;border:1.5px solid var(--line-strong,#ccc);background:transparent;color:var(--ink,#1a1a1a);font-weight:600;font-size:13.5px;cursor:pointer">Refuser</button>' +
+        '<button data-lc-cookie="accept" style="height:38px;padding:0 16px;border-radius:8px;border:none;background:var(--accent,#ee1515);color:var(--on-accent,#fff);font-weight:600;font-size:13.5px;cursor:pointer">Accepter</button>' +
+      '</div>';
+    function choose(v) { try { localStorage.setItem(K, v); } catch (e) {} bar.remove(); }
+    bar.addEventListener('click', function (e) {
+      var t = e.target.getAttribute && e.target.getAttribute('data-lc-cookie');
+      if (t) choose(t);
+    });
+    document.body.appendChild(bar);
+  });
+})();

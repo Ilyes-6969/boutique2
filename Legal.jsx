@@ -16,7 +16,10 @@ function LegalPage({ navigate, kind }) {
     mentions: { title: 'Mentions légales', crumb: 'Mentions légales' },
     cgv: { title: 'Conditions générales de vente', crumb: 'CGV' },
     confidentialite: { title: 'Politique de confidentialité', crumb: 'Confidentialité' },
+    apropos: { title: 'À propos de leclub151', crumb: 'À propos' },
+    faq: { title: 'Questions fréquentes', crumb: 'FAQ' },
   }[kind] || { title: 'Informations légales', crumb: 'Légal' };
+  const isLegal = kind === 'mentions' || kind === 'cgv' || kind === 'confidentialite';
 
   return (
     <div>
@@ -31,9 +34,11 @@ function LegalPage({ navigate, kind }) {
       </section>
 
       <section style={{ maxWidth: 880, margin: '0 auto', padding: '8px 24px 72px' }}>
+        {isLegal && (
         <div style={{ background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius)', padding: '14px 18px', margin: '24px 0 8px', fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
           <strong style={{ color: 'var(--ink)' }}>Gabarit à compléter.</strong> Remplace chaque champ <F>surligné</F> par tes informations réelles. Ce modèle est fourni à titre informatif — fais-le relire par un professionnel du droit avant mise en ligne.
         </div>
+        )}
 
         {kind === 'mentions' && (
           <React.Fragment>
@@ -112,6 +117,45 @@ function LegalPage({ navigate, kind }) {
             <P>Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité. Pour les exercer : <F>contact@leclub151.fr</F>. Vous pouvez aussi saisir la CNIL (cnil.fr).</P>
             <H>7. Cookies</H>
             <P>Le site utilise des cookies techniques (panier, session) et, sous réserve de votre consentement, des cookies de mesure d'audience. Vous pouvez les gérer à tout moment via le bandeau cookies / les réglages de votre navigateur.</P>
+          </React.Fragment>
+        )}
+
+        {kind === 'apropos' && (
+          <React.Fragment>
+            <P style={{ marginTop: 24 }}>leclub151 est une boutique de cartes à collectionner installée à <strong>Vienne, en Isère</strong>. Pokémon est notre cœur de métier — du Set de Base de 1999 aux dernières sorties — avec une sélection de cartes à l'unité, de pièces gradées, de produits scellés et d'accessoires.</P>
+            <H>Notre métier</H>
+            <P>On déniche, on authentifie et on conseille. Chaque carte de valeur passe entre nos mains avant d'être proposée : état, centrage, authenticité. L'idée est simple — que vous achetiez une pièce de collection en confiance, comme si vous étiez au comptoir.</P>
+            <H>Nos engagements</H>
+            <UL>
+              <LI><strong>Authenticité garantie</strong> — chaque pièce de plus de 100 € est vérifiée avant mise en vente.</LI>
+              <LI><strong>Expédition protégée</strong> sous 48 h ouvrées, en envoi suivi, ou retrait gratuit en boutique.</LI>
+              <LI><strong>Conseil</strong> — débutant ou collectionneur aguerri, on prend le temps de répondre.</LI>
+              <LI><strong>Rachat & estimation</strong> de cartes et de collections en boutique.</LI>
+            </UL>
+            <H>Venez nous voir</H>
+            <P>La boutique est ouverte <F>Mar–Sam · 10h–19h</F> à <F>l'adresse à compléter</F>, 38200 Vienne. Une question, une recherche précise, une collection à estimer ? <a href="index.html#contact" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'var(--accent)', fontWeight: 600 }}>Écrivez-nous</a> ou passez directement.</P>
+            <P style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 18 }}>« Pokémon » est une marque déposée de Nintendo, Creatures Inc. et GAME FREAK inc. leclub151 n'est ni affilié ni approuvé par The Pokémon Company.</P>
+          </React.Fragment>
+        )}
+
+        {kind === 'faq' && (
+          <React.Fragment>
+            <H>Livraison — quels délais et quels frais ?</H>
+            <P>Les commandes sont expédiées sous 48 h ouvrées en envoi suivi et protégé. Livraison standard <strong>4,90 €</strong> (2–4 j), point relais <strong>3,90 €</strong> (3–5 j), ou <strong>retrait gratuit</strong> en boutique à Vienne. La livraison est <strong>offerte dès 100 €</strong> d'achat.</P>
+            <H>Vos cartes sont-elles authentiques ?</H>
+            <P>Oui. Chaque pièce de valeur est vérifiée avant mise en vente, et les cartes gradées sont vendues sous coque, certifiées (PSA, BGS, CGC). L'état est précisé sur chaque fiche produit.</P>
+            <H>Qu'est-ce qu'une « pièce unique » (1/1) ?</H>
+            <P>Les cartes à l'unité et gradées sont des exemplaires uniques : une fois vendues, elles ne sont plus disponibles. Elles ne peuvent être ajoutées qu'en un seul exemplaire au panier.</P>
+            <H>Puis-je retourner un article ?</H>
+            <P>Vous disposez de <strong>14 jours</strong> après réception pour exercer votre droit de rétractation. Les produits scellés doivent être retournés non ouverts et dans leur état d'origine. Voir le détail dans nos <a href="cgv.html" style={{ color: 'var(--accent)', fontWeight: 600 }}>CGV</a>.</P>
+            <H>Le paiement est-il sécurisé ?</H>
+            <P>Oui. Le paiement est chiffré et géré par un prestataire de paiement ; aucune donnée de carte n'est conservée par nos soins.</P>
+            <H>Comment fonctionnent les précommandes ?</H>
+            <P>Les produits en précommande sont expédiés à leur date de sortie, indiquée sur la fiche. Vous pouvez activer une <strong>alerte</strong> depuis votre compte pour être prévenu des nouveautés et retours en stock.</P>
+            <H>Faut-il un compte pour commander ?</H>
+            <P>Oui, un compte client (gratuit) est requis pour finaliser une commande et suivre vos achats.</P>
+            <H>Une autre question ?</H>
+            <P><a href="index.html#contact" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'var(--accent)', fontWeight: 600 }}>Contactez-nous</a> — on répond sous 24 h.</P>
           </React.Fragment>
         )}
 

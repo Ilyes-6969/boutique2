@@ -106,7 +106,7 @@ function CheckoutModal({ onClose }) {
         {items.map((l) => { const p = window.LC151.get(l.id); if (!p) return null; return (
           <div key={l.id} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 6, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              {p.image ? <img src={p.image} alt="" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 11, color: 'var(--muted)' }}>151</span>}
+              {p.image ? <img src={p.image} alt="" loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 11, color: 'var(--muted)' }}>151</span>}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>

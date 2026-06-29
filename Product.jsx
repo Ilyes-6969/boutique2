@@ -104,7 +104,7 @@ function Product({ navigate, productId, onCart }) {
       {/* RELATED */}
       <section style={{ borderTop: '1.5px solid var(--line)' }}>
         <div className="container-wide" style={{ padding: '56px 24px 80px' }}>
-          <h2 className="display-3" style={{ marginBottom: 26 }}>Dans la même série</h2>
+          <h2 className="display-3" style={{ marginBottom: 26 }}>Dans le même rayon</h2>
           <div className="lc-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
             {relList.map((p) => <StoreCard key={p.id} product={p} navigate={navigate} />)}
           </div>

@@ -487,10 +487,10 @@ function Footer({ navigate }) {
           ])}
           {col(t('f_house'), [
             { label: t('f_boutique'), onClick: () => openModal('contact') },
+            { label: t('f_about'), href: 'apropos.html' },
+            { label: 'FAQ', href: 'faq.html' },
             { label: t('f_auth'), onClick: () => openModal('contact') },
-            { label: t('f_about'), soon: true },
             { label: t('f_news'), soon: true },
-            { label: t('f_events'), soon: true },
           ])}
           {col(t('f_account'), [
             { label: t('h_account'), onClick: () => openModal('account') },
@@ -575,7 +575,7 @@ function StoreCard({ product, navigate }) {
         )}
         {product.image ? (
           <div style={{ aspectRatio: '1 / 1', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22, overflow: 'hidden' }}>
-            <img src={product.image} alt={product.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.18))', transition: 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1)', transform: hover ? 'scale(1.06)' : 'scale(1)' }} />
+            <img src={product.image} alt={product.name} loading="lazy" decoding="async" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.18))', transition: 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1)', transform: hover ? 'scale(1.06)' : 'scale(1)' }} />
           </div>
         ) : <ProductStage glyph={product.glyph} />}
       </div>
