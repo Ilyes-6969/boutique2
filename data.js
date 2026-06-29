@@ -525,3 +525,14 @@
     (document.head || document.documentElement).appendChild(s);
   } catch (e) {}
 })();
+
+/* ---- En-tête : légère ombre quand on défile (voir storefront2.css) ---- */
+(function () {
+  function onScroll() {
+    if (window.scrollY > 8) document.body.classList.add('lc-scrolled');
+    else document.body.classList.remove('lc-scrolled');
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  if (document.readyState !== 'loading') onScroll();
+  else document.addEventListener('DOMContentLoaded', onScroll);
+})();

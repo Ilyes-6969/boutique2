@@ -136,3 +136,43 @@ main section { animation: lcRise 0.55s cubic-bezier(0.2,0.8,0.2,1) both; }
   .lc-cat-tiles { grid-template-columns: 1fr !important; }
   .lc-grid-auto { grid-template-columns: 1fr 1fr !important; gap: 10px !important; }
 }
+
+/* ============================================
+   MOTION — entrées & micro-interactions
+   (gros bloc gardé sous prefers-reduced-motion: no-preference,
+    sauf l'ombre d'en-tête qui n'est pas un mouvement)
+============================================ */
+header { transition: box-shadow 0.28s ease; }
+body.lc-scrolled header { box-shadow: 0 8px 30px rgba(0,0,0,0.14); }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Apparition fade-up échelonnée des cartes produit.
+     fill-mode "backwards" → aucun transform résiduel, le survol reste intact. */
+  @keyframes lcCardIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+  .lc-card { animation: lcCardIn 0.5s cubic-bezier(0.2,0.8,0.2,1) backwards; }
+  .lc-card:nth-child(1){animation-delay:.03s}
+  .lc-card:nth-child(2){animation-delay:.07s}
+  .lc-card:nth-child(3){animation-delay:.11s}
+  .lc-card:nth-child(4){animation-delay:.15s}
+  .lc-card:nth-child(5){animation-delay:.19s}
+  .lc-card:nth-child(6){animation-delay:.23s}
+  .lc-card:nth-child(7){animation-delay:.27s}
+  .lc-card:nth-child(8){animation-delay:.31s}
+  .lc-card:nth-child(n+9){animation-delay:.35s}
+
+  /* Entrée séquencée du contenu du hero */
+  .lc-hero-in > * { animation: lcCardIn 0.6s cubic-bezier(0.2,0.8,0.2,1) backwards; }
+  .lc-hero-in > *:nth-child(1){animation-delay:.05s}
+  .lc-hero-in > *:nth-child(2){animation-delay:.14s}
+  .lc-hero-in > *:nth-child(3){animation-delay:.23s}
+  .lc-hero-in > *:nth-child(4){animation-delay:.32s}
+
+  /* Célébration à la confirmation de commande (pop + onde) */
+  @keyframes lcPop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+  @keyframes lcRing { 0% { transform: scale(0.6); opacity: 0.55; } 100% { transform: scale(2.3); opacity: 0; } }
+  .lc-confirm-ic { animation: lcPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; position: relative; }
+  .lc-confirm-ic::after { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--green); animation: lcRing 0.9s ease-out 0.2s both; pointer-events: none; }
+
+  /* Petit zoom doux des cartes au survol (image déjà gérée en inline) */
+  .lc-card { will-change: transform; }
+}

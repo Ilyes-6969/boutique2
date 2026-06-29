@@ -24,7 +24,7 @@ function Home({ navigate }) {
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, var(--paper) 0%, rgba(0,0,0,0) 42%)', pointerEvents: 'none' }}></div>
 
         <div className="container-wide" style={{ position: 'relative', padding: '76px 24px 80px', minHeight: 420 }}>
-          <div style={{ maxWidth: 560 }}>
+          <div className="lc-hero-in" style={{ maxWidth: 560 }}>
             <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(34px, 5vw, 66px)', letterSpacing: '-0.03em', lineHeight: 1.02, marginBottom: 20 }}>
               Votre boutique<br />Pokémon, à <span style={{ position: 'relative', whiteSpace: 'nowrap', borderBottom: '5px solid var(--yellow)', paddingBottom: 2 }}>Vienne</span>.
             </h1>

@@ -568,7 +568,7 @@ function StoreCard({ product, navigate }) {
   const lockedUnique = unique && inCart;          // already in cart → can't add another
 
   return (
-    <a href="#" onClick={(e) => { e.preventDefault(); open(); }}
+    <a href="#" className="lc-card" onClick={(e) => { e.preventDefault(); open(); }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{ display: 'flex', flexDirection: 'column', background: 'var(--card)', border: '1.5px solid', borderColor: hover ? 'var(--line-strong)' : 'var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden', transition: 'all 0.2s ease', transform: hover ? 'translateY(-4px)' : 'none', boxShadow: hover ? 'var(--shadow-lg)' : 'var(--shadow-xs)', color: 'var(--ink)' }}>
       <div style={{ position: 'relative' }}>
