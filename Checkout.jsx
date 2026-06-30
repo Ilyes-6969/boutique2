@@ -102,7 +102,10 @@ function CheckoutModal({ onClose }) {
       ? window.LCPay.process(orderData, card)
       : Promise.resolve({ paid: ship.method !== 'pickup', ref: null });
     setPaying(true);
-    payFlow.then(finalize).catch(function () { setPaying(false); setErrors({ card: 1 }); });
+    payFlow.then(finalize).catch(function (e) {
+      setPaying(false);
+      setErrors({ card: 1, pay: (e && e.message) ? String(e.message) : 'Paiement indisponible' });
+    });
   };
 
   const steps = [['livraison', 'Livraison'], ['paiement', 'Paiement'], ['confirme', 'Confirmation']];
@@ -227,6 +230,7 @@ function CheckoutModal({ onClose }) {
                     </React.Fragment>
                   )}
                   {(errors.stock || errors.cart) && <div style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>{errors.cart ? 'Votre panier est vide.' : 'Un article n’est plus disponible — retirez-le du panier pour continuer.'}</div>}
+                  {errors.pay && <div style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10, lineHeight: 1.5 }}>Paiement impossible : {errors.pay}</div>}
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>
                     <button onClick={placeOrder} disabled={paying} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: paying ? 'wait' : 'pointer', opacity: paying ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>
