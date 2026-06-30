@@ -27,13 +27,32 @@ function Product({ navigate, productId, onCart }) {
     setTimeout(() => setAdded(false), 1800);
   };
 
-  const specs = [
-    ['Série', product.set],
-    ['Numéro', product.num],
-    ['Rareté', product.rarity || '—'],
-    ['État', product.type === 'graded' ? 'Sous coque — certifié' : 'Near Mint'],
-    ['Référence', 'LC151-' + product.id.toUpperCase()],
-  ];
+  // Caractéristiques ADAPTÉES au type d'article (cohérentes, sans champ vide
+  // ni mention absurde — ex. pas de « Rareté / Near Mint » sur un accessoire).
+  const ref = 'LC151-' + product.id.toUpperCase();
+  const isCard = product.type === 'single' || product.type === 'graded';
+  const rawSpecs = isCard
+    ? [
+        ['Série', product.set],
+        ['Numéro', product.num],
+        ['Rareté', product.rarity],
+        ['État', product.type === 'graded' ? 'Certifiée — sous coque' : 'Near Mint'],
+        ['Référence', ref],
+      ]
+    : product.type === 'sealed'
+    ? [
+        ['Catégorie', product.cat],
+        ['Édition', product.set],
+        ['État', 'Neuf — scellé'],
+        ['Référence', ref],
+      ]
+    : [
+        ['Catégorie', product.cat],
+        ['Détail', product.set],
+        ['État', 'Neuf'],
+        ['Référence', ref],
+      ];
+  const specs = rawSpecs.filter(function (row) { var v = row[1]; return v && String(v).trim() && v !== '—'; });
 
   return (
     <div>
