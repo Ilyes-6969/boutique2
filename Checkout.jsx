@@ -50,8 +50,12 @@ function CheckoutModal({ onClose }) {
     if (ship.zip && !/^\d{4,5}$/.test(ship.zip.trim())) e.zip = 1;
     setErrors(e); return Object.keys(e).length === 0;
   };
+  // Stripe encaisse via une page externe : pas de champs carte sur notre site.
+  const stripeRedirect = !!(window.LCPay && window.LCPay.isLive && window.LCPay.isLive() && ship.method !== 'pickup');
+
   const validatePay = () => {
     if (ship.method === 'pickup') return true; // pay in store
+    if (stripeRedirect) return true;           // la carte est saisie chez Stripe
     const e = {};
     if (!lcLuhn(pay.card)) e.card = 1;
     const m = pay.exp.match(/^(\d{2})\/(\d{2})$/);
@@ -75,22 +79,27 @@ function CheckoutModal({ onClose }) {
     if (resolved.some(({ p }) => p.inStock === false)) { setErrors({ stock: 1 }); return; } // went OOS
     setErrors({});
     const lines = resolved.map(({ p, l }) => ({ name: p.name, qty: l.qty, price: p.price }));
+    // Commande complète, construite AVANT le paiement : pour Stripe (redirection)
+    // elle est mémorisée puis finalisée au retour (merci.html) ; pour la démo /
+    // le retrait, elle est finalisée tout de suite dans finalize().
+    const orderData = {
+      email: ship.email, name: ship.name,
+      items: lines,
+      subtotal, shipping: shippingCost, total,
+      method: ship.method, address: ship.addr + ', ' + ship.zip + ' ' + ship.city,
+    };
     const finalize = (result) => {
       const o = Orders.add({
-        email: ship.email, name: ship.name,
-        items: lines,
-        subtotal, shipping: shippingCost, total,
-        method: ship.method, address: ship.addr + ', ' + ship.zip + ' ' + ship.city,
+        ...orderData,
         paid: ship.method !== 'pickup' ? !!(result && result.paid) : false,
         payRef: result ? result.ref : null,
       });
       setOrder(o); cart.clear(); setPaying(false); setStep('confirme');
     };
-    // Couche paiement isolée (payments.js) — simulation aujourd'hui, vrai PSP
-    // (Stripe / Qonto / SumUp) demain : un seul fichier à changer.
-    const card = { method: ship.method, card: pay.card, exp: pay.exp, cvc: pay.cvc, holder: pay.holder };
+    // Couche paiement isolée (payments.js) — simulation / Stripe / Qonto / SumUp.
+    const card = { method: ship.method, card: pay.card, exp: pay.exp, cvc: pay.cvc, holder: pay.holder, ship: ship };
     const payFlow = (window.LCPay && window.LCPay.process)
-      ? window.LCPay.process({ items: lines, total: total }, card)
+      ? window.LCPay.process(orderData, card)
       : Promise.resolve({ paid: ship.method !== 'pickup', ref: null });
     setPaying(true);
     payFlow.then(finalize).catch(function () { setPaying(false); setErrors({ card: 1 }); });
@@ -199,6 +208,11 @@ function CheckoutModal({ onClose }) {
                   {ship.method === 'pickup' ? (
                     <div style={{ padding: '20px', background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
                       Vous avez choisi le <strong>retrait en boutique</strong> à Vienne. Vous réglerez sur place — aucune carte requise maintenant.
+                    </div>
+                  ) : stripeRedirect ? (
+                    <div style={{ padding: '20px', background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}><span>🔒</span><strong>Paiement sécurisé par Stripe</strong></div>
+                      En cliquant sur « Payer », vous serez redirigé vers la page de paiement chiffrée Stripe (carte bancaire, Apple&nbsp;Pay…). Vos données bancaires ne transitent jamais par ce site. Vous reviendrez ici une fois le paiement validé.
                     </div>
                   ) : (
                     <React.Fragment>

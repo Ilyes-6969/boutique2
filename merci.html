@@ -1,0 +1,141 @@
+<!-- @dsCard group="leclub151" viewport="1440x900" name="leclub151 — Merci" subtitle="Page merci.html — confirmation de paiement Stripe" -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<script>
+(function () {
+  try { document.documentElement.setAttribute('data-theme', localStorage.getItem('lc151_theme') || 'light'); }
+  catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Merci pour votre commande — leclub151.">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#15224F">
+<title>Merci pour votre commande — leclub151</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='50' cy='50' r='46'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23c)'%3E%3Crect width='100' height='50' fill='%23EE1515'/%3E%3Crect y='50' width='100' height='50' fill='%23fff'/%3E%3Crect y='44' width='100' height='12' fill='%231a1a1a'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%231a1a1a' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='14' fill='%23fff' stroke='%231a1a1a' stroke-width='6'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="storefront2.css">
+<style>
+  body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--paper, #f6f7fb); }
+  .lc-merci { width: min(520px, 100%); background: var(--card, #fff); border: 1.5px solid var(--line, #e6e6ef); border-radius: 18px; box-shadow: 0 18px 50px rgba(0,0,0,.12); padding: 34px 30px; text-align: center; font-family: system-ui, sans-serif; color: var(--ink, #1a1a1a); }
+  .lc-ic { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 18px; }
+  .lc-ic.ok { background: var(--green-soft, #e7f7ee); color: var(--green, #16a34a); }
+  .lc-ic.wait { background: #fff4e0; color: #b8860b; }
+  .lc-ic.err { background: #fdeaea; color: #d33; }
+  .lc-merci h1 { font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 8px; }
+  .lc-merci p { font-size: 15px; color: var(--ink-2, #444); line-height: 1.55; margin: 0 0 6px; }
+  .lc-box { text-align: left; background: var(--paper-2, #f1f2f7); border-radius: 12px; padding: 16px; margin: 18px 0; }
+  .lc-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
+  .lc-row .k { color: var(--ink-2, #555); }
+  .lc-row .v { font-weight: 600; font-family: ui-monospace, monospace; }
+  .lc-btn { display: inline-block; margin-top: 8px; padding: 12px 26px; border-radius: 10px; border: none; background: var(--accent, #ee1515); color: var(--on-accent, #fff); font-weight: 600; font-size: 15px; cursor: pointer; text-decoration: none; }
+  .lc-btn.ghost { background: transparent; border: 1.5px solid var(--line-strong, #ccc); color: var(--ink, #1a1a1a); margin-left: 8px; }
+  .lc-muted { font-size: 12.5px; color: var(--muted, #888); margin-top: 12px; }
+  .lc-spin { width: 34px; height: 34px; border: 3px solid var(--line, #ddd); border-top-color: var(--accent, #ee1515); border-radius: 50%; animation: lcspin 0.8s linear infinite; margin: 0 auto 16px; }
+  @keyframes lcspin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="lc-merci" id="lc-merci">
+  <div class="lc-spin"></div>
+  <h1>Validation du paiement…</h1>
+  <p>Un instant, nous confirmons votre commande.</p>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function () {
+  var root = document.getElementById('lc-merci');
+  var LC = window.LC151 || {};
+  var fmt = LC.fmt || function (n) { return Number(n || 0).toFixed(2) + ' €'; };
+  var params = new URLSearchParams(location.search);
+  var sid = params.get('session_id');
+
+  function render(html) { root.innerHTML = html; }
+
+  function methodLabel(key) {
+    try { var m = LC.Orders.methods()[key]; return m ? m.label : 'Livraison'; }
+    catch (e) { return 'Livraison'; }
+  }
+
+  function showPaid(order) {
+    render(
+      '<div class="lc-ic ok">✓</div>' +
+      '<h1>Merci ' + (order.name ? esc(order.name) : '') + ' !</h1>' +
+      '<p>Votre paiement a bien été reçu et votre commande est confirmée.</p>' +
+      '<div class="lc-box">' +
+        '<div class="lc-row"><span class="k">N° de commande</span><span class="v">' + esc(order.number) + '</span></div>' +
+        '<div class="lc-row"><span class="k">Total payé</span><span class="v">' + fmt(order.total) + '</span></div>' +
+        (order.method ? '<div class="lc-row"><span class="k">Livraison</span><span class="v" style="font-family:inherit;font-weight:600">' + esc(methodLabel(order.method)) + '</span></div>' : '') +
+      '</div>' +
+      '<p class="lc-muted">Un reçu vous a été envoyé par e-mail' + (order.email ? ' à ' + esc(order.email) : '') + '.</p>' +
+      '<div style="margin-top:16px"><a class="lc-btn" href="boutique.html">Continuer mes achats</a>' +
+      '<a class="lc-btn ghost" href="index.html">Accueil</a></div>'
+    );
+  }
+
+  function showPending() {
+    render(
+      '<div class="lc-ic wait">⏳</div>' +
+      '<h1>Paiement en cours de validation</h1>' +
+      '<p>Votre paiement n\'est pas encore confirmé. Si vous avez bien réglé, il sera validé sous peu — vous recevrez un e-mail. Aucun double prélèvement n\'aura lieu.</p>' +
+      '<div style="margin-top:16px"><a class="lc-btn" href="panier.html">Revenir au panier</a></div>'
+    );
+  }
+
+  function showError(msg) {
+    render(
+      '<div class="lc-ic err">!</div>' +
+      '<h1>Confirmation indisponible</h1>' +
+      '<p>' + esc(msg || 'Impossible de vérifier le paiement pour le moment.') + '</p>' +
+      '<div style="margin-top:16px"><a class="lc-btn" href="panier.html">Revenir au panier</a>' +
+      '<a class="lc-btn ghost" href="index.html">Accueil</a></div>'
+    );
+  }
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
+
+  if (!sid) { showError('Aucune référence de paiement dans l\'adresse.'); return; }
+
+  fetch('/api/order-status?session_id=' + encodeURIComponent(sid))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data || data.error) { showError(data && data.error); return; }
+      if (!data.paid) { showPending(); return; }
+
+      // Empêche toute double-finalisation (rechargement de la page).
+      var done = [];
+      try { done = JSON.parse(localStorage.getItem('lc151_done_sessions') || '[]'); } catch (e) {}
+      var order = null;
+
+      if (done.indexOf(sid) === -1) {
+        var pending = null;
+        try { pending = JSON.parse(localStorage.getItem('lc151_pending_order') || 'null'); } catch (e) {}
+        if (pending && pending.order && LC.Orders) {
+          var od = pending.order;
+          order = LC.Orders.add(Object.assign({}, od, { paid: true, payRef: data.ref }));
+          try { LC.Cart.clear(); } catch (e) {}
+          try { localStorage.removeItem('lc151_pending_order'); } catch (e) {}
+        }
+        done.push(sid);
+        try { localStorage.setItem('lc151_done_sessions', JSON.stringify(done)); } catch (e) {}
+      }
+
+      if (!order) {
+        // Déjà finalisée (ou panier perdu) : on confirme avec les données Stripe.
+        order = {
+          number: data.orderRef || ('LC151-' + String(sid).slice(-6).toUpperCase()),
+          total: (data.amount_total || 0) / 100,
+          email: data.email || '',
+          method: null,
+        };
+      }
+      showPaid(order);
+    })
+    .catch(function () { showError('Erreur réseau pendant la vérification du paiement.'); });
+})();
+</script>
+</body>
+</html>

@@ -15,12 +15,15 @@
    restent dans une fonction serveur (ex. /api sur Vercel). */
 (function () {
   const cfg = {
+    // Passe à 'stripe' une fois les variables d'env Vercel en place (voir
+    // DEPLOIEMENT-PAIEMENT.md). 'simulation' = démo, aucun débit réel.
     provider: 'simulation',            // 'simulation' | 'stripe' | 'qonto' | 'sumup'
     currency: 'eur',
-    // À renseigner le jour où on branche le vrai paiement :
     stripe: {
-      publishableKey: '',              // clé "pk_live_..." (publique, OK ici)
-      checkoutEndpoint: '/api/create-checkout-session', // fonction serveur Vercel (à créer)
+      // La clé publique n'est PLUS nécessaire ici : on redirige vers Stripe
+      // Checkout via la fonction serveur (qui détient la clé secrète).
+      publishableKey: '',              // clé "pk_live_..." (publique, OK ici) — facultatif
+      checkoutEndpoint: '/api/create-checkout-session',
     },
     qonto: {
       // Lien de paiement Qonto (propulsé par Mollie) — réconcilié auto sur Qonto.
@@ -55,24 +58,46 @@
       });
     },
 
-    /* ====== À IMPLÉMENTER plus tard — Stripe (recommandé pour ce site) ======
-       1) Créer une fonction serveur Vercel `/api/create-checkout-session` qui,
-          avec la clé SECRÈTE Stripe, crée une Checkout Session et renvoie son URL.
-       2) Ici : POST de la commande vers cet endpoint, puis redirection.
-       3) Régler le virement Stripe (payout) vers l'IBAN Qonto.
-       Décommenter et compléter :
+    /* ====== Stripe Checkout (rail de paiement → reversé sur Qonto) ======
+       Flux : on POST le panier vers la fonction serveur /api/create-checkout-session
+       (qui détient la clé SECRÈTE), puis on REDIRIGE le client vers la page de
+       paiement sécurisée Stripe. Au retour (merci.html?session_id=...), le
+       site vérifie le paiement via /api/order-status et finalise la commande.
+       - Retrait en boutique : aucun paiement en ligne (réglé sur place).
+       - Le virement Stripe (payout) est réglé vers l'IBAN Qonto dans le
+         tableau de bord Stripe. */
     async stripe(order, card) {
+      if (card && card.method === 'pickup') {
+        return { paid: false, ref: null, provider: 'pickup' };
+      }
+      // Mémorise la commande en attente : on la finalisera au retour de Stripe.
+      try {
+        localStorage.setItem('lc151_pending_order', JSON.stringify({
+          ts: Date.now(), order: order, ship: (card && card.ship) || null,
+        }));
+      } catch (e) {}
+
       const r = await fetch(cfg.stripe.checkoutEndpoint, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: order.items, total: order.total, currency: cfg.currency }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: order.items,
+          shipping: order.shipping || 0,
+          email: (card && card.ship && card.ship.email) || order.email || undefined,
+          orderRef: order.ref || '',
+          currency: cfg.currency,
+        }),
       });
-      if (!r.ok) throw new Error('stripe-session');
-      const { url } = await r.json();
-      window.location.href = url;            // redirige vers Stripe Checkout
-      return new Promise(function () {});     // la page part en redirection
+      if (!r.ok) {
+        let msg = 'stripe-session';
+        try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (e) {}
+        throw new Error(msg);
+      }
+      const data = await r.json();
+      if (!data.url) throw new Error('stripe-session');
+      window.location.href = data.url;          // → page de paiement Stripe
+      return new Promise(function () {});         // la page part en redirection
     },
-    */
-    stripe() { throw new Error('Stripe non encore configuré — voir README_AMELIORATIONS.md'); },
 
     /* ====== À IMPLÉMENTER plus tard — Lien de paiement Qonto ======
        Génère/ouvre un lien de paiement Qonto (Mollie). Encaissement direct
