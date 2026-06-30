@@ -126,18 +126,32 @@ function Pokeball({ size = 16, style, float = false }) {
 
 function Logo({ onClick, size = 22 }) {
   const uid = React.useId().replace(/:/g, '');
-  const h = Math.round(size * 1.6);
-  const w = Math.round(h * 3.95);
+  const h = Math.round(size * 1.7);
+  const w = Math.round(h * 2.13);
+  const gold = '#FFD21A';
+  const goldDark = '#C98A0E';
   return (
-    <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }} aria-label="leclub151"
+    <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }} aria-label="leclub151 — C151"
       style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 0 }}>
-      <svg width={w} height={h} viewBox="0 0 240 58" style={{ overflow: 'visible', display: 'block' }}>
-        <path id={'arc' + uid} d="M 8,46 Q 120,20 232,46" fill="none" />
-        <text fontFamily="var(--font-display)" fontWeight="800" fontStyle="italic" fontSize="36"
-          fill="#FFFFFF" stroke="rgba(0,0,0,0.35)" strokeWidth="2.4" paintOrder="stroke" strokeLinejoin="round" strokeLinecap="round"
-          style={{ letterSpacing: '-0.5px', filter: 'drop-shadow(1px 2px 0 rgba(0,0,0,0.25))' }}>
-          <textPath href={'#arc' + uid} startOffset="50%" textAnchor="middle">leclub<tspan fill="#FFCB05">151</tspan></textPath>
-        </text>
+      <svg width={w} height={h} viewBox="0 0 196 92" style={{ overflow: 'visible', display: 'block' }}>
+        <defs>
+          <filter id={'glow' + uid} x="-40%" y="-40%" width="180%" height="180%">
+            <feDropShadow dx="0" dy="0" stdDeviation="3.2" floodColor="#FFE24D" floodOpacity="0.9" />
+          </filter>
+        </defs>
+        <g filter={'url(#glow' + uid + ')'}>
+          {/* C en Pokéball (ouverture à droite) */}
+          <path d="M 60 29 A 23 23 0 1 0 60 63" fill="none" stroke={goldDark} strokeWidth="20" strokeLinecap="round" />
+          <path d="M 60 29 A 23 23 0 1 0 60 63" fill="none" stroke={gold} strokeWidth="13" strokeLinecap="round" />
+          {/* barre équatoriale */}
+          <rect x="21" y="40.5" width="25" height="11" rx="5.5" fill={gold} stroke={goldDark} strokeWidth="2" />
+          {/* bouton central */}
+          <circle cx="46" cy="46" r="8.5" fill="#FFF1B0" stroke={goldDark} strokeWidth="4" />
+          {/* 151 */}
+          <text x="82" y="69" fontFamily="var(--font-display)" fontWeight="900" fontStyle="italic" fontSize="58"
+            fill={gold} stroke={goldDark} strokeWidth="2.4" paintOrder="stroke" strokeLinejoin="round"
+            style={{ letterSpacing: '-1px' }}>151</text>
+        </g>
       </svg>
     </a>
   );
