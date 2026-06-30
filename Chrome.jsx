@@ -8,9 +8,9 @@
   var s = document.createElement('style');
   s.id = 'lc-logo-theme';
   s.textContent =
-    ':root{--logo-fill:#E0A200;--logo-edge:#8A5E00;--logo-btn:#FFF3C4;--logo-glow:none}' +
-    '[data-theme="dark"]{--logo-fill:#FFD83A;--logo-edge:#A9740B;--logo-btn:#FFF6C9;' +
-    '--logo-glow:drop-shadow(0 0 4px rgba(255,226,77,.85)) drop-shadow(0 0 9px rgba(255,210,40,.55))}' +
+    ':root{--logo-fill:#FFFFFF;--logo-edge:rgba(0,0,0,.32);--logo-btn:#FFFFFF;--logo-glow:none}' +
+    '[data-theme="dark"]{--logo-fill:#4F93FF;--logo-edge:#16335C;--logo-btn:#CFE2FF;' +
+    '--logo-glow:drop-shadow(0 0 4px rgba(79,147,255,.55))}' +
     '.lc-logo-mark{filter:var(--logo-glow)}';
   (document.head || document.documentElement).appendChild(s);
 })();
