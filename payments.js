@@ -17,7 +17,7 @@
   const cfg = {
     // Passe à 'stripe' une fois les variables d'env Vercel en place (voir
     // DEPLOIEMENT-PAIEMENT.md). 'simulation' = démo, aucun débit réel.
-    provider: 'simulation',            // 'simulation' | 'stripe' | 'qonto' | 'sumup'
+    provider: 'stripe',                // 'simulation' | 'stripe' | 'qonto' | 'sumup'
     currency: 'eur',
     stripe: {
       // La clé publique n'est PLUS nécessaire ici : on redirige vers Stripe
