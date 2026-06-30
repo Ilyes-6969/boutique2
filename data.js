@@ -193,13 +193,29 @@
   let custom = load(K_CUSTOM, []);
   let PRODUCTS = [];
 
+  // La démo (DEFAULTS) ne doit JAMAIS apparaître sur le vrai domaine : sinon des
+  // cartes fictives (Dracaufeu 1 890 €…) seraient visibles et commandables avant
+  // le branchement de WooCommerce. Elle reste active sur localhost / preview
+  // Vercel pour tes essais. Forçage possible : localStorage.lc151_demo = '1'
+  // (afficher) ou '0' (masquer). Adapte PROD_HOSTS à ton domaine réel.
+  const PROD_HOSTS = ['leclub151.fr', 'www.leclub151.fr'];
+  function demoEnabled() {
+    try {
+      const f = localStorage.getItem('lc151_demo');
+      if (f === '1') return true;
+      if (f === '0') return false;
+    } catch (e) {}
+    const h = (location.hostname || '').toLowerCase();
+    return PROD_HOSTS.indexOf(h) === -1;   // vrai domaine → pas de démo
+  }
+
   function rebuild() {
     overrides = load(K_OVR, {});
     custom = load(K_CUSTOM, []);
     // ROOT-CAUSE FIX: demo seed data must appear ONLY when no real shop is
     // connected. Once a WooCommerce URL is configured, the catalogue is the
     // real products (+ owner-added) — demo cards never leak into production.
-    const base = wpUrl ? wpProducts : DEFAULTS;
+    const base = wpUrl ? wpProducts : (demoEnabled() ? DEFAULTS : []);
     const combined = base.concat(custom);
     const merged = combined.map((p) => {
       const o = overrides[p.id] || {};

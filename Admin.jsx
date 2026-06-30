@@ -297,4 +297,52 @@ function WpAddModal({ Store, onClose, onDone }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById('admin-root')).render(<AdminApp />);
+// ---- Barrière d'accès : mot de passe vérifié côté serveur (/api/admin-auth) ----
+// Sans le bon mot de passe, l'interface d'administration n'est pas rendue.
+function AdminGate() {
+  const [authed, setAuthed] = React.useState(false);
+  const [pwd, setPwd] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+
+  React.useEffect(() => {
+    try {
+      const t = sessionStorage.getItem('lc151_admin_token');
+      if (t && Number(String(t).split('.')[0]) > Date.now()) setAuthed(true);
+    } catch (e) {}
+  }, []);
+
+  const submit = async (e) => {
+    if (e) e.preventDefault();
+    if (busy) return;
+    setBusy(true); setErr('');
+    try {
+      const r = await fetch('/api/admin-auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pwd }) });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok) {
+        try { sessionStorage.setItem('lc151_admin_token', j.token); } catch (e2) {}
+        setAuthed(true);
+      } else {
+        setErr(r.status === 401 ? 'Mot de passe incorrect.' : (j.error || 'Connexion impossible.'));
+      }
+    } catch (e2) { setErr('Erreur réseau.'); }
+    setBusy(false);
+  };
+
+  if (authed) return <AdminApp />;
+
+  return (
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'system-ui, sans-serif', background: '#f0f0f1' }}>
+      <form onSubmit={submit} style={{ width: 'min(360px, 92%)', background: '#fff', border: '1px solid #dcdcde', borderRadius: 8, padding: '28px 26px', boxShadow: '0 10px 30px rgba(0,0,0,0.08)' }}>
+        <h1 style={{ fontSize: 18, fontWeight: 700, margin: '0 0 4px' }}>Espace gestion</h1>
+        <p style={{ fontSize: 13, color: '#646970', margin: '0 0 18px' }}>Accès réservé. Saisissez le mot de passe.</p>
+        <input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} autoFocus placeholder="Mot de passe" style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 4, border: '1px solid #8c8f94', fontSize: 14, marginBottom: 12 }} />
+        {err && <div style={{ color: '#d63638', fontSize: 12.5, marginBottom: 10 }}>{err}</div>}
+        <button type="submit" disabled={busy || !pwd} style={{ width: '100%', padding: '10px', borderRadius: 4, border: 'none', background: '#2271b1', color: '#fff', fontWeight: 600, fontSize: 14, cursor: busy ? 'wait' : 'pointer', opacity: (busy || !pwd) ? 0.7 : 1 }}>{busy ? 'Vérification…' : 'Entrer'}</button>
+        <p style={{ fontSize: 11.5, color: '#8c8f94', margin: '14px 0 0', lineHeight: 1.5 }}>Pour une protection forte, active aussi la « Password Protection » de Vercel sur ce déploiement.</p>
+      </form>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('admin-root')).render(<AdminGate />);

@@ -8,9 +8,10 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
+const { applyCors } = require('../lib/serverCatalog');
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const secret = process.env.STRIPE_SECRET_KEY;

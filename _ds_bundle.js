@@ -419,6 +419,8 @@ function ProductCard({
   }, liked ? '♥' : '♡'), image ? /*#__PURE__*/React.createElement("img", {
     src: image,
     alt: title,
+    loading: 'lazy',
+    decoding: 'async',
     style: {
       maxWidth: '100%',
       maxHeight: '100%',
@@ -4499,6 +4501,8 @@ function StoreCard({
   }, /*#__PURE__*/React.createElement("img", {
     src: product.image,
     alt: product.name,
+    loading: 'lazy',
+    decoding: 'async',
     style: {
       maxWidth: '100%',
       maxHeight: '100%',

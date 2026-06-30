@@ -7,6 +7,48 @@ function Product({ navigate, productId, onCart }) {
   const [qty, setQty] = React.useState(1);
   const [added, setAdded] = React.useState(false);
   const lockedUnique = product ? (cart.isUnique(product.id) && cart.items().some((l) => l.id === product.id)) : false;
+
+  // SEO par produit : sans cela, toutes les fiches partagent le même <title>,
+  // la même description et le même og:title (duplicate content) → aucune carte
+  // ne ressort sur Google. On met aussi un canonical + un JSON-LD Product/Offer.
+  React.useEffect(() => {
+    if (!product) return;
+    const title = product.name + ' — leclub151';
+    document.title = title;
+    const desc = String(product.desc || (product.name + ' — disponible chez leclub151, boutique de cartes Pokémon à Vienne.')).slice(0, 160);
+    const url = location.origin + '/produit.html?id=' + encodeURIComponent(product.id);
+    const setMeta = (sel, val) => {
+      let el = document.head.querySelector(sel);
+      if (!el) {
+        el = document.createElement('meta');
+        const m = sel.match(/\[(name|property)="([^"]+)"\]/);
+        if (m) el.setAttribute(m[1], m[2]);
+        document.head.appendChild(el);
+      }
+      el.setAttribute('content', val);
+    };
+    setMeta('meta[name="description"]', desc);
+    setMeta('meta[property="og:title"]', title);
+    setMeta('meta[property="og:description"]', desc);
+    setMeta('meta[name="twitter:title"]', title);
+    setMeta('meta[name="twitter:description"]', desc);
+    if (product.image) { setMeta('meta[property="og:image"]', product.image); setMeta('meta[name="twitter:image"]', product.image); }
+    let link = document.head.querySelector('link[rel="canonical"]');
+    if (!link) { link = document.createElement('link'); link.setAttribute('rel', 'canonical'); document.head.appendChild(link); }
+    link.setAttribute('href', url);
+    let ld = document.getElementById('lc-product-ld');
+    if (!ld) { ld = document.createElement('script'); ld.type = 'application/ld+json'; ld.id = 'lc-product-ld'; document.head.appendChild(ld); }
+    ld.textContent = JSON.stringify({
+      '@context': 'https://schema.org', '@type': 'Product', name: product.name,
+      description: desc, image: product.image || undefined,
+      sku: 'LC151-' + product.id.toUpperCase(), brand: { '@type': 'Brand', name: 'Pokémon' },
+      offers: {
+        '@type': 'Offer', price: product.price, priceCurrency: 'EUR',
+        availability: product.inStock === false ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+        url: url,
+      },
+    });
+  }, [product && product.id, product && product.price, product && product.inStock]);
   if (!product) {
     return (
       <div className="container-wide" style={{ padding: '120px 24px', textAlign: 'center', color: 'var(--ink-2)' }}>
