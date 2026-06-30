@@ -1,5 +1,20 @@
 /* leclub151 — shared chrome: Logo, Announcement, Header, Footer, ProductStage, useCart */
 
+/* Couleurs du logo selon le thème (clair = doré lisible sur fond blanc ;
+   sombre = jaune néon + halo, comme l'enseigne). Injecté une seule fois. */
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('lc-logo-theme')) return;
+  var s = document.createElement('style');
+  s.id = 'lc-logo-theme';
+  s.textContent =
+    ':root{--logo-fill:#E0A200;--logo-edge:#8A5E00;--logo-btn:#FFF3C4;--logo-glow:none}' +
+    '[data-theme="dark"]{--logo-fill:#FFD83A;--logo-edge:#A9740B;--logo-btn:#FFF6C9;' +
+    '--logo-glow:drop-shadow(0 0 4px rgba(255,226,77,.85)) drop-shadow(0 0 9px rgba(255,210,40,.55))}' +
+    '.lc-logo-mark{filter:var(--logo-glow)}';
+  (document.head || document.documentElement).appendChild(s);
+})();
+
 function useCart() {
   const [, force] = React.useReducer((x) => x + 1, 0);
   React.useEffect(() => window.LC151.Cart.subscribe(force), []);
@@ -125,33 +140,25 @@ function Pokeball({ size = 16, style, float = false }) {
 }
 
 function Logo({ onClick, size = 22 }) {
-  const uid = React.useId().replace(/:/g, '');
   const h = Math.round(size * 1.7);
   const w = Math.round(h * 2.13);
-  const gold = '#FFD21A';
-  const goldDark = '#C98A0E';
+  const fill = 'var(--logo-fill)';
+  const edge = 'var(--logo-edge)';
   return (
     <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }} aria-label="leclub151 — C151"
       style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 0 }}>
-      <svg width={w} height={h} viewBox="0 0 196 92" style={{ overflow: 'visible', display: 'block' }}>
-        <defs>
-          <filter id={'glow' + uid} x="-40%" y="-40%" width="180%" height="180%">
-            <feDropShadow dx="0" dy="0" stdDeviation="3.2" floodColor="#FFE24D" floodOpacity="0.9" />
-          </filter>
-        </defs>
-        <g filter={'url(#glow' + uid + ')'}>
-          {/* C en Pokéball (ouverture à droite) */}
-          <path d="M 60 29 A 23 23 0 1 0 60 63" fill="none" stroke={goldDark} strokeWidth="20" strokeLinecap="round" />
-          <path d="M 60 29 A 23 23 0 1 0 60 63" fill="none" stroke={gold} strokeWidth="13" strokeLinecap="round" />
-          {/* barre équatoriale */}
-          <rect x="21" y="40.5" width="25" height="11" rx="5.5" fill={gold} stroke={goldDark} strokeWidth="2" />
-          {/* bouton central */}
-          <circle cx="46" cy="46" r="8.5" fill="#FFF1B0" stroke={goldDark} strokeWidth="4" />
-          {/* 151 */}
-          <text x="82" y="69" fontFamily="var(--font-display)" fontWeight="900" fontStyle="italic" fontSize="58"
-            fill={gold} stroke={goldDark} strokeWidth="2.4" paintOrder="stroke" strokeLinejoin="round"
-            style={{ letterSpacing: '-1px' }}>151</text>
-        </g>
+      <svg className="lc-logo-mark" width={w} height={h} viewBox="0 0 196 92" style={{ overflow: 'visible', display: 'block' }}>
+        {/* C en Pokéball (ouverture à droite) */}
+        <path d="M 60 29 A 23 23 0 1 0 60 63" fill="none" stroke={edge} strokeWidth="20" strokeLinecap="round" />
+        <path d="M 60 29 A 23 23 0 1 0 60 63" fill="none" stroke={fill} strokeWidth="13" strokeLinecap="round" />
+        {/* barre équatoriale */}
+        <rect x="21" y="40.5" width="25" height="11" rx="5.5" fill={fill} stroke={edge} strokeWidth="2" />
+        {/* bouton central */}
+        <circle cx="46" cy="46" r="8.5" fill="var(--logo-btn)" stroke={edge} strokeWidth="4" />
+        {/* 151 */}
+        <text x="82" y="69" fontFamily="var(--font-display)" fontWeight="900" fontStyle="italic" fontSize="58"
+          fill={fill} stroke={edge} strokeWidth="2.4" paintOrder="stroke" strokeLinejoin="round"
+          style={{ letterSpacing: '-1px' }}>151</text>
       </svg>
     </a>
   );
