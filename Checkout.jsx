@@ -29,6 +29,11 @@ function CheckoutModal({ onClose }) {
   const [ship, setShip] = React.useState({ name: sa.name || u.name || '', email: u.email || '', addr: sa.addr || '', city: sa.city || '', zip: sa.zip || '', phone: sa.phone || '', method: 'standard' });
   const [pay, setPay] = React.useState({ card: '', exp: '', cvc: '', holder: '' });
   const [errors, setErrors] = React.useState({});
+  // --- Paiement intégré Stripe (Payment Element) ---
+  const [stripeReady, setStripeReady] = React.useState(false);
+  const cardBoxRef = React.useRef(null);   // conteneur DOM du formulaire de carte
+  const stripeRef = React.useRef(null);
+  const elementsRef = React.useRef(null);
 
   const shippingCost = Orders.shippingCost(ship.method, subtotal);
   const total = subtotal + shippingCost;
@@ -50,12 +55,43 @@ function CheckoutModal({ onClose }) {
     if (ship.zip && !/^\d{4,5}$/.test(ship.zip.trim())) e.zip = 1;
     setErrors(e); return Object.keys(e).length === 0;
   };
-  // Stripe encaisse via une page externe : pas de champs carte sur notre site.
-  const stripeRedirect = !!(window.LCPay && window.LCPay.isLive && window.LCPay.isLive() && ship.method !== 'pickup');
+  // Paiement carte INTÉGRÉ au site (Stripe Payment Element) — pas de redirection.
+  const stripeEmbedded = !!(window.LCPay && window.LCPay.isLive && window.LCPay.isLive() && ship.method !== 'pickup');
+
+  const currentLines = () => items
+    .map((l) => { const p = window.LC151.get(l.id); return p ? { name: p.name, qty: l.qty, price: p.price } : null; })
+    .filter(Boolean);
+
+  // Monte (ou remonte) le formulaire de carte Stripe dès qu'on entre à l'étape
+  // paiement, et le reconstruit si le total change (changement de livraison).
+  React.useEffect(() => {
+    if (step !== 'paiement' || !stripeEmbedded) return;
+    let cancelled = false;
+    let el = null;
+    setStripeReady(false);
+    (async () => {
+      try {
+        const stripe = await window.LCPay.ensureStripe();
+        if (cancelled) return;
+        const data = await window.LCPay.createPaymentIntent({ items: currentLines(), shipping: shippingCost, email: ship.email });
+        if (cancelled || !data.clientSecret) throw new Error('Paiement indisponible');
+        const elements = stripe.elements({ clientSecret: data.clientSecret, appearance: { theme: 'stripe' } });
+        el = elements.create('payment', { layout: 'tabs' });
+        if (cancelled) return;
+        el.mount(cardBoxRef.current);
+        stripeRef.current = stripe;
+        elementsRef.current = elements;
+        if (!cancelled) setStripeReady(true);
+      } catch (e) {
+        if (!cancelled) setErrors((prev) => ({ ...prev, pay: (e && e.message) ? String(e.message) : 'Paiement indisponible' }));
+      }
+    })();
+    return () => { cancelled = true; try { if (el) el.unmount(); } catch (e) {} };
+  }, [step, stripeEmbedded, total, ship.method]);
 
   const validatePay = () => {
     if (ship.method === 'pickup') return true; // pay in store
-    if (stripeRedirect) return true;           // la carte est saisie chez Stripe
+    if (stripeEmbedded) return true;           // carte gérée par le Payment Element
     const e = {};
     if (!lcLuhn(pay.card)) e.card = 1;
     const m = pay.exp.match(/^(\d{2})\/(\d{2})$/);
@@ -68,7 +104,8 @@ function CheckoutModal({ onClose }) {
 
   const [paying, setPaying] = React.useState(false);
   const goPay = () => { if (validateShip()) { setErrors({}); setStep('paiement'); } };
-  const placeOrder = () => {
+
+  const placeOrder = async () => {
     if (paying) return;
     if (!validatePay()) return;
     // Re-resolve every line against the LIVE catalogue — never trust the cart blindly.
@@ -79,9 +116,6 @@ function CheckoutModal({ onClose }) {
     if (resolved.some(({ p }) => p.inStock === false)) { setErrors({ stock: 1 }); return; } // went OOS
     setErrors({});
     const lines = resolved.map(({ p, l }) => ({ name: p.name, qty: l.qty, price: p.price }));
-    // Commande complète, construite AVANT le paiement : pour Stripe (redirection)
-    // elle est mémorisée puis finalisée au retour (merci.html) ; pour la démo /
-    // le retrait, elle est finalisée tout de suite dans finalize().
     const orderData = {
       email: ship.email, name: ship.name,
       items: lines,
@@ -94,9 +128,46 @@ function CheckoutModal({ onClose }) {
         paid: ship.method !== 'pickup' ? !!(result && result.paid) : false,
         payRef: result ? result.ref : null,
       });
+      try { localStorage.removeItem('lc151_pending_order'); } catch (e) {}
       setOrder(o); cart.clear(); setPaying(false); setStep('confirme');
     };
-    // Couche paiement isolée (payments.js) — simulation / Stripe / Qonto / SumUp.
+
+    // --- 1) Paiement carte INTÉGRÉ (Stripe Payment Element) ---
+    if (stripeEmbedded) {
+      if (!stripeReady || !stripeRef.current || !elementsRef.current) {
+        setErrors({ pay: 'Le formulaire de paiement n’est pas encore prêt — patientez une seconde.' });
+        return;
+      }
+      setPaying(true);
+      // Mémorise la commande au cas où une authentification 3-D Secure imposerait
+      // un aller-retour (carte qui le demande) → finalisée au retour (merci.html).
+      try { localStorage.setItem('lc151_pending_order', JSON.stringify({ ts: Date.now(), order: orderData })); } catch (e) {}
+      try {
+        const result = await stripeRef.current.confirmPayment({
+          elements: elementsRef.current,
+          redirect: 'if_required',
+          confirmParams: { return_url: location.origin + '/merci.html', receipt_email: ship.email || undefined },
+        });
+        if (result.error) {
+          setPaying(false);
+          setErrors({ pay: result.error.message || 'Paiement refusé.' });
+          return;
+        }
+        const pi = result.paymentIntent;
+        if (pi && (pi.status === 'succeeded' || pi.status === 'processing')) {
+          finalize({ paid: true, ref: pi.id });
+        } else {
+          setPaying(false);
+          setErrors({ pay: 'Paiement non confirmé. Réessayez.' });
+        }
+      } catch (e) {
+        setPaying(false);
+        setErrors({ pay: (e && e.message) ? String(e.message) : 'Erreur de paiement.' });
+      }
+      return;
+    }
+
+    // --- 2) Retrait en boutique / 3) mode démo (simulation) ---
     const card = { method: ship.method, card: pay.card, exp: pay.exp, cvc: pay.cvc, holder: pay.holder, ship: ship };
     const payFlow = (window.LCPay && window.LCPay.process)
       ? window.LCPay.process(orderData, card)
@@ -212,11 +283,17 @@ function CheckoutModal({ onClose }) {
                     <div style={{ padding: '20px', background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
                       Vous avez choisi le <strong>retrait en boutique</strong> à Vienne. Vous réglerez sur place — aucune carte requise maintenant.
                     </div>
-                  ) : stripeRedirect ? (
-                    <div style={{ padding: '20px', background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}><span>🔒</span><strong>Paiement sécurisé par Stripe</strong></div>
-                      En cliquant sur « Payer », vous serez redirigé vers la page de paiement chiffrée Stripe (carte bancaire, Apple&nbsp;Pay…). Vos données bancaires ne transitent jamais par ce site. Vous reviendrez ici une fois le paiement validé.
-                    </div>
+                  ) : stripeEmbedded ? (
+                    <React.Fragment>
+                      <div style={{ minHeight: 80, marginBottom: 12 }}>
+                        {/* Le formulaire de carte Stripe est monté ici (Payment Element) */}
+                        <div ref={cardBoxRef}></div>
+                        {!stripeReady && !errors.pay && (
+                          <div style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 2px' }}>Chargement du paiement sécurisé…</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}><span>🔒</span> Paiement chiffré par Stripe · vos données bancaires ne sont jamais stockées sur ce site</div>
+                    </React.Fragment>
                   ) : (
                     <React.Fragment>
                       <div style={{ marginBottom: 12 }}><label style={lbl}>Numéro de carte</label><input inputMode="numeric" style={errStyle('card')} value={pay.card} onChange={(e) => setP('card', fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" /></div>
@@ -233,7 +310,7 @@ function CheckoutModal({ onClose }) {
                   {errors.pay && <div style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10, lineHeight: 1.5 }}>Paiement impossible : {errors.pay}</div>}
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>
-                    <button onClick={placeOrder} disabled={paying} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: paying ? 'wait' : 'pointer', opacity: paying ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>
+                    <button onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: (paying || (stripeEmbedded && !stripeReady)) ? 'wait' : 'pointer', opacity: (paying || (stripeEmbedded && !stripeReady)) ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>
                   </div>
                 </React.Fragment>
               )}

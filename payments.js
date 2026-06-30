@@ -20,10 +20,12 @@
     provider: 'stripe',                // 'simulation' | 'stripe' | 'qonto' | 'sumup'
     currency: 'eur',
     stripe: {
-      // La clé publique n'est PLUS nécessaire ici : on redirige vers Stripe
-      // Checkout via la fonction serveur (qui détient la clé secrète).
-      publishableKey: '',              // clé "pk_live_..." (publique, OK ici) — facultatif
-      checkoutEndpoint: '/api/create-checkout-session',
+      // Paiement INTÉGRÉ au site (Payment Element) : la clé publique est servie
+      // par /api/stripe-public (variable d'env STRIPE_PUBLISHABLE_KEY), donc
+      // aucune clé en dur ici.
+      publicEndpoint: '/api/stripe-public',
+      piEndpoint: '/api/create-payment-intent',
+      checkoutEndpoint: '/api/create-checkout-session', // (ancien mode redirection, conservé)
     },
     qonto: {
       // Lien de paiement Qonto (propulsé par Mollie) — réconcilié auto sur Qonto.
@@ -58,45 +60,19 @@
       });
     },
 
-    /* ====== Stripe Checkout (rail de paiement → reversé sur Qonto) ======
-       Flux : on POST le panier vers la fonction serveur /api/create-checkout-session
-       (qui détient la clé SECRÈTE), puis on REDIRIGE le client vers la page de
-       paiement sécurisée Stripe. Au retour (merci.html?session_id=...), le
-       site vérifie le paiement via /api/order-status et finalise la commande.
-       - Retrait en boutique : aucun paiement en ligne (réglé sur place).
-       - Le virement Stripe (payout) est réglé vers l'IBAN Qonto dans le
-         tableau de bord Stripe. */
+    /* ====== Stripe (paiement INTÉGRÉ au site, Payment Element) ======
+       Le formulaire de carte est affiché DANS la fenêtre de paiement du site
+       (pas de redirection vers checkout.stripe.com). Le montage du formulaire
+       et la confirmation sont gérés par Checkout.jsx via les helpers
+       LCPay.ensureStripe() et LCPay.createPaymentIntent() ci-dessous.
+       Ici, on ne gère que le cas « retrait en boutique » (rien à débiter). */
     async stripe(order, card) {
       if (card && card.method === 'pickup') {
         return { paid: false, ref: null, provider: 'pickup' };
       }
-      // Mémorise la commande en attente : on la finalisera au retour de Stripe.
-      try {
-        localStorage.setItem('lc151_pending_order', JSON.stringify({
-          ts: Date.now(), order: order, ship: (card && card.ship) || null,
-        }));
-      } catch (e) {}
-
-      const r = await fetch(cfg.stripe.checkoutEndpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: order.items,
-          shipping: order.shipping || 0,
-          email: (card && card.ship && card.ship.email) || order.email || undefined,
-          orderRef: order.ref || '',
-          currency: cfg.currency,
-        }),
-      });
-      if (!r.ok) {
-        let msg = 'stripe-session';
-        try { const j = await r.json(); if (j && j.error) msg = j.error; } catch (e) {}
-        throw new Error(msg);
-      }
-      const data = await r.json();
-      if (!data.url) throw new Error('stripe-session');
-      window.location.href = data.url;          // → page de paiement Stripe
-      return new Promise(function () {});         // la page part en redirection
+      // Le paiement carte passe par le Payment Element (voir Checkout.jsx) — on
+      // ne devrait pas arriver ici pour une carte.
+      throw new Error('Le paiement carte est géré par le formulaire intégré.');
     },
 
     /* ====== À IMPLÉMENTER plus tard — Lien de paiement Qonto ======
@@ -108,10 +84,53 @@
     sumup() { throw new Error('SumUp non encore configuré — voir README_AMELIORATIONS.md'); },
   };
 
+  // Charge Stripe.js (une seule fois) avec la clé publique servie par /api.
+  function ensureStripe() {
+    if (window.__lcStripePromise) return window.__lcStripePromise;
+    window.__lcStripePromise = (async function () {
+      const r = await fetch(cfg.stripe.publicEndpoint);
+      const j = await r.json().catch(function () { return {}; });
+      const pk = j && j.publishableKey;
+      if (!pk) throw new Error('Clé publique Stripe manquante (STRIPE_PUBLISHABLE_KEY non définie dans Vercel).');
+      if (!window.Stripe) {
+        await new Promise(function (res, rej) {
+          const s = document.createElement('script');
+          s.src = 'https://js.stripe.com/v3/';
+          s.onload = res;
+          s.onerror = function () { rej(new Error('Chargement de Stripe.js impossible.')); };
+          document.head.appendChild(s);
+        });
+      }
+      if (!window.Stripe) throw new Error('Stripe.js indisponible.');
+      return window.Stripe(pk);
+    })();
+    return window.__lcStripePromise;
+  }
+
+  // Crée un PaymentIntent côté serveur et renvoie { clientSecret, amount }.
+  function createPaymentIntent(order) {
+    return fetch(cfg.stripe.piEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        items: order.items,
+        shipping: order.shipping || 0,
+        email: order.email || undefined,
+        orderRef: order.ref || '',
+      }),
+    }).then(async function (r) {
+      const j = await r.json().catch(function () { return {}; });
+      if (!r.ok || !j.clientSecret) throw new Error((j && j.error) || 'Création du paiement impossible.');
+      return j;
+    });
+  }
+
   window.LCPay = {
     config: cfg,
     luhn: luhn,
     isLive: function () { return cfg.provider !== 'simulation'; },
+    ensureStripe: ensureStripe,
+    createPaymentIntent: createPaymentIntent,
     // Renvoie une Promise → { paid, ref, provider }
     process: function (order, card) {
       const fn = providers[cfg.provider] || providers.simulation;

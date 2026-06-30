@@ -54,10 +54,12 @@ Dans Vercel : ton projet **boutique2** → **Settings → Environment Variables*
 
 | Nom | Valeur | Obligatoire |
 |---|---|---|
-| `STRIPE_SECRET_KEY` | ta clé `sk_live_...` (ou `sk_test_...` pour tester) | ✅ oui |
-| `SITE_URL` | l'URL publique exacte du site, ex. `https://leclub151.fr` (sans `/` final) | ✅ oui |
+| `STRIPE_SECRET_KEY` | ta clé secrète `sk_live_...` (ou `sk_test_...` pour tester) | ✅ oui |
+| `STRIPE_PUBLISHABLE_KEY` | ta clé publique `pk_live_...` (ou `pk_test_...`) — sert au formulaire de carte intégré | ✅ oui |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` (obtenu à l'étape 4) | recommandé |
 | `WEB3FORMS_KEY` | ta clé Web3Forms (pour l'e-mail propriétaire fiable) | facultatif |
+
+> `SITE_URL` n'est plus nécessaire : le site détecte son domaine tout seul. Le paiement carte s'affiche **directement dans la fenêtre du site** (Payment Element), sans redirection vers Stripe.
 
 Coche bien **Production** (et Preview si tu veux tester sur les déploiements de test). Puis **redéploie** le site pour qu'elles s'appliquent.
 
