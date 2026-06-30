@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- leclub151 — sitemap. ⚠️ Remplace VOTRE-DOMAINE par ton vrai domaine. -->
+<!-- leclub151 — sitemap. Domaine : https://leclub151.fr (adapter si www.). -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://VOTRE-DOMAINE/index.html</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/boutique.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/lorcana.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/one-piece.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/magic.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/yugioh.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/apropos.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/faq.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/cgv.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/mentions-legales.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-  <url><loc>https://VOTRE-DOMAINE/confidentialite.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://leclub151.fr/index.html</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://leclub151.fr/boutique.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>https://leclub151.fr/lorcana.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://leclub151.fr/one-piece.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://leclub151.fr/magic.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://leclub151.fr/yugioh.html</loc><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://leclub151.fr/apropos.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://leclub151.fr/faq.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://leclub151.fr/cgv.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://leclub151.fr/mentions-legales.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
+  <url><loc>https://leclub151.fr/confidentialite.html</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
 </urlset>

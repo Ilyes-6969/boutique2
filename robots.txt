@@ -1,8 +1,8 @@
-# leclub151 — robots.txt
-# ⚠️ Remplace VOTRE-DOMAINE par ton vrai domaine (ex. www.leclub151.fr).
+# leclub151 — robots.txt (domaine : https://leclub151.fr — adapter si www.)
 User-agent: *
 Allow: /
 Disallow: /admin.html
 Disallow: /panier.html
+Disallow: /merci.html
 
-Sitemap: https://VOTRE-DOMAINE/sitemap.xml
+Sitemap: https://leclub151.fr/sitemap.xml

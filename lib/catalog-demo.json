@@ -1,0 +1,137 @@
+{
+  "d1": {
+    "name": "Dracaufeu — Set de Base",
+    "price": 1890,
+    "unique": true
+  },
+  "d2": {
+    "name": "Tortank Holo",
+    "price": 329.9,
+    "unique": true
+  },
+  "d3": {
+    "name": "Pikachu — Joues Rouges",
+    "price": 54.9,
+    "unique": true
+  },
+  "d4": {
+    "name": "Dracaufeu — Gradée PSA 10",
+    "price": 8900,
+    "unique": true
+  },
+  "d5": {
+    "name": "Mewtwo Holo — Gradée PSA 9",
+    "price": 460,
+    "unique": true
+  },
+  "d6": {
+    "name": "ETB — Pokémon 151",
+    "price": 64.9,
+    "unique": false
+  },
+  "d7": {
+    "name": "Display — Étincelles Déferlantes",
+    "price": 209.9,
+    "unique": false
+  },
+  "d8": {
+    "name": "Coffret — Évolutions Prismatiques",
+    "price": 39.9,
+    "unique": false
+  },
+  "d9": {
+    "name": "Booster — Flammes Obsidiennes",
+    "price": 5.5,
+    "unique": false
+  },
+  "d10": {
+    "name": "Sleeves Ultra Pro — Pack 100",
+    "price": 9.9,
+    "unique": false
+  },
+  "d11": {
+    "name": "Classeur 360 cartes",
+    "price": 24.9,
+    "unique": false
+  },
+  "d12": {
+    "name": "Display — Couronne Stellaire",
+    "price": 219.9,
+    "unique": false
+  },
+  "d13": {
+    "name": "ETB — Mascarade Crépusculaire",
+    "price": 54.9,
+    "unique": false
+  },
+  "d14": {
+    "name": "Venusaur Holo — Set de Base",
+    "price": 279.9,
+    "unique": true
+  },
+  "d15": {
+    "name": "Alakazam Holo — Set de Base",
+    "price": 119.9,
+    "unique": true
+  },
+  "d16": {
+    "name": "Zapdos Holo — Set de Base",
+    "price": 99.9,
+    "unique": true
+  },
+  "d17": {
+    "name": "Machamp Holo — Set de Base",
+    "price": 44.9,
+    "unique": true
+  },
+  "d18": {
+    "name": "Raichu Holo — Set de Base",
+    "price": 69.9,
+    "unique": true
+  },
+  "d19": {
+    "name": "Gyarados Holo — Set de Base",
+    "price": 74.9,
+    "unique": true
+  },
+  "d20": {
+    "name": "Venusaur — Gradée PSA 8",
+    "price": 690,
+    "unique": true
+  },
+  "d21": {
+    "name": "Blastoise — Gradée PSA 9",
+    "price": 1290,
+    "unique": true
+  },
+  "d22": {
+    "name": "Zapdos — Gradée PSA 9",
+    "price": 540,
+    "unique": true
+  },
+  "d23": {
+    "name": "ETB — Couronne Stellaire",
+    "price": 49.9,
+    "unique": false
+  },
+  "d24": {
+    "name": "Display — Forces Temporelles",
+    "price": 199.9,
+    "unique": false
+  },
+  "d25": {
+    "name": "Coffret — Destinées de Paldea",
+    "price": 34.9,
+    "unique": false
+  },
+  "d26": {
+    "name": "Toploaders — Pack 25",
+    "price": 6.9,
+    "unique": false
+  },
+  "d27": {
+    "name": "Tapis de jeu — Pokéball",
+    "price": 19.9,
+    "unique": false
+  }
+}

@@ -32,7 +32,7 @@
   --ink: #15224F;             /* primary text / navy bands / nav */
   --ink-soft: #25356B;        /* secondary headings */
   --ink-2: #586089;           /* secondary text */
-  --muted: #8A90A8;           /* tertiary / meta / placeholder */
+  --muted: #626A88;           /* tertiary / meta / placeholder — AA sur blanc (5.3:1) */
 
   /* ---- PAPER — cool white & light blue-greys ---- */
   --paper: #EEF1F8;           /* page background — light cool grey */

@@ -13,9 +13,11 @@
 <meta name="description" content="Merci pour votre commande — leclub151.">
 <meta name="robots" content="noindex,nofollow">
 <meta name="theme-color" content="#15224F">
+<link rel="preconnect" href="https://unpkg.com" crossorigin>
+<link rel="preconnect" href="https://images.pokemontcg.io" crossorigin>
 <title>Merci pour votre commande — leclub151</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3CclipPath id='c'%3E%3Ccircle cx='50' cy='50' r='46'/%3E%3C/clipPath%3E%3C/defs%3E%3Cg clip-path='url(%23c)'%3E%3Crect width='100' height='50' fill='%23EE1515'/%3E%3Crect y='50' width='100' height='50' fill='%23fff'/%3E%3Crect y='44' width='100' height='12' fill='%231a1a1a'/%3E%3C/g%3E%3Ccircle cx='50' cy='50' r='46' fill='none' stroke='%231a1a1a' stroke-width='6'/%3E%3Ccircle cx='50' cy='50' r='14' fill='%23fff' stroke='%231a1a1a' stroke-width='6'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="../../styles.css">
+<link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="storefront2.css">
 <style>
   body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--paper, #f6f7fb); }
@@ -98,7 +100,9 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); }
 
   // Finalise la commande en attente (mémorisée avant le paiement), une seule fois.
-  function finalizeOnce(refId, fallback) {
+  // N'est appelée QU'APRÈS confirmation serveur du paiement. Le total faisant foi
+  // est celui renvoyé par Stripe (serverCents), pas celui mémorisé côté client.
+  function finalizeOnce(refId, fallback, serverCents) {
     var done = [];
     try { done = JSON.parse(localStorage.getItem('lc151_done_sessions') || '[]'); } catch (e) {}
     var order = null;
@@ -106,7 +110,9 @@
       var pending = null;
       try { pending = JSON.parse(localStorage.getItem('lc151_pending_order') || 'null'); } catch (e) {}
       if (pending && pending.order && LC.Orders) {
-        order = LC.Orders.add(Object.assign({}, pending.order, { paid: true, payRef: refId }));
+        var patch = { paid: true, payRef: refId };
+        if (serverCents != null) patch.total = serverCents / 100;   // montant Stripe = autorité
+        order = LC.Orders.add(Object.assign({}, pending.order, patch));
         try { LC.Cart.clear(); } catch (e) {}
         try { localStorage.removeItem('lc151_pending_order'); } catch (e) {}
       }
@@ -117,16 +123,25 @@
   }
 
   var pi = params.get('payment_intent');
-  var redirectStatus = params.get('redirect_status');
 
-  // Cas 1 — paiement intégré (Payment Element) avec aller-retour 3-D Secure.
+  // Cas 1 — paiement intégré (Payment Element). On NE se fie PAS au paramètre
+  // d'URL : on demande au serveur si ce PaymentIntent est réellement « payé ».
   if (pi) {
-    if (redirectStatus === 'succeeded' || redirectStatus === 'processing') {
-      var order = finalizeOnce(pi, { number: 'LC151-' + String(pi).slice(-6).toUpperCase(), total: 0, email: '', method: null });
-      showPaid(order);
-    } else {
-      showPending();
-    }
+    fetch('/api/payment-status?payment_intent=' + encodeURIComponent(pi))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data || data.error) { showError(data && data.error); return; }
+        if (data.status === 'processing') { showPending(); return; }
+        if (!data.paid) { showPending(); return; }
+        var order = finalizeOnce(pi, {
+          number: data.orderRef || ('LC151-' + String(pi).slice(-6).toUpperCase()),
+          total: (data.amount || 0) / 100,
+          email: data.email || '',
+          method: null,
+        }, data.amount);
+        showPaid(order);
+      })
+      .catch(function () { showError('Erreur réseau pendant la vérification du paiement.'); });
     return;
   }
 
@@ -142,7 +157,7 @@
           total: (data.amount_total || 0) / 100,
           email: data.email || '',
           method: null,
-        });
+        }, data.amount_total);
         showPaid(order);
       })
       .catch(function () { showError('Erreur réseau pendant la vérification du paiement.'); });

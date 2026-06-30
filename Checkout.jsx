@@ -58,8 +58,9 @@ function CheckoutModal({ onClose }) {
   // Paiement carte INTÉGRÉ au site (Stripe Payment Element) — pas de redirection.
   const stripeEmbedded = !!(window.LCPay && window.LCPay.isLive && window.LCPay.isLive() && ship.method !== 'pickup');
 
+  // On n'envoie au serveur que { id, qty } : c'est lui qui détient les prix.
   const currentLines = () => items
-    .map((l) => { const p = window.LC151.get(l.id); return p ? { name: p.name, qty: l.qty, price: p.price } : null; })
+    .map((l) => { const p = window.LC151.get(l.id); return p ? { id: l.id, qty: l.qty } : null; })
     .filter(Boolean);
 
   // Monte (ou remonte) le formulaire de carte Stripe dès qu'on entre à l'étape
@@ -73,7 +74,7 @@ function CheckoutModal({ onClose }) {
       try {
         const stripe = await window.LCPay.ensureStripe();
         if (cancelled) return;
-        const data = await window.LCPay.createPaymentIntent({ items: currentLines(), shipping: shippingCost, email: ship.email });
+        const data = await window.LCPay.createPaymentIntent({ items: currentLines(), method: ship.method, email: ship.email });
         if (cancelled || !data.clientSecret) throw new Error('Paiement indisponible');
         const elements = stripe.elements({ clientSecret: data.clientSecret, appearance: { theme: 'stripe' } });
         el = elements.create('payment', { layout: 'tabs' });
