@@ -141,24 +141,25 @@ function Pokeball({ size = 16, style, float = false }) {
 
 function Logo({ onClick, size = 22 }) {
   const h = Math.round(size * 1.7);
-  const w = Math.round(h * 2.13);
+  const w = Math.round(h * 1.86);
   const fill = 'var(--logo-fill)';
   const edge = 'var(--logo-edge)';
   return (
     <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }} aria-label="leclub151 — C151"
       style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 0 }}>
-      <svg className="lc-logo-mark" width={w} height={h} viewBox="0 0 196 92" style={{ overflow: 'visible', display: 'block' }}>
-        {/* C en Pokéball (ouverture à droite) */}
-        <path d="M 60 29 A 23 23 0 1 0 60 63" fill="none" stroke={edge} strokeWidth="20" strokeLinecap="round" />
-        <path d="M 60 29 A 23 23 0 1 0 60 63" fill="none" stroke={fill} strokeWidth="13" strokeLinecap="round" />
-        {/* barre équatoriale */}
-        <rect x="21" y="40.5" width="25" height="11" rx="5.5" fill={fill} stroke={edge} strokeWidth="2" />
-        {/* bouton central */}
-        <circle cx="46" cy="46" r="8.5" fill="var(--logo-btn)" stroke={edge} strokeWidth="4" />
-        {/* 151 */}
-        <text x="82" y="69" fontFamily="var(--font-display)" fontWeight="900" fontStyle="italic" fontSize="58"
+      <svg className="lc-logo-mark" width={w} height={h} viewBox="0 0 171 92" style={{ overflow: 'visible', display: 'block' }}>
+        {/* C en Pokéball (ouverture à droite), légèrement incliné comme les chiffres */}
+        <g transform="skewX(-7)">
+          <path d="M 58 27 A 23 23 0 1 0 58 65" fill="none" stroke={edge} strokeWidth="20" strokeLinecap="round" />
+          <path d="M 58 27 A 23 23 0 1 0 58 65" fill="none" stroke={fill} strokeWidth="13" strokeLinecap="round" />
+          {/* barre équatoriale + bouton central */}
+          <rect x="19" y="40.5" width="25" height="11" rx="5.5" fill={fill} stroke={edge} strokeWidth="2" />
+          <circle cx="44" cy="46" r="8.5" fill="var(--logo-btn)" stroke={edge} strokeWidth="4" />
+        </g>
+        {/* 151 collé au C, pour lire « C151 » d'un bloc */}
+        <text x="62" y="69" fontFamily="var(--font-display)" fontWeight="900" fontStyle="italic" fontSize="58"
           fill={fill} stroke={edge} strokeWidth="2.4" paintOrder="stroke" strokeLinejoin="round"
-          style={{ letterSpacing: '-1px' }}>151</text>
+          style={{ letterSpacing: '-1.5px' }}>151</text>
       </svg>
     </a>
   );
