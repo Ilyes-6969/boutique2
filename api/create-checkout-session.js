@@ -32,7 +32,12 @@ module.exports = async function handler(req, res) {
   }
 
   const stripe = Stripe(secret);
-  const siteUrl = (process.env.SITE_URL || ('https://' + (req.headers.host || ''))).replace(/\/+$/, '');
+  // On déduit le domaine DIRECTEMENT depuis la requête (toujours le bon, même
+  // sur un domaine personnalisé). SITE_URL n'est utilisé qu'en dernier recours.
+  const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
+  const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  const fromReq = host ? (proto + '://' + host) : '';
+  const siteUrl = (fromReq || process.env.SITE_URL || '').replace(/\/+$/, '');
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
