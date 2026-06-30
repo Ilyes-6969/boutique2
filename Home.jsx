@@ -139,12 +139,22 @@ function Home({ navigate }) {
               <DS.Button variant="outline" as="a" href="https://maps.google.com/?q=Rue+de+la+Juiverie+Vienne" target="_blank">Itinéraire →</DS.Button>
             </div>
           </div>
-          <div style={{ position: 'relative', background: 'var(--header-bg)', minHeight: 340, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(45deg, rgba(255,255,255,0.04) 0 18px, transparent 18px 36px)' }}></div>
-            <div style={{ position: 'relative', textAlign: 'center', color: '#fff' }}>
-              <Pokeball size={64} style={{ marginBottom: 14 }} />
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontStyle: 'italic', fontSize: 30, color: '#fff' }}>leclub<span style={{ color: 'var(--yellow)' }}>151</span></div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.65)', marginTop: 8 }}>Vienne · Isère (38)</div>
+          <div style={{ position: 'relative', background: 'var(--header-bg)', minHeight: 340, overflow: 'hidden' }}>
+            {/* Carte OpenStreetMap (sans cookie, sans clé). Centrée sur Vienne (38).
+                ⚠️ Pour pointer l'adresse exacte de la boutique, ajuste les coordonnées
+                « marker » (lat,lon) et le « bbox » ci-dessous. */}
+            <iframe
+              title="Carte — leclub151 à Vienne"
+              src="https://www.openstreetmap.org/export/embed.html?bbox=4.855%2C45.512%2C4.895%2C45.540&layer=mapnik&marker=45.5256%2C4.8745"
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+            ></iframe>
+            {/* Cartouche adresse en surimpression */}
+            <div style={{ position: 'absolute', left: 16, bottom: 16, background: 'var(--card)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', boxShadow: 'var(--shadow-lg)', display: 'flex', alignItems: 'center', gap: 9, maxWidth: 'calc(100% - 32px)' }}>
+              <Pokeball size={20} />
+              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontStyle: 'italic', fontSize: 16 }}>leclub<span style={{ color: 'var(--accent)' }}>151</span></span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Vienne · 38</span>
             </div>
           </div>
         </div>
