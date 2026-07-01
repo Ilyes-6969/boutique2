@@ -109,13 +109,15 @@
   }
 
   // Crée un PaymentIntent côté serveur et renvoie { clientSecret, amount }.
+  // On n'envoie QUE { id, qty } + le mode de livraison : le serveur fixe les
+  // prix et les frais de port (le prix n'est jamais transmis par le navigateur).
   function createPaymentIntent(order) {
     return fetch(cfg.stripe.piEndpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: order.items,
-        shipping: order.shipping || 0,
+        items: (order.items || []).map(function (l) { return { id: l.id, qty: l.qty }; }),
+        method: order.method || 'standard',
         email: order.email || undefined,
         orderRef: order.ref || '',
       }),
