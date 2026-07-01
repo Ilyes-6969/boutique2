@@ -134,11 +134,11 @@ function CartPage({ navigate }) {
                 if (!p) return null;
                 return (
                   <div key={line.id} style={{ display: 'flex', gap: 16, padding: '18px 20px', borderBottom: '1.5px solid var(--line)' }}>
-                    <a href={'produit.html?id=' + encodeURIComponent(p.id)} style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, overflow: 'hidden' }}>
+                    <a href={window.LC151.productUrl(p.id)} style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, overflow: 'hidden' }}>
                       {p.image ? <img src={p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
                     </a>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <a href={'produit.html?id=' + encodeURIComponent(p.id)} style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, lineHeight: 1.25, color: 'var(--ink)' }}>{p.name}</a>
+                      <a href={window.LC151.productUrl(p.id)} style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, lineHeight: 1.25, color: 'var(--ink)' }}>{p.name}</a>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '4px 0 10px' }}>{p.cat} · {p.num}</div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                         {cart.isUnique(line.id)

@@ -1910,7 +1910,7 @@ function CartPage({
         borderBottom: '1.5px solid var(--line)'
       }
     }, /*#__PURE__*/React.createElement("a", {
-      href: 'produit.html?id=' + encodeURIComponent(p.id),
+      href: window.LC151.productUrl(p.id),
       style: {
         width: 80,
         height: 80,
@@ -1942,7 +1942,7 @@ function CartPage({
         minWidth: 0
       }
     }, /*#__PURE__*/React.createElement("a", {
-      href: 'produit.html?id=' + encodeURIComponent(p.id),
+      href: window.LC151.productUrl(p.id),
       style: {
         fontFamily: 'var(--font-display)',
         fontWeight: 700,
@@ -5471,11 +5471,11 @@ function ModalHost() {
 }
 function lcNavigate(view, arg) {
   if (view === 'product') {
-    window.location.href = 'produit.html?id=' + encodeURIComponent(arg);
+    window.location.href = window.LC151.productUrl(arg);
     return;
   }
   if (view === 'catalogue') {
-    window.location.href = 'boutique.html' + (arg && arg !== 'all' ? '?cat=' + encodeURIComponent(arg) : '');
+    window.location.href = '/boutique.html' + (arg && arg !== 'all' ? '?cat=' + encodeURIComponent(arg) : '');
     return;
   }
   if (view === 'cart') {

@@ -469,9 +469,25 @@
     subscribe(fn) { orderListeners.add(fn); return () => orderListeners.delete(fn); },
   };
 
+  // URL de la fiche produit. Les produits du catalogue par défaut (« d… »)
+  // ont une page statique générée au build (référencée par Google) ; les
+  // autres passent par la fiche dynamique. Doit rester synchrone avec la
+  // fonction slugify() de build.mjs.
+  function lcSlugify(name) {
+    return String(name || '').toLowerCase()
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+  }
+  function productUrl(id) {
+    const p = Store.get(id);
+    if (p && /^d\d+$/.test(String(id))) return '/produits/' + lcSlugify(p.name) + '-' + id + '.html';
+    return '/produit.html?id=' + encodeURIComponent(id);
+  }
+
   window.LC151 = {
     PRODUCTS, FILTERS, Cart, Store, Auth, Alerts, Orders, FREE_SHIP,
     get: (id) => Store.get(id),
+    productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
     notify: notifyForm,   // formulaires contact / newsletter → même réception que les commandes
   };

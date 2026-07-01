@@ -59,7 +59,7 @@ function CheckoutModal({ onClose }) {
   const stripeEmbedded = !!(window.LCPay && window.LCPay.isLive && window.LCPay.isLive() && ship.method !== 'pickup');
 
   const currentLines = () => items
-    .map((l) => { const p = window.LC151.get(l.id); return p ? { name: p.name, qty: l.qty, price: p.price } : null; })
+    .map((l) => { const p = window.LC151.get(l.id); return p ? { id: p.id, name: p.name, qty: l.qty, price: p.price } : null; })
     .filter(Boolean);
 
   // Monte (ou remonte) le formulaire de carte Stripe dès qu'on entre à l'étape
@@ -115,7 +115,7 @@ function CheckoutModal({ onClose }) {
     if (resolved.length === 0) { setErrors({ cart: 1 }); return; }        // nothing left to buy
     if (resolved.some(({ p }) => p.inStock === false)) { setErrors({ stock: 1 }); return; } // went OOS
     setErrors({});
-    const lines = resolved.map(({ p, l }) => ({ name: p.name, qty: l.qty, price: p.price }));
+    const lines = resolved.map(({ p, l }) => ({ id: p.id, name: p.name, qty: l.qty, price: p.price }));
     const orderData = {
       email: ship.email, name: ship.name,
       items: lines,

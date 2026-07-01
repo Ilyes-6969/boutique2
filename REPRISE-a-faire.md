@@ -33,6 +33,21 @@ _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment E
 
 ---
 
+## Nouveau depuis le 01/07/2026 : build + sécurité paiement + SEO produits
+- Le site a maintenant un **build** (`npm run build`, lancé automatiquement par Vercel) :
+  plus de Babel dans le navigateur (pages bien plus rapides), une **page HTML par
+  produit** dans `/produits/` (référençables par Google), `sitemap.xml` et `robots.txt`
+  générés avec le vrai domaine.
+- **Sécurité paiement** : les prix sont désormais validés côté serveur contre
+  `api/_catalog.json` (généré depuis `data.js`). Un panier au prix manipulé est refusé.
+  Conséquence : un produit ajouté via admin.html (qui ne vit que dans TON navigateur)
+  ne peut pas être commandé — le vrai catalogue doit passer par `data.js` ou WooCommerce.
+- **À faire dans Stripe** : Développeurs → Webhooks → ajouter l'événement
+  **`payment_intent.succeeded`** (sinon pas d'e-mail au propriétaire pour les paiements
+  intégrés au site).
+- Domaine du sitemap : variable d'env **`SITE_URL`** dans Vercel (sinon `https://leclub151.fr`).
+- Test local : `npx serve dist -l 5151` puis `node smoke-test.mjs`.
+
 ## Rappel technique utile
 - Astuce si le site semble « pas à jour » après un push : Vercel/cache. Vérifier dans **Vercel → Deployments** que le **dernier commit** est bien déployé (Ready), sinon re-pousser un petit changement. Côté navigateur : **Ctrl + Maj + R**.
 - Détails complets dans **`DEPLOIEMENT-PAIEMENT.md`**.

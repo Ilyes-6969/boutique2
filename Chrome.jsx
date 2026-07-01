@@ -920,9 +920,11 @@ function ModalHost() {
 }
 
 function lcNavigate(view, arg) {
-  if (view === 'product') { window.location.href = 'produit.html?id=' + encodeURIComponent(arg); return; }
-  if (view === 'catalogue') { window.location.href = 'boutique.html' + (arg && arg !== 'all' ? '?cat=' + encodeURIComponent(arg) : ''); return; }
-  if (view === 'cart') { window.location.href = 'panier.html'; return; }
-  window.location.href = 'index.html';
+  // Chemins ABSOLUS : les pages produits vivent dans /produits/, les liens
+  // relatifs ne s'y résoudraient pas correctement.
+  if (view === 'product') { window.location.href = window.LC151.productUrl(arg); return; }
+  if (view === 'catalogue') { window.location.href = '/boutique.html' + (arg && arg !== 'all' ? '?cat=' + encodeURIComponent(arg) : ''); return; }
+  if (view === 'cart') { window.location.href = '/panier.html'; return; }
+  window.location.href = '/index.html';
 }
 Object.assign(window, { lcNavigate, useCart, useStore, useAuth, useAlerts, Pokeball, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });

@@ -50,6 +50,18 @@ module.exports = async function handler(req, res) {
     } catch (e) { /* ne bloque jamais l'accusé de réception Stripe */ }
   }
 
+  // Paiement INTÉGRÉ (Payment Element) : c'est CET événement qui se déclenche
+  // (pas checkout.session.completed). Le total vient de Stripe — il ne peut
+  // pas être falsifié par le navigateur, contrairement à l'e-mail envoyé par
+  // le site. ⚠️ Pense à cocher « payment_intent.succeeded » dans la config du
+  // webhook (Stripe → Développeurs → Webhooks), sinon rien n'arrive ici.
+  if (event.type === 'payment_intent.succeeded') {
+    const pi = event.data.object;
+    try {
+      await notifyOwnerIntent(pi);
+    } catch (e) { /* ne bloque jamais l'accusé de réception Stripe */ }
+  }
+
   return res.status(200).json({ received: true });
 };
 
@@ -73,6 +85,34 @@ async function notifyOwner(session) {
     Total: total,
     Paiement: 'Payé en ligne (Stripe)',
     Session: session.id,
+  };
+
+  await fetch('https://api.web3forms.com/submit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: JSON.stringify(payload),
+  });
+}
+
+// Idem pour un PaymentIntent (paiement intégré au site). Le « Total encaissé »
+// est le montant RÉELLEMENT débité chez Stripe — à comparer avec l'e-mail de
+// commande envoyé par le site en cas de doute.
+async function notifyOwnerIntent(pi) {
+  const key = process.env.WEB3FORMS_KEY;
+  if (!key) return;
+  const total = ((pi.amount_received || pi.amount || 0) / 100).toFixed(2) + ' €';
+  const meta = pi.metadata || {};
+
+  const payload = {
+    access_key: key,
+    subject: 'Paiement reçu ' + (meta.orderRef || pi.id) + ' — leclub151',
+    from_name: 'Boutique leclub151',
+    Commande: meta.orderRef || '—',
+    Client: pi.receipt_email || '—',
+    'Total encaissé (Stripe)': total,
+    Articles: meta.items || '—',
+    Paiement: 'Payé en ligne (Stripe, intégré au site)',
+    Reference: pi.id,
   };
 
   await fetch('https://api.web3forms.com/submit', {

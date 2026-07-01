@@ -6,7 +6,11 @@
   "engines": {
     "node": ">=18.x"
   },
+  "scripts": {
+    "build": "node build.mjs"
+  },
   "dependencies": {
+    "esbuild": "^0.28.1",
     "stripe": "^16.12.0"
   }
 }

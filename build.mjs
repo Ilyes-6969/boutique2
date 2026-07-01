@@ -1,0 +1,267 @@
+// leclub151 — Build de production
+// ---------------------------------------------------------------------------
+// Lancé par `npm run build` (localement OU automatiquement par Vercel à chaque
+// push). Il produit le dossier `dist/` qui est ce que les visiteurs reçoivent :
+//
+//  1. Transpile les .jsx en .js une fois pour toutes → plus de Babel dans le
+//     navigateur (~400 Ko et ~1 s de compilation économisés à CHAQUE visite).
+//  2. Génère une page HTML statique par produit (produits/<slug>.html) avec
+//     titre, description, Open Graph et données structurées JSON-LD → chaque
+//     fiche produit devient indexable par Google et partageable proprement.
+//  3. Génère sitemap.xml et robots.txt avec le vrai domaine.
+//  4. Écrit api/_catalog.json : le catalogue de référence CÔTÉ SERVEUR utilisé
+//     par les fonctions de paiement pour refuser les prix manipulés.
+//
+// Domaine : variable d'env SITE_URL (recommandé, ex. https://leclub151.fr),
+// sinon le domaine de production Vercel, sinon https://leclub151.fr.
+// ---------------------------------------------------------------------------
+
+import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, readdirSync, existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
+import { transformSync } from 'esbuild';
+
+const ROOT = dirname(fileURLToPath(import.meta.url));
+const DIST = join(ROOT, 'dist');
+const SITE = (process.env.SITE_URL
+  || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL : '')
+  || 'https://leclub151.fr').replace(/\/+$/, '');
+
+// _ds_bundle.js (248 Ko) contient : 6 composants du design system (Button,
+// Badge, Tag, PriceTag, QtyStepper, ProductCard) + une VIEILLE COPIE de tout
+// le code du site (redondante avec les .jsx, écrasée à l'exécution). Au build
+// on extrait uniquement les composants → ds-components.js (~20 Ko).
+// Mettre à false pour re-servir le bundle complet en cas de souci.
+const SLIM_DS_BUNDLE = true;
+
+function extractDsComponents() {
+  const src = readFileSync(join(ROOT, '_ds_bundle.js'), 'utf8');
+  const cut = src.indexOf('// ui_kits/');
+  if (cut === -1) return null; // structure inattendue → on gardera le bundle complet
+  const head = src.slice(0, cut);
+  const expose = ['QtyStepper', 'Badge', 'Button', 'Tag', 'PriceTag', 'ProductCard']
+    .map((c) => '__ds_ns.' + c + ' = __ds_scope.' + c + ';').join('\n');
+  return head + '\n' + expose + '\n\n})();\n';
+}
+
+// ---------------------------------------------------------------------------
+// 1. Catalogue : on exécute data.js dans un bac à sable Node pour récupérer
+//    les produits par défaut (même source de vérité que le site).
+// ---------------------------------------------------------------------------
+function extractCatalog() {
+  const code = readFileSync(join(ROOT, 'data.js'), 'utf8');
+  const noop = () => {};
+  const ls = { getItem: () => null, setItem: noop, removeItem: noop };
+  const w = { addEventListener: noop, scrollY: 0 };
+  const doc = {
+    readyState: 'loading', // les blocs cookies/scroll attendent DOMContentLoaded → jamais en build
+    addEventListener: noop,
+    getElementById: () => null,
+    createElement: () => ({ style: {}, setAttribute: noop, addEventListener: noop, remove: noop }),
+    head: { appendChild: noop },
+    documentElement: { appendChild: noop, setAttribute: noop },
+  };
+  const sandbox = { window: w, localStorage: ls, document: doc, fetch: () => new Promise(noop), Intl, console, Date, Math, JSON };
+  vm.runInNewContext(code, sandbox, { filename: 'data.js' });
+  const products = w.LC151.Store.all();
+  if (!products || !products.length) throw new Error('Catalogue vide — data.js a changé ?');
+  return products;
+}
+
+function slugify(name) {
+  return String(name || '').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+}
+const productPath = (p) => 'produits/' + slugify(p.name) + '-' + p.id + '.html';
+
+// ---------------------------------------------------------------------------
+// 2. Transpilation JSX → JS (chaque fichier isolé dans une IIFE, comme le
+//    faisait Babel standalone : seuls les exports window.* sont partagés).
+// ---------------------------------------------------------------------------
+function transpile(source, filename) {
+  const out = transformSync(source, { loader: 'jsx', target: 'es2018', jsx: 'transform', sourcefile: filename });
+  return '(function () {\n' + out.code + '\n})();\n';
+}
+
+// ---------------------------------------------------------------------------
+// 3. Transformation d'une page HTML
+// ---------------------------------------------------------------------------
+function transformHtml(html, pageName) {
+  let out = html;
+
+  // Babel standalone : plus besoin.
+  out = out.replace(/[ \t]*<script[^>]*@babel\/standalone[^>]*><\/script>\s*\n?/g, '');
+
+  // Bundle du design studio → version allégée (composants uniquement).
+  if (SLIM_DS_BUNDLE && dsComponents) {
+    out = out.replace(/<script src="(?:\.\.\/)*_ds_bundle\.js"><\/script>/g,
+      '<script src="ds-components.js"></script>');
+  }
+
+  // Chemins hérités du design studio.
+  out = out.replace(/(?:\.\.\/)+styles\.css/g, 'styles.css');
+  out = out.replace(/(?:\.\.\/)+_ds_bundle\.js/g, '_ds_bundle.js');
+
+  // <script type="text/babel" src="X.jsx"> → <script defer src="X.js">
+  out = out.replace(/<script type="text\/babel" src="([^"]+)\.jsx"><\/script>/g,
+    '<script defer src="$1.js"></script>');
+
+  // Blocs JSX inline → fichiers page-<nom>.js transpilés.
+  let n = 0;
+  out = out.replace(/<script type="text\/babel">([\s\S]*?)<\/script>/g, (m, code) => {
+    n += 1;
+    const file = 'page-' + pageName + (n > 1 ? '-' + n : '') + '.js';
+    writeFileSync(join(DIST, file), transpile(code, pageName + '.inline.jsx'));
+    return '<script defer src="' + file + '"></script>';
+  });
+
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// 4. Pages produits statiques (SEO)
+// ---------------------------------------------------------------------------
+const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const absImage = (img) => /^https?:\/\//.test(String(img || '')) ? img : (img ? SITE + '/' + img : '');
+
+function productPage(template, p) {
+  const url = SITE + '/' + productPath(p);
+  const title = p.name + ' — leclub151';
+  const desc = (p.desc ? p.desc + ' ' : '') + 'En vente sur leclub151, boutique de cartes à Vienne — expédition sous 48 h ou retrait en boutique.';
+  const image = absImage(p.image);
+
+  let out = template;
+  // Les URL relatives (styles, scripts, liens) doivent se résoudre depuis la
+  // racine, pas depuis /produits/.
+  out = out.replace(/<meta charset="UTF-8">/, '<meta charset="UTF-8">\n<base href="/">');
+  out = out.replace(/<title>[\s\S]*?<\/title>/, '<title>' + esc(title) + '</title>');
+  out = out.replace(/(<meta name="description" content=")[^"]*(")/, '$1' + esc(desc) + '$2');
+  out = out.replace(/(<meta property="og:title" content=")[^"]*(")/, '$1' + esc(title) + '$2');
+  out = out.replace(/(<meta property="og:description" content=")[^"]*(")/, '$1' + esc(desc) + '$2');
+  out = out.replace(/(<meta name="twitter:title" content=")[^"]*(")/, '$1' + esc(title) + '$2');
+  out = out.replace(/(<meta name="twitter:description" content=")[^"]*(")/, '$1' + esc(desc) + '$2');
+
+  const headExtra = [
+    '<link rel="canonical" href="' + esc(url) + '">',
+    '<meta property="og:url" content="' + esc(url) + '">',
+    image ? '<meta property="og:image" content="' + esc(image) + '">' : '',
+    '<script type="application/ld+json">' + JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: p.name,
+      description: p.desc || undefined,
+      image: image || undefined,
+      sku: p.id,
+      brand: { '@type': 'Brand', name: 'Pokémon' },
+      offers: {
+        '@type': 'Offer',
+        url: url,
+        priceCurrency: 'EUR',
+        price: Number(p.price).toFixed(2),
+        availability: 'https://schema.org/' + (p.inStock === false ? 'OutOfStock' : (p.preorder ? 'PreOrder' : 'InStock')),
+        seller: { '@type': 'Organization', name: 'leclub151' },
+      },
+    }) + '</script>',
+    '<script>window.__LC_PRODUCT_ID=' + JSON.stringify(p.id) + ';</script>',
+  ].filter(Boolean).join('\n');
+  out = out.replace('</head>', headExtra + '\n</head>');
+
+  const noscript = '<noscript>\n<div style="max-width:720px;margin:40px auto;padding:0 20px;font-family:system-ui,sans-serif;line-height:1.6">'
+    + '<h1>' + esc(p.name) + '</h1>'
+    + '<p><strong>' + Number(p.price).toFixed(2).replace('.', ',') + ' €</strong>'
+    + (p.inStock === false ? ' — épuisé' : '') + '</p>'
+    + '<p>' + esc(p.desc || '') + '</p>'
+    + '<p><a href="boutique.html">Voir toute la boutique leclub151</a> — cartes Pokémon à Vienne, expédition sous 48 h.</p>'
+    + '</div>\n</noscript>';
+  out = out.replace('<div id="root"></div>', '<div id="root"></div>\n' + noscript);
+
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// 5. sitemap.xml + robots.txt
+// ---------------------------------------------------------------------------
+function sitemap(productPaths) {
+  const row = (loc, freq, prio) => '  <url><loc>' + SITE + '/' + loc + '</loc><changefreq>' + freq + '</changefreq><priority>' + prio + '</priority></url>';
+  const base = [
+    row('index.html', 'daily', '1.0'),
+    row('boutique.html', 'daily', '0.9'),
+    row('lorcana.html', 'weekly', '0.5'),
+    row('one-piece.html', 'weekly', '0.5'),
+    row('magic.html', 'weekly', '0.5'),
+    row('yugioh.html', 'weekly', '0.5'),
+    row('apropos.html', 'monthly', '0.6'),
+    row('faq.html', 'monthly', '0.6'),
+    row('cgv.html', 'yearly', '0.3'),
+    row('mentions-legales.html', 'yearly', '0.3'),
+    row('confidentialite.html', 'yearly', '0.3'),
+  ];
+  const prods = productPaths.map((p) => row(p, 'weekly', '0.7'));
+  return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    + base.concat(prods).join('\n') + '\n</urlset>\n';
+}
+
+const robots = () => '# leclub151 — robots.txt (généré par build.mjs)\nUser-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /panier.html\nDisallow: /merci.html\n\nSitemap: ' + SITE + '/sitemap.xml\n';
+
+// ---------------------------------------------------------------------------
+// GO
+// ---------------------------------------------------------------------------
+console.log('Build leclub151 → ' + SITE);
+rmSync(DIST, { recursive: true, force: true });
+mkdirSync(join(DIST, 'produits'), { recursive: true });
+
+// Catalogue → api/_catalog.json (source de vérité des paiements)
+const products = extractCatalog();
+const catalog = {};
+for (const p of products) catalog[p.id] = { n: p.name, c: Math.round(Number(p.price) * 100) };
+writeFileSync(join(ROOT, 'api', '_catalog.json'), JSON.stringify(catalog, null, 1));
+console.log('api/_catalog.json : ' + products.length + ' produits');
+
+// Design system allégé (ou bundle complet en secours)
+const dsComponents = SLIM_DS_BUNDLE ? extractDsComponents() : null;
+if (dsComponents) {
+  writeFileSync(join(DIST, 'ds-components.js'), dsComponents);
+  console.log('ds-components.js : ' + Math.round(dsComponents.length / 1024) + ' Ko (au lieu de 243 Ko)');
+}
+
+// Statique : css, js « plats », tokens, assets
+for (const f of readdirSync(ROOT)) {
+  if (/\.(css|js)$/.test(f) && f !== 'build.mjs' && !(dsComponents && f === '_ds_bundle.js')) {
+    cpSync(join(ROOT, f), join(DIST, f));
+  }
+}
+for (const dir of ['tokens', 'assets']) {
+  if (existsSync(join(ROOT, dir))) cpSync(join(ROOT, dir), join(DIST, dir), { recursive: true });
+}
+
+// JSX → JS
+for (const f of readdirSync(ROOT)) {
+  if (f.endsWith('.jsx')) {
+    writeFileSync(join(DIST, f.replace(/\.jsx$/, '.js')), transpile(readFileSync(join(ROOT, f), 'utf8'), f));
+  }
+}
+
+// Pages HTML
+let produitTemplate = '';
+for (const f of readdirSync(ROOT)) {
+  if (!f.endsWith('.html')) continue;
+  const name = f.replace(/\.html$/, '');
+  const out = transformHtml(readFileSync(join(ROOT, f), 'utf8'), name);
+  writeFileSync(join(DIST, f), out);
+  if (f === 'produit.html') produitTemplate = out;
+}
+
+// Pages produits statiques (produits « d* » du catalogue par défaut ;
+// les produits WooCommerce seront ajoutés ici quand WOO_URL sera configurée)
+const staticProducts = products.filter((p) => /^d\d+$/.test(p.id));
+for (const p of staticProducts) {
+  writeFileSync(join(DIST, productPath(p)), productPage(produitTemplate, p));
+}
+console.log('Pages produits : ' + staticProducts.length);
+
+writeFileSync(join(DIST, 'sitemap.xml'), sitemap(staticProducts.map(productPath)));
+writeFileSync(join(DIST, 'robots.txt'), robots());
+
+console.log('Build OK → dist/');
