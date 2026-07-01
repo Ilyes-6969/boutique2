@@ -8,7 +8,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { applyCors } = require('../lib/serverCatalog');
+const { applyCors, rateLimit, maskEmail } = require('../lib/serverCatalog');
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
@@ -17,9 +17,15 @@ module.exports = async function handler(req, res) {
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante' });
 
+  // Anti-énumération : limite par IP + format strict de l'identifiant.
+  if (!rateLimit(req, 'status', 20, 5 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Trop de requêtes — réessayez dans quelques minutes.' });
+  }
   const sessionId = (req.query && req.query.session_id) ||
     (req.url && (new URL(req.url, 'http://x')).searchParams.get('session_id'));
-  if (!sessionId) return res.status(400).json({ error: 'session_id manquant' });
+  if (!sessionId || !/^cs_[A-Za-z0-9_]{10,250}$/.test(String(sessionId))) {
+    return res.status(400).json({ error: 'session_id manquant ou invalide' });
+  }
 
   try {
     const stripe = Stripe(secret);
@@ -29,10 +35,12 @@ module.exports = async function handler(req, res) {
       paid: paid,
       ref: s.payment_intent || s.id,
       amount_total: s.amount_total,           // en centimes
-      email: (s.customer_details && s.customer_details.email) || s.customer_email || null,
+      // Masqué (a***@domaine.fr) : le client se reconnaît, un tiers n'en tire rien.
+      email: maskEmail((s.customer_details && s.customer_details.email) || s.customer_email),
       orderRef: (s.metadata && s.metadata.orderRef) || '',
     });
   } catch (err) {
-    return res.status(500).json({ error: String((err && err.message) || err) });
+    // Réponse neutre : un id inexistant et une erreur interne sont indistinguables.
+    return res.status(404).json({ error: 'Session introuvable' });
   }
 };

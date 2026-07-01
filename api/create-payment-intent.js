@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { priceItems, shippingCost, applyCors, idemKey, errorStatus } = require('../lib/serverCatalog');
+const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit } = require('../lib/serverCatalog');
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
@@ -16,6 +16,10 @@ module.exports = async function handler(req, res) {
 
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante' });
+
+  if (!rateLimit(req, 'pi', 15, 60 * 1000)) {
+    return res.status(429).json({ error: 'Trop de tentatives — réessayez dans une minute.' });
+  }
 
   try {
     const stripe = Stripe(secret);

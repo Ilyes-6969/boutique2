@@ -11,12 +11,16 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { priceItems, shippingCost, applyCors, idemKey, errorStatus } = require('../lib/serverCatalog');
+const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit } = require('../lib/serverCatalog');
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  if (!rateLimit(req, 'checkout', 15, 60 * 1000)) {
+    return res.status(429).json({ error: 'Trop de tentatives — réessayez dans une minute.' });
+  }
 
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) {

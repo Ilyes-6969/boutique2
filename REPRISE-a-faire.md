@@ -38,8 +38,11 @@ _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment E
   plus de Babel dans le navigateur (pages bien plus rapides), une **page HTML par
   produit** dans `/produits/` (référençables par Google), `sitemap.xml` et `robots.txt`
   générés avec le vrai domaine.
-- **Sécurité paiement** : les prix sont désormais validés côté serveur contre
-  `api/_catalog.json` (généré depuis `data.js`). Un panier au prix manipulé est refusé.
+- **Sécurité paiement** : le navigateur n'envoie plus que `{ id, quantité }` ; les prix
+  viennent du serveur (`lib/serverCatalog.js` + `lib/catalog-demo.json`, régénéré depuis
+  `data.js` à chaque build). Un panier manipulé est refusé. En mode RÉEL (`sk_live_`),
+  les cartes de démo ne sont PAS achetables : il faudra brancher WooCommerce
+  (variable d'env `WC_STORE_URL`) ou définir `ALLOW_DEMO_CHECKOUT=1` temporairement.
   Conséquence : un produit ajouté via admin.html (qui ne vit que dans TON navigateur)
   ne peut pas être commandé — le vrai catalogue doit passer par `data.js` ou WooCommerce.
 - **À faire dans Stripe** : Développeurs → Webhooks → ajouter l'événement

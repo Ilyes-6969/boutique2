@@ -28,6 +28,41 @@ const SITE = (process.env.SITE_URL
   || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL : '')
   || 'https://leclub151.fr').replace(/\/+$/, '');
 
+// Les pages /produits/ ne sont générées QUE là où le catalogue est visible :
+// - vrai catalogue WooCommerce si WC_STORE_URL est configurée (recommandé) ;
+// - sinon produits de démo, mais PAS sur le domaine de production (même règle
+//   que data.js : pas de fausses cartes indexées par Google sur le vrai site).
+const PROD_HOSTS = ['leclub151.fr', 'www.leclub151.fr'];
+const demoOnSite = PROD_HOSTS.indexOf(new URL(SITE).hostname.toLowerCase()) === -1
+  || process.env.ALLOW_DEMO_CHECKOUT === '1';
+
+// Vrai catalogue WooCommerce (Store API publique) au moment du build.
+async function wooProducts() {
+  const base = String(process.env.WC_STORE_URL || '').replace(/\/+$/, '');
+  if (!base) return null;
+  try {
+    const r = await fetch(base + '/wp-json/wc/store/v1/products?per_page=100');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const list = await r.json();
+    const strip = (h) => String(h || '').replace(/<[^>]*>/g, '').trim();
+    return (Array.isArray(list) ? list : []).map((p) => {
+      const minor = (p.prices && p.prices.currency_minor_unit != null) ? Number(p.prices.currency_minor_unit) : 2;
+      const price = (Number(p.prices && p.prices.price) || 0) / Math.pow(10, minor);
+      return {
+        id: 'wp' + p.id,
+        name: p.name,
+        price: Math.round(price * 100) / 100,
+        desc: strip(p.short_description) || strip(p.description),
+        image: (p.images && p.images[0] && p.images[0].src) || null,
+        inStock: p.is_in_stock !== false,
+      };
+    });
+  } catch (e) {
+    console.warn('⚠️ WooCommerce injoignable au build (' + e.message + ') — pas de pages produits cette fois.');
+    return [];
+  }
+}
+
 // _ds_bundle.js (248 Ko) contient : 6 composants du design system (Button,
 // Badge, Tag, PriceTag, QtyStepper, ProductCard) + une VIEILLE COPIE de tout
 // le code du site (redondante avec les .jsx, écrasée à l'exécution). Au build
@@ -62,7 +97,10 @@ function extractCatalog() {
     head: { appendChild: noop },
     documentElement: { appendChild: noop, setAttribute: noop },
   };
-  const sandbox = { window: w, localStorage: ls, document: doc, fetch: () => new Promise(noop), Intl, console, Date, Math, JSON };
+  // location.hostname = localhost → demoEnabled() est vrai dans data.js, on
+  // extrait donc bien les produits par défaut (le masquage en production est
+  // géré à l'exécution côté site, et côté paiement par serverCatalog).
+  const sandbox = { window: w, localStorage: ls, document: doc, location: { hostname: 'localhost' }, fetch: () => new Promise(noop), Intl, console, Date, Math, JSON };
   vm.runInNewContext(code, sandbox, { filename: 'data.js' });
   const products = w.LC151.Store.all();
   if (!products || !products.length) throw new Error('Catalogue vide — data.js a changé ?');
@@ -95,8 +133,9 @@ function transformHtml(html, pageName) {
   out = out.replace(/[ \t]*<script[^>]*@babel\/standalone[^>]*><\/script>\s*\n?/g, '');
 
   // Bundle du design studio → version allégée (composants uniquement).
+  // Tolère les variantes de chemin : _ds_bundle.js, /_ds_bundle.js, ../../_ds_bundle.js
   if (SLIM_DS_BUNDLE && dsComponents) {
-    out = out.replace(/<script src="(?:\.\.\/)*_ds_bundle\.js"><\/script>/g,
+    out = out.replace(/<script src="(?:\/|(?:\.\.\/)*)_ds_bundle\.js"><\/script>/g,
       '<script src="ds-components.js"></script>');
   }
 
@@ -212,12 +251,21 @@ console.log('Build leclub151 → ' + SITE);
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(join(DIST, 'produits'), { recursive: true });
 
-// Catalogue → api/_catalog.json (source de vérité des paiements)
+// Catalogue → lib/catalog-demo.json : la table de prix CÔTÉ SERVEUR utilisée
+// par lib/serverCatalog.js (paiements). Régénérée ici pour rester alignée sur
+// data.js. Format : { id: { name, price (euros), unique, inStock } }.
 const products = extractCatalog();
 const catalog = {};
-for (const p of products) catalog[p.id] = { n: p.name, c: Math.round(Number(p.price) * 100) };
-writeFileSync(join(ROOT, 'api', '_catalog.json'), JSON.stringify(catalog, null, 1));
-console.log('api/_catalog.json : ' + products.length + ' produits');
+for (const p of products) {
+  catalog[p.id] = {
+    name: p.name,
+    price: Math.round(Number(p.price) * 100) / 100,
+    unique: !!(p.unique === true || p.type === 'single' || p.type === 'graded'),
+    inStock: p.inStock !== false,
+  };
+}
+writeFileSync(join(ROOT, 'lib', 'catalog-demo.json'), JSON.stringify(catalog, null, 2) + '\n');
+console.log('lib/catalog-demo.json : ' + products.length + ' produits');
 
 // Design system allégé (ou bundle complet en secours)
 const dsComponents = SLIM_DS_BUNDLE ? extractDsComponents() : null;
@@ -253,13 +301,23 @@ for (const f of readdirSync(ROOT)) {
   if (f === 'produit.html') produitTemplate = out;
 }
 
-// Pages produits statiques (produits « d* » du catalogue par défaut ;
-// les produits WooCommerce seront ajoutés ici quand WOO_URL sera configurée)
-const staticProducts = products.filter((p) => /^d\d+$/.test(p.id));
+// Pages produits statiques : WooCommerce si configuré, sinon démo (jamais de
+// démo sur le domaine de production — cohérent avec data.js).
+const woo = await wooProducts();
+let staticProducts;
+if (woo !== null) {
+  staticProducts = woo.filter((p) => p.inStock !== false);
+  console.log('Pages produits : ' + staticProducts.length + ' (catalogue WooCommerce)');
+} else if (demoOnSite) {
+  staticProducts = products.filter((p) => /^d\d+$/.test(p.id));
+  console.log('Pages produits : ' + staticProducts.length + ' (démo — hôte hors production)');
+} else {
+  staticProducts = [];
+  console.log('Pages produits : 0 — domaine de production sans WooCommerce (WC_STORE_URL), la démo n\'est pas indexée.');
+}
 for (const p of staticProducts) {
   writeFileSync(join(DIST, productPath(p)), productPage(produitTemplate, p));
 }
-console.log('Pages produits : ' + staticProducts.length);
 
 writeFileSync(join(DIST, 'sitemap.xml'), sitemap(staticProducts.map(productPath)));
 writeFileSync(join(DIST, 'robots.txt'), robots());
