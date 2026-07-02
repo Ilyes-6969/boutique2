@@ -3,18 +3,6 @@
    Paiement simulé (validation Luhn / date / CVC) — à brancher sur un vrai PSP
    (Stripe, WooCommerce Payments) en production. */
 
-function lcLuhn(num) {
-  const s = (num || '').replace(/\s+/g, '');
-  if (!/^\d{13,19}$/.test(s)) return false;
-  let sum = 0, alt = false;
-  for (let i = s.length - 1; i >= 0; i--) {
-    let d = parseInt(s[i], 10);
-    if (alt) { d *= 2; if (d > 9) d -= 9; }
-    sum += d; alt = !alt;
-  }
-  return sum % 10 === 0;
-}
-
 function CheckoutModal({ onClose }) {
   const cart = useCart();
   const auth = useAuth();
@@ -94,7 +82,10 @@ function CheckoutModal({ onClose }) {
     if (ship.method === 'pickup') return true; // pay in store
     if (stripeEmbedded) return true;           // carte gérée par le Payment Element
     const e = {};
-    if (!lcLuhn(pay.card)) e.card = 1;
+    // Validation Luhn centralisée dans payments.js (LCPay.luhn) — repli sur un
+    // simple contrôle de format si la couche paiement n'est pas chargée.
+    const luhnOk = (window.LCPay && window.LCPay.luhn) ? window.LCPay.luhn(pay.card) : /^\d{13,19}$/.test((pay.card || '').replace(/\s+/g, ''));
+    if (!luhnOk) e.card = 1;
     const m = pay.exp.match(/^(\d{2})\/(\d{2})$/);
     if (!m || +m[1] < 1 || +m[1] > 12) e.exp = 1;
     else { const exp = new Date(2000 + +m[2], +m[1], 0, 23, 59); if (exp < new Date()) e.exp = 1; }
@@ -157,6 +148,16 @@ function CheckoutModal({ onClose }) {
         const pi = result.paymentIntent;
         if (pi && (pi.status === 'succeeded' || pi.status === 'processing')) {
           finalize({ paid: true, ref: pi.id });
+          // Verrou d'idempotence (même format que finalizeOnce dans merci.html) :
+          // marque ce PaymentIntent comme déjà finalisé pour qu'une visite de
+          // merci.html?payment_intent=… ne recrée pas la commande en double.
+          try {
+            const done = JSON.parse(localStorage.getItem('lc151_done_sessions') || '[]');
+            if (done.indexOf(pi.id) === -1) {
+              done.push(pi.id);
+              localStorage.setItem('lc151_done_sessions', JSON.stringify(done));
+            }
+          } catch (e) {}
         } else {
           setPaying(false);
           setErrors({ pay: 'Paiement non confirmé. Réessayez.' });
@@ -253,15 +254,15 @@ function CheckoutModal({ onClose }) {
               {step === 'livraison' ? (
                 <React.Fragment>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                    <div><label style={lbl}>Nom complet</label><input style={errStyle('name')} value={ship.name} onChange={(e) => setS('name', e.target.value)} /></div>
-                    <div><label style={lbl}>E-mail</label><input style={errStyle('email')} value={ship.email} onChange={(e) => setS('email', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-name">Nom complet</label><input id="lc-co-name" autoComplete="name" aria-invalid={!!errors.name} style={errStyle('name')} value={ship.name} onChange={(e) => setS('name', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-email">E-mail</label><input id="lc-co-email" type="email" required autoComplete="email" aria-invalid={!!errors.email} style={errStyle('email')} value={ship.email} onChange={(e) => setS('email', e.target.value)} /></div>
                   </div>
-                  <div style={{ marginBottom: 12 }}><label style={lbl}>Adresse</label><input style={errStyle('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" /></div>
+                  <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-addr">Adresse</label><input id="lc-co-addr" autoComplete="street-address" aria-invalid={!!errors.addr} style={errStyle('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" /></div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
-                    <div><label style={lbl}>Code postal</label><input style={errStyle('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} /></div>
-                    <div><label style={lbl}>Ville</label><input style={errStyle('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-zip">Code postal</label><input id="lc-co-zip" autoComplete="postal-code" aria-invalid={!!errors.zip} style={errStyle('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-city">Ville</label><input id="lc-co-city" autoComplete="address-level2" aria-invalid={!!errors.city} style={errStyle('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} /></div>
                   </div>
-                  <div style={{ marginBottom: 16 }}><label style={lbl}>Téléphone (optionnel)</label><input style={field} value={ship.phone} onChange={(e) => setS('phone', e.target.value)} /></div>
+                  <div style={{ marginBottom: 16 }}><label style={lbl} htmlFor="lc-co-phone">Téléphone (optionnel)</label><input id="lc-co-phone" type="tel" autoComplete="tel" style={field} value={ship.phone} onChange={(e) => setS('phone', e.target.value)} /></div>
                   <label style={lbl}>Mode de livraison</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
                     {Object.values(Orders.methods()).map((m) => {
@@ -297,18 +298,18 @@ function CheckoutModal({ onClose }) {
                     </React.Fragment>
                   ) : (
                     <React.Fragment>
-                      <div style={{ marginBottom: 12 }}><label style={lbl}>Numéro de carte</label><input inputMode="numeric" style={errStyle('card')} value={pay.card} onChange={(e) => setP('card', fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" /></div>
+                      <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-card">Numéro de carte</label><input id="lc-co-card" inputMode="numeric" aria-invalid={!!errors.card} aria-describedby={errors.card ? 'lc-co-card-err' : undefined} style={errStyle('card')} value={pay.card} onChange={(e) => setP('card', fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" /></div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                        <div><label style={lbl}>Expiration</label><input inputMode="numeric" style={errStyle('exp')} value={pay.exp} onChange={(e) => setP('exp', fmtExp(e.target.value))} placeholder="MM/AA" /></div>
-                        <div><label style={lbl}>CVC</label><input inputMode="numeric" style={errStyle('cvc')} value={pay.cvc} onChange={(e) => setP('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" /></div>
+                        <div><label style={lbl} htmlFor="lc-co-exp">Expiration</label><input id="lc-co-exp" inputMode="numeric" aria-invalid={!!errors.exp} aria-describedby={errors.exp ? 'lc-co-card-err' : undefined} style={errStyle('exp')} value={pay.exp} onChange={(e) => setP('exp', fmtExp(e.target.value))} placeholder="MM/AA" /></div>
+                        <div><label style={lbl} htmlFor="lc-co-cvc">CVC</label><input id="lc-co-cvc" inputMode="numeric" aria-invalid={!!errors.cvc} aria-describedby={errors.cvc ? 'lc-co-card-err' : undefined} style={errStyle('cvc')} value={pay.cvc} onChange={(e) => setP('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" /></div>
                       </div>
-                      <div style={{ marginBottom: 8 }}><label style={lbl}>Titulaire de la carte</label><input style={errStyle('holder')} value={pay.holder} onChange={(e) => setP('holder', e.target.value)} /></div>
-                      {(errors.card || errors.exp || errors.cvc || errors.holder) && <div style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>Vérifiez les informations de paiement saisies.</div>}
+                      <div style={{ marginBottom: 8 }}><label style={lbl} htmlFor="lc-co-holder">Titulaire de la carte</label><input id="lc-co-holder" autoComplete="cc-name" aria-invalid={!!errors.holder} aria-describedby={errors.holder ? 'lc-co-card-err' : undefined} style={errStyle('holder')} value={pay.holder} onChange={(e) => setP('holder', e.target.value)} /></div>
+                      {(errors.card || errors.exp || errors.cvc || errors.holder) && <div id="lc-co-card-err" role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>Vérifiez les informations de paiement saisies.</div>}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}><span>🔒</span> Paiement chiffré · vos données ne sont pas stockées</div>
                     </React.Fragment>
                   )}
-                  {(errors.stock || errors.cart) && <div style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>{errors.cart ? 'Votre panier est vide.' : 'Un article n’est plus disponible — retirez-le du panier pour continuer.'}</div>}
-                  {errors.pay && <div style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10, lineHeight: 1.5 }}>Paiement impossible : {errors.pay}</div>}
+                  {(errors.stock || errors.cart) && <div role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>{errors.cart ? 'Votre panier est vide.' : 'Un article n’est plus disponible — retirez-le du panier pour continuer.'}</div>}
+                  {errors.pay && <div role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10, lineHeight: 1.5 }}>Paiement impossible : {errors.pay}</div>}
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>
                     <button onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: (paying || (stripeEmbedded && !stripeReady)) ? 'wait' : 'pointer', opacity: (paying || (stripeEmbedded && !stripeReady)) ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>

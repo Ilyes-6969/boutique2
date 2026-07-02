@@ -9,7 +9,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { applyCors } = require('../lib/serverCatalog');
+const { applyCors, rateLimit } = require('../lib/serverCatalog');
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
@@ -18,9 +18,15 @@ module.exports = async function handler(req, res) {
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante' });
 
+  // Anti-énumération : limite par IP + format strict de l'identifiant.
+  if (!rateLimit(req, 'status', 20, 5 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Trop de requêtes — réessayez dans quelques minutes.' });
+  }
   const pi = (req.query && req.query.payment_intent) ||
     (req.url && (new URL(req.url, 'http://x')).searchParams.get('payment_intent'));
-  if (!pi) return res.status(400).json({ error: 'payment_intent manquant' });
+  if (!pi || !/^pi_[A-Za-z0-9]{8,250}$/.test(String(pi))) {
+    return res.status(400).json({ error: 'payment_intent manquant ou invalide' });
+  }
 
   try {
     const stripe = Stripe(secret);
@@ -34,6 +40,8 @@ module.exports = async function handler(req, res) {
       orderRef: (intent.metadata && intent.metadata.orderRef) || '',
     });
   } catch (err) {
-    return res.status(500).json({ error: String((err && err.message) || err) });
+    // Réponse neutre : un id inexistant et une erreur interne sont indistinguables.
+    console.error('payment-status:', String((err && err.message) || err));
+    return res.status(404).json({ error: 'Paiement introuvable' });
   }
 };

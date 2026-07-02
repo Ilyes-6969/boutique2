@@ -75,6 +75,10 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ url: session.url, id: session.id });
   } catch (err) {
     const msg = String((err && err.message) || err);
-    return res.status(errorStatus(msg)).json({ error: msg });
+    // Erreur métier attendue (panier vide, rupture, article inconnu...) → message français au client.
+    if (errorStatus(msg) === 400) return res.status(400).json({ error: msg });
+    // Erreur inattendue (Stripe, réseau...) : détail loggé côté serveur, message générique au client.
+    console.error('create-checkout-session:', msg);
+    return res.status(500).json({ error: 'Le paiement n\'a pas pu être initialisé. Réessayez dans un instant.' });
   }
 };

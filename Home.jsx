@@ -2,6 +2,22 @@
    When products are added (via WordPress/WooCommerce or the back-office),
    the rayons appear automatically. */
 
+/* Icônes de réassurance en SVG (trait currentColor, même style que Chrome.jsx) :
+   rendu identique sur tous les OS, contrairement aux glyphes texte (✓ ⤓ ↺ ◈). */
+function ReassureIcon({ name, size = 17 }) {
+  const shapes = {
+    check: <polyline points="20 6 9 17 4 12"></polyline>,
+    truck: <React.Fragment><rect x="1" y="3" width="15" height="13" rx="1"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></React.Fragment>,
+    retour: <React.Fragment><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></React.Fragment>,
+    bouclier: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>,
+  };
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {shapes[name]}
+    </svg>
+  );
+}
+
 function Home({ navigate }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const Store = window.LC151.Store;
@@ -32,13 +48,13 @@ function Home({ navigate }) {
               On déniche, on authentifie et on conseille — du Set de Base aux dernières sorties. Cartes à l'unité, pièces gradées, scellé et accessoires, à retirer en magasin ou livrés chez vous.
             </p>
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
-              <DS.Button variant="accent" size="lg" as="a" href="#" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'all'); }}>Explorer la boutique</DS.Button>
-              <DS.Button variant="outline" size="lg" as="a" href="#" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'graded'); }}>Cartes gradées</DS.Button>
+              <DS.Button variant="accent" size="lg" as="a" href="boutique.html" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'all'); }}>Explorer la boutique</DS.Button>
+              <DS.Button variant="outline" size="lg" as="a" href="boutique.html?cat=graded" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'graded'); }}>Cartes gradées</DS.Button>
             </div>
             <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', fontSize: 13.5, color: 'var(--ink-2)' }}>
-              {[['✓', 'Authentifié'], ['⤓', 'Expédié sous 48 h'], ['↺', 'Retours 14 jours']].map(([ic, t]) => (
+              {[['check', 'Authentifié'], ['truck', 'Expédié sous 48 h'], ['retour', 'Retours 14 jours']].map(([ic, t]) => (
                 <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                  <span aria-hidden="true" style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid var(--yellow)', color: 'var(--yellow)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}>{ic}</span>
+                  <span aria-hidden="true" style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid var(--yellow)', color: 'var(--yellow)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}><ReassureIcon name={ic} size={14} /></span>
                   <span style={{ fontWeight: 500 }}>{t}</span>
                 </span>
               ))}
@@ -50,9 +66,9 @@ function Home({ navigate }) {
       {/* REASSURANCE STRIP */}
       <section style={{ background: 'var(--card)', borderBottom: '1.5px solid var(--line)' }}>
         <div className="container-wide" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '20px 24px' }}>
-          {[['✓', 'Authentifié', 'Chaque pièce vérifiée'], ['⤓', 'Livraison offerte', 'Dès 100 € d’achat'], ['◈', 'Paiement sécurisé', 'CB · PayPal · Apple Pay']].map(([ic, t, s]) => (
+          {[['check', 'Authentifié', 'Chaque pièce vérifiée'], ['truck', 'Livraison offerte', 'Dès 100 € d’achat'], ['bouclier', 'Paiement sécurisé', 'CB · PayPal · Apple Pay']].map(([ic, t, s]) => (
             <div key={t} className="lc-reassure" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: 'var(--accent)' }}>{ic}</span>
+              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: 'var(--accent)' }}><ReassureIcon name={ic} size={17} /></span>
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5 }}>{t}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{s}</div>
@@ -85,7 +101,7 @@ function Home({ navigate }) {
       <section className="container-wide" style={{ padding: '48px 24px 8px' }}>
         <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {[["Cartes à l'unité", 'single', 'Du Set de Base à aujourd’hui'], ['Cartes gradées', 'graded', 'PSA · BGS authentifiées'], ['Scellé', 'sealed', 'Displays · ETB · coffrets'], ['Accessoires', 'accessory', 'Sleeves · classeurs · tapis']].map(([t, key, sub]) => (
-            <a key={key} href="#" onClick={(e) => { e.preventDefault(); navigate('catalogue', key); }}
+            <a key={key} href={'boutique.html?cat=' + key} onClick={(e) => { e.preventDefault(); navigate('catalogue', key); }}
               style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>{t}</span>
               <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{sub}</span>
@@ -110,8 +126,8 @@ function Home({ navigate }) {
               La boutique en ligne ouvre très bientôt. En attendant, passez nous voir rue de la Juiverie — ou dites-nous la carte que vous cherchez, on l'a souvent en réserve.
             </p>
             <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <DS.Button variant="accent" as="a" href="#" onClick={(e) => { e.preventDefault(); openModal('contact'); }}>Nous écrire</DS.Button>
-              <DS.Button variant="outline" as="a" href="#" onClick={(e) => { e.preventDefault(); openModal('newsletter'); }}>Prévenez-moi du lancement</DS.Button>
+              <DS.Button variant="accent" type="button" onClick={() => openModal('contact')}>Nous écrire</DS.Button>
+              <DS.Button variant="outline" type="button" onClick={() => openModal('newsletter')}>Prévenez-moi du lancement</DS.Button>
             </div>
           </div>
         </section>
@@ -166,7 +182,7 @@ function Home({ navigate }) {
           <div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em' }}>Passez nous voir — on adore parler cartes</div>
           </div>
-          <DS.Button variant="accent" size="lg" as="a" href="#" onClick={(e) => { e.preventDefault(); openModal('contact'); }}>Nous trouver</DS.Button>
+          <DS.Button variant="accent" size="lg" type="button" onClick={() => openModal('contact')}>Nous trouver</DS.Button>
         </div>
       </section>
     </div>

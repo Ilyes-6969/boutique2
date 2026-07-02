@@ -1,15 +1,15 @@
 /* ============================================
    leclub151 — Typography tokens
    Bricolage Grotesque = display (editorial, characterful)
-   Hanken Grotesk      = body, UI, labels, prices, meta (one clean sans)
+   Hanken Grotesk      = body, UI (one clean sans)
+   JetBrains Mono      = labels, prices, meta, SKU
 ============================================ */
 
 :root {
   --font-display: 'Bricolage Grotesque', 'Hanken Grotesk', system-ui, sans-serif;
   --font-body: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
-  /* "mono" kept as a token name but rendered in the body sans so labels,
-     prices and meta share one clean typeface across the whole site. */
-  --font-mono: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+  /* Mono — labels, prices, meta, SKU (see fonts.css). */
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', monospace;
 
   /* Display scale — tight tracking, heavy weights */
   --display-1-size: clamp(44px, 6.5vw, 92px);

@@ -6,8 +6,12 @@
 // Variable d'environnement Vercel : STRIPE_PUBLISHABLE_KEY = pk_test_... / pk_live_...
 // ---------------------------------------------------------------------------
 
+const { applyCors } = require('../lib/serverCatalog');
+
 module.exports = function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  applyCors(req, res);
+  if (req.method === 'OPTIONS') return res.status(204).end();
+
   res.setHeader('Cache-Control', 'public, max-age=300');
   return res.status(200).json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '' });
 };

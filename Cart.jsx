@@ -15,7 +15,7 @@ function CartDrawer({ open, onClose, navigate }) {
       {/* scrim */}
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(26,23,20,0.45)', opacity: open ? 1 : 0, transition: 'opacity 0.3s ease' }}></div>
       {/* panel */}
-      <aside role="dialog" aria-modal="true" aria-label="Votre panier" aria-hidden={!open} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 'min(440px, 100%)', background: 'var(--paper)', borderLeft: '1.5px solid var(--line)', boxShadow: 'var(--shadow-lg)', transform: open ? 'translateX(0)' : 'translateX(100%)', transition: 'transform 0.32s cubic-bezier(0.2,0.8,0.2,1)', display: 'flex', flexDirection: 'column' }}>
+      <aside role="dialog" aria-modal="true" aria-label="Votre panier" aria-hidden={!open} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 'min(440px, 100%)', background: 'var(--paper)', borderLeft: '1.5px solid var(--line)', boxShadow: 'var(--shadow-lg)', transform: open ? 'translateX(0)' : 'translateX(100%)', visibility: open ? 'visible' : 'hidden', transition: 'transform 0.32s cubic-bezier(0.2,0.8,0.2,1), visibility 0.32s', display: 'flex', flexDirection: 'column' }}>
         {/* head */}
         <div style={{ padding: '20px 22px', borderBottom: '1.5px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19 }}>Votre panier <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 14 }}>({cart.count()})</span></div>
@@ -73,25 +73,18 @@ function CartDrawer({ open, onClose, navigate }) {
                 <DS.PriceTag price={subtotal} size="lg" />
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 14 }}>Taxes incluses · livraison calculée à l'étape suivante</div>
-              {loggedIn ? (
-                <React.Fragment>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: 'var(--ink-2)' }}>
-                    <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent)', color: 'var(--on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{(auth.user().name || 'C')[0]}</span>
-                    Connecté · {auth.user().name}
-                  </div>
-                  <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => { onClose(); openModal('checkout'); }}>Passer commande</DS.Button>
-                </React.Fragment>
-              ) : (
-                <React.Fragment>
-                  <div style={{ display: 'flex', gap: 9, padding: '12px 14px', marginBottom: 12, background: 'var(--paper-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)' }}>
-                    <span aria-hidden="true" style={{ color: 'var(--ink)', fontSize: 15, lineHeight: 1.4 }}>🔒</span>
-                    <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-                      <strong style={{ color: 'var(--ink)' }}>Un compte est requis pour commander.</strong> Connectez-vous ou créez votre compte client — c'est rapide et gratuit.
-                    </div>
-                  </div>
-                  <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => { onClose(); openModal('account'); }}>Se connecter / créer un compte</DS.Button>
-                  <button title="Connexion requise" disabled style={{ width: '100%', marginTop: 10, height: 38, fontSize: 13.5, color: 'var(--muted)', fontFamily: 'var(--font-body)', background: 'transparent', border: '1.5px dashed var(--line-strong)', borderRadius: 'var(--radius-sm)', cursor: 'not-allowed' }}>Passer commande (connexion requise)</button>
-                </React.Fragment>
+              {loggedIn && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: 'var(--ink-2)' }}>
+                  <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent)', color: 'var(--on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{(auth.user().name || 'C')[0]}</span>
+                  Connecté · {auth.user().name}
+                </div>
+              )}
+              <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => { onClose(); openModal('checkout'); }}>Passer commande</DS.Button>
+              {!loggedIn && (
+                <div style={{ marginTop: 10, textAlign: 'center' }}>
+                  <button onClick={() => { onClose(); openModal('account'); }} style={{ fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', background: 'transparent', textDecoration: 'underline', textUnderlineOffset: 2 }}>Vous avez un compte ? Se connecter</button>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Créez un compte pour suivre vos commandes.</div>
+                </div>
               )}
               <button onClick={onClose} style={{ width: '100%', marginTop: 10, fontSize: 13.5, color: 'var(--ink-2)', fontFamily: 'var(--font-body)' }}>Continuer mes achats</button>
             </div>
@@ -167,15 +160,12 @@ function CartPage({ navigate }) {
                 <DS.PriceTag price={subtotal} size="lg" />
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 16 }}>Taxes incluses · livraison à l'étape suivante</div>
-              {loggedIn ? (
-                <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => openModal('checkout')}>Passer commande</DS.Button>
-              ) : (
-                <React.Fragment>
-                  <div style={{ display: 'flex', gap: 9, padding: '12px 14px', marginBottom: 12, background: 'var(--paper-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-                    <span aria-hidden="true">🔒</span><div><strong style={{ color: 'var(--ink)' }}>Un compte est requis pour commander.</strong> C'est rapide et gratuit.</div>
-                  </div>
-                  <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => openModal('account')}>Se connecter / créer un compte</DS.Button>
-                </React.Fragment>
+              <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => openModal('checkout')}>Passer commande</DS.Button>
+              {!loggedIn && (
+                <div style={{ marginTop: 10, textAlign: 'center' }}>
+                  <button onClick={() => openModal('account')} style={{ fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', background: 'transparent', textDecoration: 'underline', textUnderlineOffset: 2 }}>Vous avez un compte ? Se connecter</button>
+                  <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Créez un compte pour suivre vos commandes.</div>
+                </div>
               )}
               <a href="boutique.html" style={{ display: 'block', textAlign: 'center', marginTop: 12, fontSize: 13.5, color: 'var(--ink-2)' }}>Continuer mes achats</a>
             </div>

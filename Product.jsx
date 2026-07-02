@@ -3,7 +3,7 @@ function Product({ navigate, productId, onCart }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const { PRODUCTS, Cart, FREE_SHIP, fmt } = window.LC151;
   const cart = useCart();
-  const product = window.LC151.get(productId) || PRODUCTS[0];
+  const product = window.LC151.get(productId);
   const [qty, setQty] = React.useState(1);
   const [added, setAdded] = React.useState(false);
   const lockedUnique = product ? (cart.isUnique(product.id) && cart.items().some((l) => l.id === product.id)) : false;

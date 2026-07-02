@@ -278,8 +278,8 @@ function Header({ navigate, active, onCart }) {
         <Logo onClick={() => navigate('home')} size={26} />
         <div className="lc-search" style={{ flex: 1, maxWidth: 540, marginLeft: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px 0 16px', height: 44, borderRadius: 'var(--radius-pill)', border: '1.5px solid transparent', background: 'var(--card)' }}>
-            <span style={{ fontSize: 15, color: 'var(--muted)' }}>⌕</span>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
+            <span style={{ display: 'flex', color: 'var(--muted)' }} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg></span>
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }} aria-label={t('search_ph')} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
             <button onClick={runSearch} style={{ height: 34, padding: '0 16px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
           </div>
         </div>
@@ -306,7 +306,7 @@ function Header({ navigate, active, onCart }) {
       {/* Recherche mobile (visible uniquement sur petit écran, voir storefront2.css) */}
       <div className="lc-search-mobile" style={{ padding: '0 16px 12px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px 0 14px', height: 42, borderRadius: 'var(--radius-pill)', background: 'var(--card)' }}>
-          <span style={{ fontSize: 15, color: 'var(--muted)' }}>⌕</span>
+          <span style={{ display: 'flex', color: 'var(--muted)' }} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg></span>
           <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }} aria-label={t('search_ph')} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
           <button onClick={runSearch} style={{ height: 32, padding: '0 14px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
         </div>
@@ -344,13 +344,15 @@ function MegaNav({ navigate, active }) {
   const t = useLang();
   const go = (item) => { setOpen(null); navigate(item.key === 'home' ? 'home' : 'catalogue', item.key === 'home' ? undefined : item.key === 'catalogue' ? 'all' : item.key); };
   return (
-    <nav style={{ borderTop: '1px solid rgba(255,255,255,0.12)', position: 'relative', background: 'var(--header-2)' }} onMouseLeave={() => setOpen(null)}>
+    <nav style={{ borderTop: '1px solid rgba(255,255,255,0.12)', position: 'relative', background: 'var(--header-2)' }} onMouseLeave={() => setOpen(null)} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(null); }}>
       <div className="container-wide lc-nav-scroll" style={{ display: 'flex', gap: 2, height: 48, alignItems: 'stretch' }}>
         {NAV.map((c) => {
           const on = active === c.key || (c.key === 'home' && active === 'home');
           return (
             <a key={c.key} href="#" className="lc-nav-link" onMouseEnter={() => setOpen(c.cols || c.games ? c.key : null)}
-              onClick={(e) => { e.preventDefault(); if (c.games) { window.location.href = 'boutique.html'; } else { go(c); } }}
+              onFocus={() => setOpen(c.cols || c.games ? c.key : null)}
+              aria-haspopup={(c.cols || c.games) ? 'true' : undefined} aria-expanded={(c.cols || c.games) ? open === c.key : undefined}
+              onClick={(e) => { e.preventDefault(); if (c.cols || c.games) { setOpen(open === c.key ? null : c.key); } else { go(c); } }}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 15px', fontSize: 13.5, fontWeight: 600, color: on ? '#fff' : 'rgba(234,239,251,0.72)', borderBottom: '3px solid', borderColor: on ? 'var(--yellow)' : 'transparent', whiteSpace: 'nowrap' }}>
               {(window.lcI18n && window.lcI18n.t('nav_' + c.key) !== 'nav_' + c.key) ? t('nav_' + c.key) : c.label}{(c.cols || c.games) && <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>}
             </a>
@@ -383,7 +385,7 @@ function MegaNav({ navigate, active }) {
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: 14 }}>{col.title}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: col.items.length > 6 ? '1fr 1fr' : '1fr', gap: '9px 36px' }}>
                     {col.items.map((it) => (
-                      <a key={it} href="#" onClick={(e) => { e.preventDefault(); go(c); }}
+                      <a key={it} href={'/boutique.html?cat=' + encodeURIComponent(c.key) + '&q=' + encodeURIComponent(it)}
                         style={{ fontSize: 14, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}
                         onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-2)'; }}>{it}</a>
@@ -433,7 +435,7 @@ function LangSelect() {
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(244,236,217,0.28)', background: 'rgba(255,255,255,0.05)', fontSize: 13.5, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', fontSize: 13.5, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
         <span style={{ fontSize: 15 }}>{sel[2]}</span> {sel[1]} <span style={{ fontSize: 10, opacity: 0.7, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}>▾</span>
       </button>
       {open && (
@@ -455,12 +457,12 @@ function Footer({ navigate }) {
   const t = useLang();
   const col = (title, items) => (
     <div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(244,236,217,0.5)', marginBottom: 18 }}>{title}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 18 }}>{title}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
         {items.map((it) => (
           <a key={it.label} href={it.href || '#'} onClick={(e) => { if (it.onClick) { e.preventDefault(); it.onClick(); } }}
             className={it.soon ? undefined : 'lc-foot-link'}
-            style={{ fontSize: 14.5, fontWeight: 600, color: it.soon ? 'rgba(244,236,217,0.32)' : 'rgba(244,236,217,0.82)', cursor: it.soon ? 'default' : 'pointer', pointerEvents: it.soon ? 'none' : 'auto' }}>
+            style={{ fontSize: 14.5, fontWeight: 600, color: it.soon ? 'rgba(255,255,255,0.32)' : 'rgba(255,255,255,0.82)', cursor: it.soon ? 'default' : 'pointer', pointerEvents: it.soon ? 'none' : 'auto' }}>
             {it.label}{it.soon ? ' (' + t('f_soon') + ')' : ''}
           </a>
         ))}
@@ -479,14 +481,14 @@ function Footer({ navigate }) {
   return (
     <footer style={{ background: 'var(--footer-bg)', color: 'var(--footer-text)', marginTop: 0 }}>
       {/* reassurance strip */}
-      <div style={{ borderBottom: '1px solid rgba(244,236,217,0.12)' }}>
+      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
         <div className="container-wide" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '26px 24px' }}>
           {[['✓', t('r_auth_t'), t('r_auth_s')], ['⤓', t('r_ship_t'), t('r_ship_s')], ['◈', t('r_pay_t'), t('r_pay_s')]].map(([ic, ti, s]) => (
             <div key={ti} className="lc-reassure" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid rgba(244,236,217,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: 'var(--teal)' }}>{ic}</span>
+              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: 'var(--teal)' }}>{ic}</span>
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5 }}>{ti}</div>
-                <div style={{ fontSize: 12.5, color: 'rgba(244,236,217,0.55)' }}>{s}</div>
+                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)' }}>{s}</div>
               </div>
             </div>
           ))}
@@ -503,7 +505,7 @@ function Footer({ navigate }) {
                 </span>
               ))}
             </div>
-            <p style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(244,236,217,0.6)', maxWidth: 320 }}>
+            <p style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.6)', maxWidth: 320 }}>
               La boutique des collectionneurs Pokémon, à Vienne. On déniche, on authentifie et on conseille.
             </p>
           </div>
@@ -532,8 +534,8 @@ function Footer({ navigate }) {
         </div>
 
         {/* divider + copyright / language */}
-        <div style={{ paddingTop: 26, borderTop: '1px solid rgba(244,236,217,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, marginBottom: 22 }}>
-          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(244,236,217,0.6)' }}>{t('f_copyright')}</span>
+        <div style={{ paddingTop: 26, borderTop: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, marginBottom: 22 }}>
+          <span style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{t('f_copyright')}</span>
           <LangSelect />
         </div>
 
@@ -547,15 +549,15 @@ function Footer({ navigate }) {
             ))}
           </div>
           <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 13, fontWeight: 600 }}>
-            <a href="confidentialite.html" className="lc-foot-link" style={{ color: 'rgba(244,236,217,0.6)' }}>{t('f_cookies')}</a>
-            <span style={{ color: 'rgba(244,236,217,0.25)' }}>|</span>
-            <a href="cgv.html" className="lc-foot-link" style={{ color: 'rgba(244,236,217,0.6)' }}>{t('f_terms')}</a>
-            <span style={{ color: 'rgba(244,236,217,0.25)' }}>|</span>
-            <a href="confidentialite.html" className="lc-foot-link" style={{ color: 'rgba(244,236,217,0.6)' }}>{t('f_privacy')}</a>
+            <a href="confidentialite.html" className="lc-foot-link" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('f_cookies')}</a>
+            <span style={{ color: 'rgba(255,255,255,0.25)' }}>|</span>
+            <a href="cgv.html" className="lc-foot-link" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('f_terms')}</a>
+            <span style={{ color: 'rgba(255,255,255,0.25)' }}>|</span>
+            <a href="confidentialite.html" className="lc-foot-link" style={{ color: 'rgba(255,255,255,0.6)' }}>{t('f_privacy')}</a>
           </div>
         </div>
 
-        <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid rgba(244,236,217,0.08)', fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.04em', color: 'rgba(244,236,217,0.4)' }}>
+        <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.4)' }}>
           Pokémon™ Nintendo / Game Freak — produits authentifiés · leclub151 n'est pas affilié à The Pokémon Company.
         </div>
       </div>
@@ -853,9 +855,9 @@ function OrdersModal({ onClose }) {
                 <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13.5 }}>{o.number}</span>
                 <span style={{ fontSize: 11.5, padding: '3px 9px', borderRadius: 'var(--radius-pill)', background: 'var(--green-soft)', color: 'var(--green)', fontWeight: 600 }}>{o.status}</span>
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 8 }}>{new Date(o.date).toLocaleDateString('fr-FR')} · {o.items.reduce((s, i) => s + i.qty, 0)} article(s)</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 8 }}>{new Date(o.date).toLocaleDateString('fr-FR')} · {(o.items || []).reduce((s, i) => s + i.qty, 0)} article(s)</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}>
-                <span style={{ color: 'var(--ink-2)' }}>{window.LC151.Orders.methods()[o.method].label}</span>
+                <span style={{ color: 'var(--ink-2)' }}>{((window.LC151.Orders.methods()[o.method] || {}).label || 'Livraison standard')}</span>
                 <strong style={{ fontFamily: 'var(--font-mono)' }}>{fmt(o.total)}</strong>
               </div>
             </div>
@@ -892,14 +894,15 @@ function AddressesModal({ onClose }) {
     <ModalShell title="Mes adresses" onClose={onClose}>
       <p style={{ fontSize: 13.5, color: 'var(--ink-2)', marginBottom: 16 }}>Votre adresse de livraison par défaut — pré-remplie automatiquement au paiement.</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div><label style={lbl}>Nom complet</label><input style={fld('name')} value={a.name} onChange={(e) => set('name', e.target.value)} /></div>
-        <div><label style={lbl}>Adresse</label><input style={fld('addr')} value={a.addr} onChange={(e) => set('addr', e.target.value)} placeholder="N° et rue" /></div>
+        <div><label style={lbl} htmlFor="lc-addr-name">Nom complet</label><input id="lc-addr-name" aria-invalid={err.name ? true : undefined} style={fld('name')} value={a.name} onChange={(e) => set('name', e.target.value)} /></div>
+        <div><label style={lbl} htmlFor="lc-addr-addr">Adresse</label><input id="lc-addr-addr" aria-invalid={err.addr ? true : undefined} style={fld('addr')} value={a.addr} onChange={(e) => set('addr', e.target.value)} placeholder="N° et rue" /></div>
         <div className="lc-addr-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
-          <div><label style={lbl}>Code postal</label><input style={fld('zip')} value={a.zip} onChange={(e) => set('zip', e.target.value)} /></div>
-          <div><label style={lbl}>Ville</label><input style={fld('city')} value={a.city} onChange={(e) => set('city', e.target.value)} /></div>
+          <div><label style={lbl} htmlFor="lc-addr-zip">Code postal</label><input id="lc-addr-zip" aria-invalid={err.zip ? true : undefined} style={fld('zip')} value={a.zip} onChange={(e) => set('zip', e.target.value)} /></div>
+          <div><label style={lbl} htmlFor="lc-addr-city">Ville</label><input id="lc-addr-city" aria-invalid={err.city ? true : undefined} style={fld('city')} value={a.city} onChange={(e) => set('city', e.target.value)} /></div>
         </div>
-        <div><label style={lbl}>Téléphone (optionnel)</label><input style={lcField} value={a.phone} onChange={(e) => set('phone', e.target.value)} /></div>
-        {done && <div style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><span>✓</span> Adresse enregistrée.</div>}
+        <div><label style={lbl} htmlFor="lc-addr-phone">Téléphone (optionnel)</label><input id="lc-addr-phone" style={lcField} value={a.phone} onChange={(e) => set('phone', e.target.value)} /></div>
+        {Object.keys(err).length > 0 && <div role="alert" style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>Veuillez vérifier les champs en rouge.</div>}
+        {done && <div role="status" style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><span>✓</span> Adresse enregistrée.</div>}
         <button onClick={save} style={lcCta()}>{done ? 'Enregistré ✓' : 'Enregistrer l’adresse'}</button>
       </div>
     </ModalShell>

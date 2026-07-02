@@ -419,9 +419,9 @@
     if (!dest) return false;
     try {
       if (/^https?:\/\//i.test(dest)) {
-        fetch(dest, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload) }).catch(function () {});
+        fetch(dest, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload) }).catch(function (err) { console.warn('[lc151] webhook non délivré:', err && err.message); });
       } else {
-        fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(Object.assign({ access_key: dest }, web3Fields)) }).catch(function () {});
+        fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(Object.assign({ access_key: dest }, web3Fields)) }).catch(function (err) { console.warn('[lc151] webhook non délivré:', err && err.message); });
       }
       return true;
     } catch (e) { return false; }

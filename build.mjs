@@ -132,11 +132,18 @@ function transformHtml(html, pageName) {
   // Babel standalone : plus besoin.
   out = out.replace(/[ \t]*<script[^>]*@babel\/standalone[^>]*><\/script>\s*\n?/g, '');
 
-  // Bundle du design studio → version allégée (composants uniquement).
+  // React / ReactDOM (unpkg) : defer — dans les pages construites, tous les
+  // scripts qui utilisent React sont externes et déjà en defer (l'ordre du
+  // document est préservé : react → react-dom → ds-components → bundles de page).
+  out = out.replace(/<script src="(https:\/\/unpkg\.com\/react[^"]*)"([^>]*)><\/script>/g,
+    '<script defer src="$1"$2></script>');
+
+  // Bundle du design studio → version allégée (composants uniquement), en defer
+  // (n'utilise React qu'au rendu, consommé uniquement par les bundles defer).
   // Tolère les variantes de chemin : _ds_bundle.js, /_ds_bundle.js, ../../_ds_bundle.js
   if (SLIM_DS_BUNDLE && dsComponents) {
     out = out.replace(/<script src="(?:\/|(?:\.\.\/)*)_ds_bundle\.js"><\/script>/g,
-      '<script src="ds-components.js"></script>');
+      '<script defer src="ds-components.js"></script>');
   }
 
   // Chemins hérités du design studio.
@@ -281,7 +288,12 @@ for (const f of readdirSync(ROOT)) {
   }
 }
 for (const dir of ['tokens', 'assets']) {
-  if (existsSync(join(ROOT, dir))) cpSync(join(ROOT, dir), join(DIST, dir), { recursive: true });
+  if (existsSync(join(ROOT, dir))) cpSync(join(ROOT, dir), join(DIST, dir), {
+    recursive: true,
+    // hero-cards.png (1,86 Mo) n'est référencé par aucun fichier servi (le site
+    // utilise hero-cards.webp) — on ne l'expédie plus dans dist.
+    filter: (src) => !src.endsWith('hero-cards.png'),
+  });
 }
 
 // JSX → JS
