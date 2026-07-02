@@ -348,23 +348,19 @@ function MegaNav({ navigate, active }) {
       <div className="container-wide lc-nav-scroll" style={{ display: 'flex', gap: 2, height: 48, alignItems: 'stretch' }}>
         {NAV.map((c) => {
           const on = active === c.key || (c.key === 'home' && active === 'home');
+          const hasPanel = !!(c.cols || c.games);
           return (
-            <a key={c.key} href="#" className="lc-nav-link" onMouseEnter={() => setOpen(c.cols || c.games ? c.key : null)}
-              onFocus={() => setOpen(c.cols || c.games ? c.key : null)}
-              aria-haspopup={(c.cols || c.games) ? 'true' : undefined} aria-expanded={(c.cols || c.games) ? open === c.key : undefined}
-              onClick={(e) => { e.preventDefault(); if (c.cols || c.games) { setOpen(open === c.key ? null : c.key); } else { go(c); } }}
+            <React.Fragment key={c.key}>
+            <a href="#" className="lc-nav-link" onMouseEnter={() => setOpen(hasPanel ? c.key : null)}
+              onFocus={() => setOpen(hasPanel ? c.key : null)}
+              aria-haspopup={hasPanel ? 'true' : undefined} aria-expanded={hasPanel ? open === c.key : undefined}
+              onClick={(e) => { e.preventDefault(); if (c.cols) { if (open === c.key) { go(c); } else { setOpen(c.key); } } else if (c.games) { setOpen(open === c.key ? null : c.key); } else { go(c); } }}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 15px', fontSize: 13.5, fontWeight: 600, color: on ? '#fff' : 'rgba(234,239,251,0.72)', borderBottom: '3px solid', borderColor: on ? 'var(--yellow)' : 'transparent', whiteSpace: 'nowrap' }}>
-              {(window.lcI18n && window.lcI18n.t('nav_' + c.key) !== 'nav_' + c.key) ? t('nav_' + c.key) : c.label}{(c.cols || c.games) && <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>}
+              {(window.lcI18n && window.lcI18n.t('nav_' + c.key) !== 'nav_' + c.key) ? t('nav_' + c.key) : c.label}{hasPanel && <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>}
             </a>
-          );
-        })}
-        <span style={{ marginLeft: 'auto' }}></span>
-      </div>
-
-      {/* dropdown panel */}
-      {NAV.filter((c) => c.cols || c.games).map((c) => (
-        open === c.key ? (
-          <div key={c.key} onMouseEnter={() => setOpen(c.key)}
+            {/* panneau rendu juste après son onglet dans le DOM : atteignable au Tab (position absolute → hors du flux flex, échappe à l'overflow de .lc-nav-scroll car rattaché au <nav> relatif) */}
+            {hasPanel && open === c.key ? (
+          <div onMouseEnter={() => setOpen(c.key)}
             style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card)', borderTop: '1.5px solid var(--line)', borderBottom: '1.5px solid var(--line)', boxShadow: 'var(--shadow)', zIndex: 60 }}>
             {c.games ? (
               <div className="container-wide" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, padding: '22px 24px 26px' }}>
@@ -385,7 +381,7 @@ function MegaNav({ navigate, active }) {
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: 14 }}>{col.title}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: col.items.length > 6 ? '1fr 1fr' : '1fr', gap: '9px 36px' }}>
                     {col.items.map((it) => (
-                      <a key={it} href={'/boutique.html?cat=' + encodeURIComponent(c.key) + '&q=' + encodeURIComponent(it)}
+                      <a key={it} href={'/boutique.html?cat=' + encodeURIComponent(c.key)}
                         style={{ fontSize: 14, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}
                         onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-2)'; }}>{it}</a>
@@ -401,8 +397,12 @@ function MegaNav({ navigate, active }) {
             </div>
             )}
           </div>
-        ) : null
-      ))}
+            ) : null}
+            </React.Fragment>
+          );
+        })}
+        <span style={{ marginLeft: 'auto' }}></span>
+      </div>
     </nav>
   );
 }
