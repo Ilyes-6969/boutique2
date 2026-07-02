@@ -140,7 +140,7 @@
           number: data.orderRef || ('LC151-' + String(pi).slice(-6).toUpperCase()),
           total: (data.amount || 0) / 100,
           email: data.email || '',
-          method: 'standard',
+          method: null, // mode de livraison inconnu dans ce repli — la ligne Livraison reste masquée
         }, data.amount);
         showPaid(order);
       })
@@ -159,7 +159,7 @@
           number: data.orderRef || ('LC151-' + String(sid).slice(-6).toUpperCase()),
           total: (data.amount_total || 0) / 100,
           email: data.email || '',
-          method: 'standard',
+          method: null, // mode de livraison inconnu dans ce repli — la ligne Livraison reste masquée
         }, data.amount_total);
         showPaid(order);
       })
