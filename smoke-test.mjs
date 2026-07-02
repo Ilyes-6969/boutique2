@@ -4,6 +4,7 @@
 //   npx --yes serve dist -l 5151   (dans un premier terminal)
 //   node smoke-test.mjs            (dans un second)
 import { JSDOM, VirtualConsole } from 'jsdom';
+import { existsSync } from 'node:fs';
 
 const BASE = 'http://localhost:5151';
 const PAGES = [
@@ -11,12 +12,18 @@ const PAGES = [
   '/boutique.html',
   '/panier.html',
   '/produit.html?id=d1',
-  '/produits/dracaufeu-set-de-base-d1.html',
   '/lorcana.html',
   '/faq.html',
   '/cgv.html',
   '/admin.html',
 ];
+// Page produit statique : générée seulement quand le build a une source catalogue
+// (WC_STORE_URL). Sans elle, dist/produits est vide — on ne teste la page que si elle existe.
+if (existsSync(new URL('./dist/produits/dracaufeu-set-de-base-d1.html', import.meta.url))) {
+  PAGES.splice(4, 0, '/produits/dracaufeu-set-de-base-d1.html');
+} else {
+  console.log('INFO  /produits/… ignorée (aucune page produit statique dans ce build — WC_STORE_URL absent)');
+}
 
 let failed = 0;
 

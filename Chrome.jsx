@@ -478,14 +478,28 @@ function Footer({ navigate }) {
     ['Apple', 'M16.36 12.78c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.71-3.18-1.73-1.36-.14-2.65.8-3.34.8-.68 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.6 2.18-1.54 2.67-.4 6.62 1.1 8.79.73 1.06 1.6 2.25 2.74 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.14a9.3 9.3 0 0 0 1.2-2.45c-.03-.01-2.3-.88-2.32-3.49M14.18 6.1c.6-.74 1.01-1.75.9-2.77-.87.04-1.93.58-2.56 1.3-.56.64-1.05 1.68-.92 2.67.97.08 1.97-.49 2.58-1.2'],
   ];
   const appBadge = null;
+  // Icônes SVG du bandeau de réassurance (mêmes tracés que ReassureIcon de Home.jsx,
+  // dupliqués ici car Home.jsx n'est chargé que sur l'accueil).
+  const footIcon = (name) => {
+    const shapes = {
+      check: <polyline points="20 6 9 17 4 12"></polyline>,
+      truck: <React.Fragment><rect x="1" y="3" width="15" height="13" rx="1"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></React.Fragment>,
+      bouclier: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>,
+    };
+    return (
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {shapes[name]}
+      </svg>
+    );
+  };
   return (
     <footer style={{ background: 'var(--footer-bg)', color: 'var(--footer-text)', marginTop: 0 }}>
       {/* reassurance strip */}
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
         <div className="container-wide" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '26px 24px' }}>
-          {[['✓', t('r_auth_t'), t('r_auth_s')], ['⤓', t('r_ship_t'), t('r_ship_s')], ['◈', t('r_pay_t'), t('r_pay_s')]].map(([ic, ti, s]) => (
+          {[['check', t('r_auth_t'), t('r_auth_s')], ['truck', t('r_ship_t'), t('r_ship_s')], ['bouclier', t('r_pay_t'), t('r_pay_s')]].map(([ic, ti, s]) => (
             <div key={ti} className="lc-reassure" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: 'var(--teal)' }}>{ic}</span>
+              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>{footIcon(ic)}</span>
               <div>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5 }}>{ti}</div>
                 <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)' }}>{s}</div>
@@ -870,12 +884,23 @@ function OrdersModal({ onClose }) {
 
 function AddressesModal({ onClose }) {
   const auth = useAuth();
-  if (!auth.isLoggedIn()) return <AccountModal onClose={onClose} />;
-  const u = auth.user();
+  // Hooks TOUJOURS appelés avant tout return conditionnel (règles des hooks) :
+  // se connecter pendant que la modale est ouverte ne doit pas faire varier leur nombre.
+  const loggedIn = auth.isLoggedIn();
+  const u = loggedIn ? auth.user() : {};
   const saved = u.address || {};
   const [a, setA] = React.useState({ name: saved.name || u.name || '', addr: saved.addr || '', zip: saved.zip || '', city: saved.city || '', phone: saved.phone || '' });
   const [done, setDone] = React.useState(false);
   const [err, setErr] = React.useState({});
+  // Si l'utilisateur se connecte pendant que la modale est ouverte, précharge son adresse.
+  React.useEffect(() => {
+    if (loggedIn) {
+      const cu = auth.user() || {}; const sv = cu.address || {};
+      setA({ name: sv.name || cu.name || '', addr: sv.addr || '', zip: sv.zip || '', city: sv.city || '', phone: sv.phone || '' });
+      setDone(false); setErr({});
+    }
+  }, [loggedIn]);
+  if (!loggedIn) return <AccountModal onClose={onClose} />;
   const set = (k, v) => { setA((s) => ({ ...s, [k]: v })); setDone(false); };
 
   const save = () => {
