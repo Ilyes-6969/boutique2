@@ -101,7 +101,7 @@ function LegalPage({ navigate, kind }) {
             <H>Article 3 — Prix</H>
             <P>Les prix sont indiqués en euros toutes taxes comprises (TTC). <V v={COMPANY.name} ph="Nom de l'entreprise" /> se réserve le droit de modifier ses prix à tout moment ; les produits sont facturés sur la base des tarifs en vigueur au moment de la commande.</P>
             <H>Article 4 — Commande & paiement</H>
-            <P>La création d'un compte client est requise pour commander. Le paiement s'effectue par <strong>carte bancaire</strong> (et autres moyens éventuellement proposés), via le prestataire de paiement sécurisé <strong>Stripe</strong> ; aucune donnée de carte n'est conservée par nos soins. La commande est confirmée après validation du paiement. <V v={COMPANY.name} ph="Nom de l'entreprise" /> se réserve le droit d'annuler toute commande en cas de litige de paiement.</P>
+            <P>La commande peut être passée avec ou sans compte client (« commande invité »). La création d'un compte client, gratuite, est facultative ; elle permet de suivre ses commandes et d'enregistrer ses adresses de livraison. Le paiement s'effectue par <strong>carte bancaire</strong> (et autres moyens éventuellement proposés), via le prestataire de paiement sécurisé <strong>Stripe</strong> ; aucune donnée de carte n'est conservée par nos soins. La commande est confirmée après validation du paiement. <V v={COMPANY.name} ph="Nom de l'entreprise" /> se réserve le droit d'annuler toute commande en cas de litige de paiement.</P>
             <H>Article 5 — Livraison</H>
             <P>Livraison en France métropolitaine sous 48 h ouvrées, en envoi suivi et protégé. Frais : livraison standard <strong>4,90 €</strong> (2–4 j), point relais <strong>3,90 €</strong> (3–5 j), ou <strong>retrait gratuit</strong> en boutique à Vienne. <strong>Livraison offerte dès 100 €</strong> d'achat. Les délais sont indicatifs.</P>
             <H>Article 6 — Droit de rétractation</H>
@@ -177,7 +177,7 @@ function LegalPage({ navigate, kind }) {
             <H>Comment fonctionnent les précommandes ?</H>
             <P>Les produits en précommande sont expédiés à leur date de sortie, indiquée sur la fiche. Vous pouvez activer une <strong>alerte</strong> depuis votre compte pour être prévenu des nouveautés et retours en stock.</P>
             <H>Faut-il un compte pour commander ?</H>
-            <P>Oui, un compte client (gratuit) est requis pour finaliser une commande et suivre vos achats.</P>
+            <P>Non — vous pouvez commander sans compte, en « commande invité ». La création d'un compte client (gratuit) est facultative : elle permet de suivre vos commandes et d'enregistrer vos adresses pour vos prochains achats.</P>
             <H>Une autre question ?</H>
             <P><a href="index.html#contact" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'var(--accent)', fontWeight: 600 }}>Contactez-nous</a> — on répond sous 24 h.</P>
           </React.Fragment>

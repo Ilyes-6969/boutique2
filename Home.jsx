@@ -34,7 +34,7 @@ function Home({ navigate }) {
       {/* HERO */}
       <section style={{ position: 'relative', overflow: 'hidden', borderBottom: '1.5px solid var(--line)', background: 'var(--paper)' }}>
         {/* real graded-cards photo, desaturated + faded into the page */}
-        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'url(assets/hero-cards.webp)', backgroundSize: 'cover', backgroundPosition: 'center right', opacity: 0.9, pointerEvents: 'none', animation: 'lcKenburns 22s ease-in-out infinite alternate', transformOrigin: 'center' }}></div>
+        <div className="lc-hero-kenburns" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(assets/hero-cards.webp)', backgroundSize: 'cover', backgroundPosition: 'center right', opacity: 0.9, pointerEvents: 'none', transformOrigin: 'center' }}></div>
         {/* gradient scrim: solid paper on the left → transparent on the right, plus a bottom fade */}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--paper) 0%, var(--paper) 28%, rgba(0,0,0,0) 78%)', pointerEvents: 'none' }}></div>
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, var(--paper) 0%, rgba(0,0,0,0) 42%)', pointerEvents: 'none' }}></div>

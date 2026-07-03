@@ -3,6 +3,11 @@
    Paiement simulé (validation Luhn / date / CVC) — à brancher sur un vrai PSP
    (Stripe, WooCommerce Payments) en production. */
 
+// Piège à focus partagé (focus initial, Tab en boucle, Échap, restauration du
+// focus) défini dans Chrome.jsx — chargé avant ce fichier dans toutes les
+// pages. Garde défensive : no-op si absent, pour ne jamais casser le paiement.
+const useFocusTrap = window.lcUseFocusTrap || function () {};
+
 function CheckoutModal({ onClose }) {
   const cart = useCart();
   const auth = useAuth();
@@ -95,6 +100,11 @@ function CheckoutModal({ onClose }) {
   };
 
   const [paying, setPaying] = React.useState(false);
+  const panelRef = React.useRef(null);
+  // Aucune fermeture (Échap, scrim, ×) pendant la confirmation du paiement
+  // (perte du contexte Stripe) — le hook relit cette closure à chaque rendu.
+  const guardedClose = () => { if (!paying) onClose(); };
+  useFocusTrap(panelRef, guardedClose);
   const goPay = () => { if (validateShip()) { setErrors({}); setStep('paiement'); } };
 
   const placeOrder = async () => {
@@ -211,14 +221,14 @@ function CheckoutModal({ onClose }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }}></div>
-      <div role="dialog" aria-modal="true" aria-label="Paiement sécurisé" style={{ position: 'relative', width: 'min(760px, 100%)', maxHeight: '92vh', overflowY: 'auto', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26 }}>
+      <div onClick={guardedClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }}></div>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Paiement sécurisé" tabIndex={-1} style={{ position: 'relative', width: 'min(760px, 100%)', maxHeight: '92vh', overflowY: 'auto', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26, outline: 'none' }}>
         {/* head */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>
             {step === 'confirme' ? 'Commande confirmée' : 'Paiement sécurisé'}
           </h3>
-          <button onClick={onClose} aria-label="Fermer" style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer', background: 'transparent' }}>×</button>
+          <button onClick={guardedClose} aria-label="Fermer" style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer', background: 'transparent' }}>×</button>
         </div>
 
         {/* stepper */}

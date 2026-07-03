@@ -38,14 +38,14 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
           <p style={{ fontSize: 16, color: 'var(--ink-2)', maxWidth: 560 }}>
             {comingSoon
               ? 'Rayon ' + GAMES[game] + ' bientôt disponible chez leclub151 — singles, scellé et accessoires. Revenez vite ou activez une alerte.'
-              : "Cartes à l'unité, gradées, scellé et accessoires. Le catalogue est géré depuis WordPress / WooCommerce — il apparaîtra ici dès l'ajout de vos produits."}
+              : "Cartes à l'unité, gradées, scellé et accessoires. Les rayons se remplissent — revenez très vite !"}
           </p>
         </div>
       </section>
 
       {/* TOOLBAR (masquée sur les rayons « bientôt disponibles ») */}
       {!comingSoon && (
-      <div style={{ position: 'sticky', top: 124, zIndex: 30, background: 'var(--paper-2)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1.5px solid var(--line)' }}>
+      <div className="lc-cat-toolbar" style={{ position: 'sticky', top: 124, zIndex: 30, background: 'var(--paper-2)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1.5px solid var(--line)' }}>
         <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {CHIPS.map((f) => <DS.Tag key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>{f.label}</DS.Tag>)}
@@ -72,7 +72,7 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
         ) : errored ? (
           <div style={stateBox} role="alert">
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Catalogue momentanément indisponible</div>
-            <p style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 16, maxWidth: 440 }}>Impossible de charger les produits ({wp.error}). Vérifiez la connexion WooCommerce et réessayez.</p>
+            <p style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 16, maxWidth: 440 }}>Le catalogue est momentanément indisponible. Réessayez dans un instant.</p>
             <DS.Button variant="outline" onClick={() => Store.refreshFromWp()}>Réessayer</DS.Button>
           </div>
         ) : comingSoon ? (
@@ -88,7 +88,7 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
         ) : list.length === 0 ? (
           <div style={stateBox}>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Aucun produit pour le moment</div>
-            <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Le catalogue est géré depuis WordPress / WooCommerce — vos produits apparaîtront ici dès leur ajout.</p>
+            <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Les rayons se remplissent — revenez très vite !</p>
           </div>
         ) : (
           <div style={gridStyle}>

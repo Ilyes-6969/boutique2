@@ -360,10 +360,10 @@ function MegaNav({ navigate, active }) {
             </a>
             {/* panneau rendu juste après son onglet dans le DOM : atteignable au Tab (position absolute → hors du flux flex, échappe à l'overflow de .lc-nav-scroll car rattaché au <nav> relatif) */}
             {hasPanel && open === c.key ? (
-          <div onMouseEnter={() => setOpen(c.key)}
+          <div className="lc-mega-panel" onMouseEnter={() => setOpen(c.key)}
             style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card)', borderTop: '1.5px solid var(--line)', borderBottom: '1.5px solid var(--line)', boxShadow: 'var(--shadow)', zIndex: 60 }}>
             {c.games ? (
-              <div className="container-wide" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, padding: '22px 24px 26px' }}>
+              <div className="container-wide lc-mega-games" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, padding: '22px 24px 26px' }}>
                 {c.games.map(([label, href]) => (
                   <a key={href} href={href}
                     style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', color: 'var(--ink)' }}
@@ -375,7 +375,7 @@ function MegaNav({ navigate, active }) {
                 ))}
               </div>
             ) : (
-            <div className="container-wide" style={{ display: 'flex', gap: 56, padding: '26px 24px 30px' }}>
+            <div className="container-wide lc-mega-cols" style={{ display: 'flex', gap: 56, padding: '26px 24px 30px' }}>
               {c.cols.map((col) => (
                 <div key={col.title}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: 14 }}>{col.title}</div>
@@ -389,7 +389,7 @@ function MegaNav({ navigate, active }) {
                   </div>
                 </div>
               ))}
-              <div style={{ marginLeft: 'auto', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, paddingLeft: 40, borderLeft: '1.5px solid var(--line)', minWidth: 200 }}>
+              <div className="lc-mega-rail" style={{ marginLeft: 'auto', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, paddingLeft: 40, borderLeft: '1.5px solid var(--line)', minWidth: 200 }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17 }}>{c.label}</div>
                 <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>Parcourez tout le rayon et filtrez par série, état et prix.</div>
                 <a href="#" onClick={(e) => { e.preventDefault(); go(c); }} style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tout voir →</a>
@@ -424,6 +424,7 @@ function LangSelect() {
   const [open, setOpen] = React.useState(false);
   const [cur, setCur] = React.useState(() => (window.lcI18n ? window.lcI18n.getLang() : 'fr'));
   const ref = React.useRef(null);
+  const btnRef = React.useRef(null);
   const sel = langs.find((l) => l[0] === cur) || langs[0];
   const pick = (code) => { setCur(code); setOpen(false); if (window.lcI18n) window.lcI18n.setLang(code); };
   React.useEffect(() => {
@@ -433,8 +434,9 @@ function LangSelect() {
     return () => document.removeEventListener('mousedown', onDoc);
   }, [open]);
   return (
-    <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open}
+    <div ref={ref} style={{ position: 'relative' }}
+      onKeyDown={(e) => { if (e.key === 'Escape' && open) { e.stopPropagation(); setOpen(false); if (btnRef.current) btnRef.current.focus(); } }}>
+      <button ref={btnRef} onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open}
         style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.05)', fontSize: 13.5, fontWeight: 700, color: '#fff', cursor: 'pointer' }}>
         <span style={{ fontSize: 15 }}>{sel[2]}</span> {sel[1]} <span style={{ fontSize: 10, opacity: 0.7, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}>▾</span>
       </button>
@@ -686,16 +688,53 @@ function useModalState() {
   return __lcModal;
 }
 
+/* Piège à focus pour les modales (a11y) : mémorise l'élément actif, focus le
+   panneau à l'ouverture (tabIndex={-1} requis sur le panneau), boucle
+   Tab/Shift+Tab entre les éléments focusables, ferme à Échap, puis restaure
+   le focus à la fermeture. Partagé avec Checkout.jsx via window.lcUseFocusTrap
+   (Chrome.js est chargé avant Checkout.js dans toutes les pages). */
+function useFocusTrap(panelRef, onClose) {
+  const closeRef = React.useRef(onClose);
+  closeRef.current = onClose; // toujours la dernière closure (évite un onClose périmé)
+  React.useEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const prev = document.activeElement;
+    panel.focus();
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation();
+        if (closeRef.current) closeRef.current();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+      const els = panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!els.length) { e.preventDefault(); return; }
+      const first = els[0];
+      const last = els[els.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panel)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    panel.addEventListener('keydown', onKeyDown);
+    return () => {
+      panel.removeEventListener('keydown', onKeyDown);
+      try { if (prev && typeof prev.focus === 'function') prev.focus(); } catch (err) {}
+    };
+  }, []);
+}
+
 const lcField = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--paper)', fontSize: 14.5, color: 'var(--ink)', outline: 'none', marginBottom: 12, boxSizing: 'border-box' };
 function lcCta() { return { width: '100%', height: 46, borderRadius: 'var(--radius-sm)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 15, cursor: 'pointer', background: 'var(--accent)', color: 'var(--on-accent)' }; }
 
 function ModalShell({ title, children, onClose }) {
+  const panelRef = React.useRef(null);
+  useFocusTrap(panelRef, onClose);
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }}></div>
-      <div style={{ position: 'relative', width: 'min(440px, 100%)', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26 }}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="lc-modal-title" tabIndex={-1} style={{ position: 'relative', width: 'min(440px, 100%)', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26, outline: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>{title}</h3>
+          <h3 id="lc-modal-title" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>{title}</h3>
           <button onClick={onClose} aria-label="Fermer" style={{ width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer' }}>×</button>
         </div>
         {children}
@@ -955,4 +994,4 @@ function lcNavigate(view, arg) {
   if (view === 'cart') { window.location.href = '/panier.html'; return; }
   window.location.href = '/index.html';
 }
-Object.assign(window, { lcNavigate, useCart, useStore, useAuth, useAlerts, Pokeball, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });
+Object.assign(window, { lcNavigate, useCart, useStore, useAuth, useAlerts, lcUseFocusTrap: useFocusTrap, Pokeball, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });

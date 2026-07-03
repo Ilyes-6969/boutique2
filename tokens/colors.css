@@ -97,7 +97,7 @@
   --ink: #EAEFFB;             /* near-white text */
   --ink-soft: #C9D3EC;
   --ink-2: #97A2C4;
-  --muted: #6B749A;
+  --muted: #8088AE;           /* AA sur paper (5.3:1), paper-2 (4.8:1) et card (4.6:1) */
 
   --paper: #0A1230;           /* deep navy page */
   --paper-2: #111B40;         /* alt band / image stage */
