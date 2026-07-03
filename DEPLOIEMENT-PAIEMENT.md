@@ -56,10 +56,10 @@ Dans Vercel : ton projet **boutique2** → **Settings → Environment Variables*
 |---|---|---|
 | `STRIPE_SECRET_KEY` | ta clé secrète `sk_live_...` (ou `sk_test_...` pour tester) | ✅ oui |
 | `STRIPE_PUBLISHABLE_KEY` | ta clé publique `pk_live_...` (ou `pk_test_...`) — sert au formulaire de carte intégré | ✅ oui |
-| `STRIPE_WEBHOOK_SECRET` | `whsec_...` (obtenu à l'étape 4) | recommandé |
+| `STRIPE_WEBHOOK_SECRET` | `whsec_...` (obtenu à l'étape 4) | ✅ oui — le code refuse de traiter un webhook sans lui |
 | `WEB3FORMS_KEY` | ta clé Web3Forms (pour l'e-mail propriétaire fiable) | facultatif |
 
-> `SITE_URL` n'est plus nécessaire : le site détecte son domaine tout seul. Le paiement carte s'affiche **directement dans la fenêtre du site** (Payment Element), sans redirection vers Stripe.
+> `SITE_URL` reste utile : le build s'en sert pour le **sitemap** et les **pages produit** (SEO) — mets-y `https://leclub151.fr`. Pour le paiement lui-même, le site détecte son domaine tout seul : la carte s'affiche **directement dans la fenêtre du site** (Payment Element), sans redirection vers Stripe.
 
 Coche bien **Production** (et Preview si tu veux tester sur les déploiements de test). Puis **redéploie** le site pour qu'elles s'appliquent.
 
@@ -69,8 +69,10 @@ Coche bien **Production** (et Preview si tu veux tester sur les déploiements de
 
 1. Stripe → **Développeurs → Webhooks → Ajouter un point de terminaison**.
 2. URL : `https://TON-SITE/api/stripe-webhook`
-3. Événement à écouter : **`checkout.session.completed`**.
-4. Stripe te donne un **« Signing secret »** `whsec_...` → colle-le dans Vercel comme `STRIPE_WEBHOOK_SECRET` (étape 3), puis redéploie.
+3. Événements à écouter : **les DEUX** —
+   - **`payment_intent.succeeded`** ← c'est LUI que déclenche le paiement intégré au site (Payment Element). Sans lui, aucune notification n'arrive.
+   - **`checkout.session.completed`** (utile si un paiement passe par une page Stripe hébergée).
+4. Stripe te donne un **« Signing secret »** `whsec_...` → colle-le dans Vercel comme `STRIPE_WEBHOOK_SECRET` (étape 3), puis redéploie. **Cette variable est obligatoire** : sans elle, le serveur rejette les webhooks.
 
 ---
 
@@ -107,7 +109,7 @@ Enregistre, commit/push (le site se redéploie sur Vercel).
 
 ## Ce que Stripe NE gère pas (et la suite)
 
-- **Le stock partagé entre tous les visiteurs** (décrémenté à chaque vente) : il faut une source serveur. C'est déjà câblé pour **WooCommerce** dans l'admin (« Connexion WordPress ») — ou ton futur logiciel de caisse. À décider ensemble.
+- **Le stock partagé entre tous les visiteurs** (décrémenté à chaque vente) : il faut une source serveur → **WooCommerce**. Le guide complet pas à pas (hébergement, produits, clés API, variables Vercel, stock magasin) est dans **`GUIDE-WOOCOMMERCE.md`**.
 - **La caisse en boutique** : voir `Reco-paiement-caisse-Qonto.md` (Stripe Terminal, ou Hiboutik/Square).
 
 ---
@@ -115,4 +117,4 @@ Enregistre, commit/push (le site se redéploie sur Vercel).
 ## Sécurité — à savoir
 
 - La clé **secrète** Stripe n'est jamais dans le site : uniquement dans Vercel (variables d'env). ✅
-- Aujourd'hui, les montants envoyés à Stripe viennent du panier (catalogue côté navigateur). Pour une boutique modeste c'est l'usage courant ; pour blinder totalement les prix contre toute manipulation, il faudra un catalogue **serveur** (WooCommerce). À voir si le volume le justifie.
+- **Les prix sont fixés côté SERVEUR** : le navigateur n'envoie que `{ id, quantité }`, et le montant facturé est recalculé par `lib/serverCatalog.js` (catalogue WooCommerce si `WC_STORE_URL` est configurée, sinon instantané de démo en mode test). Un panier au prix manipulé est refusé. ✅

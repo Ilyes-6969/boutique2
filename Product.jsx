@@ -3,6 +3,9 @@ function Product({ navigate, productId, onCart }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const { PRODUCTS, Cart, FREE_SHIP, fmt } = window.LC151;
   const cart = useCart();
+  // Abonnement au Store : le catalogue (/api/catalog) résout souvent APRÈS le
+  // montage — ce re-rendu transforme le squelette en fiche produit à l'arrivée.
+  const Store = useStore();
   const product = window.LC151.get(productId);
   const [qty, setQty] = React.useState(1);
   const [added, setAdded] = React.useState(false);
@@ -50,6 +53,25 @@ function Product({ navigate, productId, onCart }) {
     });
   }, [product && product.id, product && product.price, product && product.inStock]);
   if (!product) {
+    // Catalogue encore en chargement → squelette, PAS de faux « Produit
+    // indisponible » : l'indisponibilité n'est affirmée qu'une fois le
+    // catalogue résolu (ok / off / error).
+    if (Store.wpStatus().state === 'loading') {
+      const bone = { borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', animation: 'lcPulse 1.3s ease-in-out infinite' };
+      return (
+        <section className="container-wide lc-prod-grid" aria-busy="true" aria-label="Chargement du produit"
+          style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, padding: '48px 24px 72px', alignItems: 'start' }}>
+          <div style={{ ...bone, minHeight: 460, borderRadius: 'var(--radius-lg)' }}></div>
+          <div>
+            <div style={{ ...bone, width: '40%', height: 14 }}></div>
+            <div style={{ ...bone, width: '85%', height: 36, marginTop: 16 }}></div>
+            <div style={{ ...bone, width: '30%', height: 26, marginTop: 18 }}></div>
+            <div style={{ ...bone, width: '100%', height: 90, marginTop: 26 }}></div>
+            <div style={{ ...bone, width: '100%', height: 52, marginTop: 28 }}></div>
+          </div>
+        </section>
+      );
+    }
     return (
       <div className="container-wide" style={{ padding: '120px 24px', textAlign: 'center', color: 'var(--ink-2)' }}>
         <h1 className="display-3" style={{ marginBottom: 10 }}>Produit indisponible</h1>
@@ -137,7 +159,7 @@ function Product({ navigate, productId, onCart }) {
           )}
 
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
-            {!window.LC151.Cart.isUnique(product.id) && <DS.QtyStepper value={qty} onChange={setQty} max={10} />}
+            {!window.LC151.Cart.isUnique(product.id) && <DS.QtyStepper value={qty} onChange={setQty} max={Math.min(10, cart.qtyCap(product.id))} />}
             <div style={{ flex: 1 }}>
               <DS.Button variant="accent" size="lg" block disabled={!product.inStock || lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
                 {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : product.inStock ? 'Ajouter au panier' : 'Indisponible')}
@@ -167,7 +189,7 @@ function Product({ navigate, productId, onCart }) {
         <div className="container-wide" style={{ padding: '56px 24px 80px' }}>
           <h2 className="display-3" style={{ marginBottom: 26 }}>Dans le même rayon</h2>
           <div className="lc-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
-            {relList.map((p) => <StoreCard key={p.id} product={p} navigate={navigate} />)}
+            {relList.map((p) => <StoreCard key={p.id} product={p.thumb ? { ...p, image: p.thumb } : p} navigate={navigate} />)}
           </div>
         </div>
       </section>

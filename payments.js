@@ -28,6 +28,9 @@
       piEndpoint: '/api/create-payment-intent',
       checkoutEndpoint: '/api/create-checkout-session', // (ancien mode redirection, conservé)
     },
+    // Notification serveur des commandes « retrait en boutique » (pas de Stripe
+    // sur ce chemin) — voir notifyPickupOrder() ci-dessous.
+    notifyOrderEndpoint: '/api/notify-order',
     qonto: {
       // Lien de paiement Qonto (propulsé par Mollie) — réconcilié auto sur Qonto.
       paymentLinkBase: '',
@@ -111,6 +114,8 @@
   // Crée un PaymentIntent côté serveur et renvoie { clientSecret, amount }.
   // On n'envoie QUE { id, qty } + le mode de livraison : le serveur fixe les
   // prix et les frais de port (le prix n'est jamais transmis par le navigateur).
+  // Le champ facultatif order.customer {name,email,addr,zip,city,phone} sert au
+  // reçu Stripe et à l'adresse de livraison — jamais au calcul du montant.
   function createPaymentIntent(order) {
     return fetch(cfg.stripe.piEndpoint, {
       method: 'POST',
@@ -120,6 +125,7 @@
         method: order.method || 'standard',
         email: order.email || undefined,
         orderRef: order.ref || '',
+        customer: order.customer || undefined,
       }),
     }).then(async function (r) {
       const j = await r.json().catch(function () { return {}; });
@@ -128,12 +134,41 @@
     });
   }
 
+  // Prévient le propriétaire d'une commande « retrait en boutique » via le
+  // serveur (fiable, contrairement à la clé localStorage du navigateur).
+  // BEST-EFFORT : ne lève jamais, ne bloque jamais la confirmation — un échec
+  // est seulement consigné en console. Renvoie une Promise<bool>.
+  function notifyPickupOrder(order) {
+    try {
+      return fetch(cfg.notifyOrderEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          method: 'pickup',
+          orderRef: order.ref || '',
+          customer: order.customer || {},
+          items: (order.items || []).map(function (l) { return { id: l.id, qty: l.qty }; }),
+        }),
+      }).then(function (r) {
+        if (!r.ok) console.warn('notify-order: HTTP ' + r.status);
+        return r.ok;
+      }).catch(function (e) {
+        console.warn('notify-order:', (e && e.message) || e);
+        return false;
+      });
+    } catch (e) {
+      console.warn('notify-order:', (e && e.message) || e);
+      return Promise.resolve(false);
+    }
+  }
+
   window.LCPay = {
     config: cfg,
     luhn: luhn,
     isLive: function () { return cfg.provider !== 'simulation'; },
     ensureStripe: ensureStripe,
     createPaymentIntent: createPaymentIntent,
+    notifyPickupOrder: notifyPickupOrder,
     // Renvoie une Promise → { paid, ref, provider }
     process: function (order, card) {
       const fn = providers[cfg.provider] || providers.simulation;

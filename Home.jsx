@@ -20,7 +20,10 @@ function ReassureIcon({ name, size = 17 }) {
 
 function Home({ navigate }) {
   const DS = window.ADITCGDesignSystem_df75b7;
-  const Store = window.LC151.Store;
+  // useStore() s'abonne au Store : les rayons se re-rendent à l'arrivée du
+  // catalogue (/api/catalog résout souvent APRÈS le montage React) au lieu
+  // de rester figés à vide.
+  const Store = useStore();
   const all = Store.all();
   const has = all.length > 0;
   const by = (t) => all.filter((p) => p.type === t);

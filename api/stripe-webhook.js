@@ -1,21 +1,42 @@
-// leclub151 — Webhook Stripe (notification fiable du propriétaire)
+// leclub151 — Webhook Stripe (commande WooCommerce + notification propriétaire)
 // ---------------------------------------------------------------------------
 // Stripe appelle cette fonction à CHAQUE paiement réussi, même si le client
-// ferme l'onglet avant de revenir sur le site. Elle prévient le propriétaire
-// par e-mail (Web3Forms) de façon fiable. Le reçu CLIENT, lui, est envoyé
-// automatiquement par Stripe (receipt_email).
+// ferme l'onglet avant de revenir sur le site. Deux rôles :
+//   1. Créer la commande dans WooCommerce (set_paid:true → WooCommerce
+//      décrémente lui-même le stock partagé magasin/site) — uniquement si les
+//      trois clés WC_* sont configurées ET que le panier contient des articles
+//      « wp… » (les articles de démo « d… » ne vont jamais dans WooCommerce).
+//   2. Prévenir le propriétaire par e-mail (Web3Forms) de façon fiable.
+// Le reçu CLIENT, lui, est envoyé automatiquement par Stripe (receipt_email).
 //
 // Variables d'environnement Vercel :
 //   STRIPE_SECRET_KEY      = sk_live_...
 //   STRIPE_WEBHOOK_SECRET  = whsec_...   (donné par Stripe quand tu crées le webhook)
 //   WEB3FORMS_KEY          = (facultatif) ta clé Web3Forms, pour l'e-mail au propriétaire
 //   OWNER_EMAIL            = (facultatif) ton e-mail, à titre indicatif dans le message
+//   WC_STORE_URL           = https://ton-wordpress.tld  (HTTPS obligatoire)
+//   WC_CONSUMER_KEY        = ck_...  (WooCommerce → Réglages → Avancé → API REST)
+//   WC_CONSUMER_SECRET     = cs_...
+// Sans les trois clés WC_* : comportement d'avant, notification seule.
+//
+// IDEMPOTENCE : après création, le n° de commande WooCommerce est écrit dans
+// les métadonnées du PaymentIntent (wc_order_id). Une re-livraison du même
+// événement ne recrée donc jamais de commande. En cas d'ÉCHEC de création, on
+// répond 500 → Stripe re-livrera l'événement (nouvel essai automatique quand
+// WordPress revient).
 //
 // IMPORTANT : ce endpoint a besoin du corps BRUT de la requête pour vérifier la
 // signature → on désactive le body parser de Vercel ci-dessous.
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
+
+const WC_TIMEOUT_MS = 8000;
+const METHOD_LABELS = {
+  standard: 'Livraison standard',
+  relais: 'Point relais',
+  pickup: 'Retrait en boutique (Vienne)',
+};
 
 function readRawBody(req) {
   return new Promise(function (resolve, reject) {
@@ -24,6 +45,35 @@ function readRawBody(req) {
     req.on('end', function () { resolve(Buffer.concat(chunks)); });
     req.on('error', reject);
   });
+}
+
+// Reconstitue la chaîne 'wpIDxQTY,...' répartie sur items, items2, items3…
+// (voir splitItemsMeta dans create-payment-intent.js / create-checkout-session.js).
+function joinItemsMeta(meta) {
+  if (!meta) return '';
+  let out = String(meta.items || '');
+  for (let i = 2; i <= 25; i++) {
+    const part = meta['items' + i];
+    if (typeof part !== 'string' || !part) break;
+    out += part;
+  }
+  return out;
+}
+
+// 'wp123x2,d4x1' → [{ id:'wp123', qty:2 }, { id:'d4', qty:1 }]. Jetons
+// illisibles ignorés (jamais de crash sur une métadonnée inattendue).
+function parseItemsMeta(meta) {
+  const s = joinItemsMeta(meta);
+  if (!s) return [];
+  return s.split(',').map(function (tok) {
+    const t = tok.trim();
+    const ix = t.lastIndexOf('x');
+    if (ix <= 0) return null;
+    const id = t.slice(0, ix);
+    const qty = parseInt(t.slice(ix + 1), 10);
+    if (!id || !Number.isFinite(qty) || qty < 1) return null;
+    return { id: id, qty: Math.min(999, qty) };
+  }).filter(Boolean);
 }
 
 module.exports = async function handler(req, res) {
@@ -47,7 +97,10 @@ module.exports = async function handler(req, res) {
     const s = event.data.object;
     try {
       await notifyOwner(s);
-    } catch (e) { /* ne bloque jamais l'accusé de réception Stripe */ }
+    } catch (err) {
+      // Ne bloque jamais l'accusé de réception Stripe, mais laisse une trace.
+      console.error('stripe-webhook: notification (checkout.session) non envoyée:', String((err && err.message) || err));
+    }
   }
 
   // Paiement INTÉGRÉ (Payment Element) : c'est CET événement qui se déclenche
@@ -57,9 +110,36 @@ module.exports = async function handler(req, res) {
   // webhook (Stripe → Développeurs → Webhooks), sinon rien n'arrive ici.
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object;
+
+    // 1) Commande WooCommerce (stock partagé). Toute erreur est capturée :
+    //    la notification propriétaire part quoi qu'il arrive.
+    let woo = { attempted: false, ok: false, duplicate: false, orderId: null, error: null };
     try {
-      await notifyOwnerIntent(pi);
-    } catch (e) { /* ne bloque jamais l'accusé de réception Stripe */ }
+      woo = await createWooOrder(stripe, pi);
+    } catch (err) {
+      const msg = String((err && err.message) || err);
+      console.error('stripe-webhook: commande WooCommerce NON créée (' + pi.id + '):', msg);
+      woo = { attempted: true, ok: false, duplicate: false, orderId: null, error: msg };
+    }
+
+    // Événement re-livré déjà traité (wc_order_id présent) → accusé immédiat,
+    // sans recréer de commande ni renvoyer d'e-mail en double.
+    if (woo.duplicate) {
+      return res.status(200).json({ received: true, duplicate: true });
+    }
+
+    // 2) Notification propriétaire (best-effort, ne bloque jamais l'accusé).
+    try {
+      await notifyOwnerIntent(pi, woo);
+    } catch (err) {
+      console.error('stripe-webhook: notification (payment_intent) non envoyée:', String((err && err.message) || err));
+    }
+
+    // 3) Échec de création alors que WooCommerce est configuré → 500 : Stripe
+    //    re-livrera l'événement (l'idempotence ci-dessus protège du doublon).
+    if (woo.attempted && !woo.ok) {
+      return res.status(500).json({ received: true, woocommerce: 'echec-nouvel-essai-demande' });
+    }
   }
 
   return res.status(200).json({ received: true });
@@ -68,7 +148,161 @@ module.exports = async function handler(req, res) {
 // Body brut requis pour vérifier la signature Stripe → on désactive le parser.
 module.exports.config = { api: { bodyParser: false } };
 
-// Envoie un e-mail au propriétaire via Web3Forms (si la clé est configurée).
+// ---------------------------------------------------------------------------
+// Création de la commande WooCommerce à partir du PaymentIntent payé.
+// Renvoie { attempted, ok, duplicate, orderId, error } ; lève une erreur en
+// cas d'échec réseau/HTTP (transformée en attempted:true par l'appelant).
+// ---------------------------------------------------------------------------
+async function createWooOrder(stripe, pi) {
+  const none = { attempted: false, ok: false, duplicate: false, orderId: null, error: null };
+  const base = (process.env.WC_STORE_URL || '').replace(/\/+$/, '');
+  const ck = process.env.WC_CONSUMER_KEY || '';
+  const cs = process.env.WC_CONSUMER_SECRET || '';
+  if (!base || !ck || !cs) return none;              // démo/transition : notification seule
+
+  const meta = pi.metadata || {};
+  // Seuls les vrais produits WooCommerce (« wpID ») partent dans la commande.
+  const wpItems = parseItemsMeta(meta).filter(function (it) { return /^wp\d+$/.test(it.id); });
+  if (!wpItems.length) return none;                  // panier 100 % démo → rien à créer
+
+  // IDEMPOTENCE : on relit le PaymentIntent chez Stripe — un événement
+  // re-livré transporte les métadonnées d'ORIGINE, pas celles ajoutées après
+  // la première création (wc_order_id).
+  try {
+    const fresh = await stripe.paymentIntents.retrieve(pi.id);
+    if (fresh && fresh.metadata && fresh.metadata.wc_order_id) {
+      return { attempted: false, ok: true, duplicate: true, orderId: fresh.metadata.wc_order_id, error: null };
+    }
+  } catch (err) {
+    console.error('stripe-webhook: relecture du PaymentIntent impossible:', String((err && err.message) || err));
+    if (meta.wc_order_id) {
+      return { attempted: false, ok: true, duplicate: true, orderId: meta.wc_order_id, error: null };
+    }
+    // Sinon on tente la création : au pire l'e-mail propriétaire permettra de
+    // repérer un éventuel doublon (cas doublement dégradé, très improbable).
+  }
+
+  // Auth Basic en clair dans l'en-tête → HTTPS non négociable.
+  if (!/^https:\/\//i.test(base)) {
+    throw new Error('WC_STORE_URL doit être en HTTPS (auth Basic WooCommerce)');
+  }
+
+  // Filet anti-doublon : si une tentative précédente a créé la commande mais que
+  // la réponse s'est perdue (timeout), wc_order_id n'a jamais été écrit — on
+  // balaie les commandes récentes à la recherche de notre transaction_id avant
+  // d'en créer une nouvelle.
+  const existingId = await findExistingWooOrder(base, ck, cs, pi.id);
+  if (existingId) {
+    try {
+      await stripe.paymentIntents.update(pi.id, { metadata: { wc_order_id: String(existingId) } });
+    } catch (err) {
+      console.error('stripe-webhook: wc_order_id non écrit sur ' + pi.id + ' (commande retrouvée n° ' + existingId + '):', String((err && err.message) || err));
+    }
+    return { attempted: false, ok: true, duplicate: true, orderId: existingId, error: null };
+  }
+
+  const ship = pi.shipping || {};
+  const addr = ship.address || {};
+  const fullName = String(ship.name || '').trim();
+  const spaceAt = fullName.indexOf(' ');
+  const contact = {
+    first_name: spaceAt > 0 ? fullName.slice(0, spaceAt) : fullName,
+    last_name: spaceAt > 0 ? fullName.slice(spaceAt + 1) : '',
+    phone: ship.phone || '',
+    address_1: addr.line1 || '',
+    postcode: addr.postal_code || '',
+    city: addr.city || '',
+    country: addr.country || 'FR',
+  };
+  const orderRef = meta.orderRef || pi.id;
+  const shipCents = parseInt(meta.shipping, 10) || 0;
+
+  const orderBody = {
+    status: 'processing',
+    set_paid: true,                                  // ← décrémente le stock WooCommerce
+    transaction_id: pi.id,
+    billing: Object.assign({ email: pi.receipt_email || '' }, contact),
+    shipping: contact,
+    line_items: wpItems.map(function (it) {
+      return { product_id: Number(it.id.slice(2)), quantity: it.qty };
+    }),
+    shipping_lines: [{
+      method_id: 'flat_rate',
+      method_title: METHOD_LABELS[meta.method] || 'Livraison',
+      total: (shipCents / 100).toFixed(2),
+    }],
+    customer_note: 'Commande site leclub151 — réf ' + orderRef,
+    meta_data: [{ key: '_stripe_payment_intent', value: pi.id }],
+  };
+
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, WC_TIMEOUT_MS);
+  let resp, text;
+  try {
+    resp = await fetch(base + '/wp-json/wc/v3/orders', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Basic ' + Buffer.from(ck + ':' + cs).toString('base64'),
+      },
+      body: JSON.stringify(orderBody),
+      signal: controller.signal,
+    });
+    text = await resp.text();
+  } catch (err) {
+    throw new Error('WooCommerce injoignable : ' + String((err && err.message) || err));
+  } finally {
+    clearTimeout(timer);
+  }
+  if (!resp.ok) {
+    throw new Error('WooCommerce a refusé la commande (HTTP ' + resp.status + ') : ' + String(text || '').slice(0, 300));
+  }
+  let order = null;
+  try { order = JSON.parse(text); } catch (e) { order = null; }
+  if (!order || !order.id) {
+    throw new Error('Réponse WooCommerce illisible : ' + String(text || '').slice(0, 200));
+  }
+
+  // Marque le PaymentIntent : une re-livraison de l'événement ne recréera rien.
+  try {
+    await stripe.paymentIntents.update(pi.id, { metadata: { wc_order_id: String(order.id) } });
+  } catch (err) {
+    // La commande EXISTE : on ne fait pas échouer le webhook pour la marque.
+    console.error('stripe-webhook: wc_order_id non écrit sur ' + pi.id + ' (commande Woo n° ' + order.id + '):', String((err && err.message) || err));
+  }
+  return { attempted: true, ok: true, duplicate: false, orderId: order.id, error: null };
+}
+
+// Cherche une commande WooCommerce récente portant ce PaymentIntent en
+// transaction_id (cas : commande créée mais réponse perdue → wc_order_id jamais
+// écrit sur le PaymentIntent). Balaye la dernière page de commandes — fiable
+// (champ exact, pas de recherche floue) et suffisant pour le volume visé.
+// Best-effort : null si injoignable, la création tentera sa chance.
+async function findExistingWooOrder(base, ck, cs, piId) {
+  const controller = new AbortController();
+  const timer = setTimeout(function () { controller.abort(); }, WC_TIMEOUT_MS);
+  try {
+    const resp = await fetch(base + '/wp-json/wc/v3/orders?per_page=100&orderby=date&order=desc', {
+      headers: { Authorization: 'Basic ' + Buffer.from(ck + ':' + cs).toString('base64') },
+      signal: controller.signal,
+    });
+    if (!resp.ok) return null;
+    const orders = await resp.json();
+    if (!Array.isArray(orders)) return null;
+    const hit = orders.find(function (o) { return o && o.transaction_id === piId; });
+    return hit ? hit.id : null;
+  } catch (err) {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// E-mails propriétaire via Web3Forms (si la clé est configurée).
+// ---------------------------------------------------------------------------
+
+// Session Checkout (mode redirection, conservé en secours).
 async function notifyOwner(session) {
   const key = process.env.WEB3FORMS_KEY;
   if (!key) return;
@@ -87,37 +321,61 @@ async function notifyOwner(session) {
     Session: session.id,
   };
 
-  await fetch('https://api.web3forms.com/submit', {
+  const r = await fetch('https://api.web3forms.com/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(payload),
   });
+  if (!r.ok) throw new Error('Web3Forms HTTP ' + r.status);
 }
 
-// Idem pour un PaymentIntent (paiement intégré au site). Le « Total encaissé »
-// est le montant RÉELLEMENT débité chez Stripe — à comparer avec l'e-mail de
-// commande envoyé par le site en cas de doute.
-async function notifyOwnerIntent(pi) {
+// PaymentIntent (paiement intégré au site). Le « Total encaissé » est le
+// montant RÉELLEMENT débité chez Stripe. L'e-mail contient désormais le nom,
+// l'adresse de livraison complète et le sort de la commande WooCommerce.
+async function notifyOwnerIntent(pi, woo) {
   const key = process.env.WEB3FORMS_KEY;
   if (!key) return;
   const total = ((pi.amount_received || pi.amount || 0) / 100).toFixed(2) + ' €';
   const meta = pi.metadata || {};
+  const ship = pi.shipping || {};
+  const addr = ship.address || {};
+  const adresse = [
+    addr.line1,
+    ((addr.postal_code || '') + ' ' + (addr.city || '')).trim(),
+    addr.country || 'FR',
+  ].filter(Boolean).join(', ');
+  const w = woo || {};
+
+  let statutWoo;
+  if (w.ok && w.orderId) {
+    statutWoo = 'Commande WooCommerce n° ' + w.orderId + ' créée — stock décrémenté automatiquement.';
+  } else if (w.attempted) {
+    statutWoo = '⚠️ Commande NON enregistrée dans WooCommerce — stock à décrémenter manuellement. Détail : ' + (w.error || 'erreur inconnue');
+  } else {
+    statutWoo = 'WooCommerce non configuré — notification seule.';
+  }
 
   const payload = {
     access_key: key,
     subject: 'Paiement reçu ' + (meta.orderRef || pi.id) + ' — leclub151',
     from_name: 'Boutique leclub151',
     Commande: meta.orderRef || '—',
-    Client: pi.receipt_email || '—',
+    Client: ship.name || '—',
+    'E-mail': pi.receipt_email || '—',
+    'Téléphone': ship.phone || '—',
+    'Adresse de livraison': adresse || '—',
+    Livraison: METHOD_LABELS[meta.method] || meta.method || '—',
+    Articles: joinItemsMeta(meta) || '—',
     'Total encaissé (Stripe)': total,
-    Articles: meta.items || '—',
+    WooCommerce: statutWoo,
     Paiement: 'Payé en ligne (Stripe, intégré au site)',
     Reference: pi.id,
   };
 
-  await fetch('https://api.web3forms.com/submit', {
+  const r = await fetch('https://api.web3forms.com/submit', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(payload),
   });
+  if (!r.ok) throw new Error('Web3Forms HTTP ' + r.status);
 }

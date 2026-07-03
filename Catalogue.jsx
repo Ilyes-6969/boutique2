@@ -6,14 +6,22 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   const [filter, setFilter] = React.useState(initialFilter || 'all');
   const [query, setQuery] = React.useState(initialQuery || '');
   const [sort, setSort] = React.useState('feat');
+  // Pagination d'affichage : la grille rend 48 produits, puis « Afficher plus »
+  // (le catalogue WooCommerce peut compter plusieurs centaines de produits).
+  const PAGE_SIZE = 48;
+  const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
   const game = initialGame || 'pokemon';
   const GAMES = { pokemon: 'Pokémon', lorcana: 'Disney Lorcana', onepiece: 'One Piece Card Game', magic: 'Magic: The Gathering', yugioh: 'Yu-Gi-Oh!' };
   const comingSoon = game !== 'pokemon';
 
   React.useEffect(() => { if (initialFilter) setFilter(initialFilter); }, [initialFilter]);
+  React.useEffect(() => { setVisibleCount(PAGE_SIZE); }, [filter, query]);   // filtre/recherche → retour en haut de liste
 
   // Catalogue source-of-truth state (drives loading / error / empty UI).
-  const Store = window.LC151.Store;
+  // useStore() s'abonne au Store : la grille se re-rend à l'arrivée du
+  // catalogue (/api/catalog résout souvent APRÈS le montage React) au lieu
+  // de rester figée sur les squelettes.
+  const Store = useStore();
   const wp = Store.wpStatus();              // { state: off|loading|ok|error, error }
   const loading = wp.state === 'loading';
   const errored = wp.state === 'error';
@@ -25,6 +33,11 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   if (q) list = list.filter((p) => ((p.name || '') + ' ' + (p.set || '') + ' ' + (p.num || '') + ' ' + (p.cat || '')).toLowerCase().includes(q));
   if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
   if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
+  const visible = list.slice(0, visibleCount);
+  const hiddenCount = list.length - visible.length;
+  // Grille : miniature (thumb) si le catalogue en fournit une, sinon l'image
+  // pleine taille — sans toucher StoreCard (Chrome.jsx), qui lit product.image.
+  const gridProduct = (p) => (p.thumb ? { ...p, image: p.thumb } : p);
 
   return (
     <div>
@@ -91,9 +104,18 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
             <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Les rayons se remplissent — revenez très vite !</p>
           </div>
         ) : (
-          <div style={gridStyle}>
-            {list.map((p) => <StoreCard key={p.id} product={p} navigate={navigate} />)}
-          </div>
+          <React.Fragment>
+            <div style={gridStyle}>
+              {visible.map((p) => <StoreCard key={p.id} product={gridProduct(p)} navigate={navigate} />)}
+            </div>
+            {hiddenCount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'center', marginTop: 32 }}>
+                <DS.Button variant="outline" onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}>
+                  Afficher plus ({hiddenCount} restant{hiddenCount > 1 ? 's' : ''})
+                </DS.Button>
+              </div>
+            )}
+          </React.Fragment>
         )}
       </section>
     </div>

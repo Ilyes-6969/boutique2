@@ -67,7 +67,14 @@ function CheckoutModal({ onClose }) {
       try {
         const stripe = await window.LCPay.ensureStripe();
         if (cancelled) return;
-        const data = await window.LCPay.createPaymentIntent({ items: currentLines(), method: ship.method, email: ship.email });
+        // Coordonnées transmises au serveur pour le reçu Stripe et l'adresse de
+        // livraison du PaymentIntent (jamais pour le calcul du montant).
+        const data = await window.LCPay.createPaymentIntent({
+          items: currentLines(),
+          method: ship.method,
+          email: ship.email,
+          customer: { name: ship.name, email: ship.email, addr: ship.addr, zip: ship.zip, city: ship.city, phone: ship.phone },
+        });
         if (cancelled || !data.clientSecret) throw new Error('Paiement indisponible');
         const elements = stripe.elements({ clientSecret: data.clientSecret, appearance: { theme: 'stripe' } });
         el = elements.create('payment', { layout: 'tabs' });
@@ -130,6 +137,16 @@ function CheckoutModal({ onClose }) {
         paid: ship.method !== 'pickup' ? !!(result && result.paid) : false,
         payRef: result ? result.ref : null,
       });
+      // Retrait en boutique : pas de Stripe, donc pas de webhook → notification
+      // serveur fiable, en best-effort (un échec n'empêche jamais la
+      // confirmation ; les paiements carte sont couverts par le webhook).
+      if (ship.method === 'pickup' && window.LCPay && window.LCPay.notifyPickupOrder) {
+        window.LCPay.notifyPickupOrder({
+          ref: o.number,
+          customer: { name: ship.name, email: ship.email, phone: ship.phone },
+          items: currentLines(),
+        });
+      }
       try { localStorage.removeItem('lc151_pending_order'); } catch (e) {}
       setOrder(o); cart.clear(); setPaying(false); setStep('confirme');
     };

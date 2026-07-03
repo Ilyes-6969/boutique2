@@ -88,6 +88,18 @@ function AdminApp() {
 
   const showToast = (m) => { setToast(m); setTimeout(() => setToast(''), 1600); };
 
+  // Mode connecté : le catalogue vient de WooCommerce. Les overrides locaux
+  // (localStorage) ne vivent QUE dans ce navigateur — on le dit clairement et
+  // on passe les lignes WooCommerce en lecture seule.
+  const wpConnected = Store.wpStatus().state === 'ok';
+  // L'URL WordPress n'est connue ici que si elle a été saisie dans « Connexion
+  // WordPress » (mode test). Via /api/catalog (chemin normal en production),
+  // elle est vide → pas de lien plutôt qu'un lien relatif cassé.
+  const wpBase = String(Store.getWpUrl() || '').replace(/\/+$/, '');
+  const wpAdminProductsUrl = (wpConnected && wpBase)
+    ? wpBase + '/wp-admin/edit.php?post_type=product'
+    : '';
+
   const counts = {
     all: products.length,
     instock: products.filter((p) => p.inStock).length,
@@ -145,10 +157,19 @@ function AdminApp() {
         <main style={{ flex: 1, padding: '22px 30px 60px', minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
             <h1 style={{ fontSize: 23, fontWeight: 400 }}>Produits</h1>
-            <button onClick={() => setAdding(true)} style={{ fontFamily: WP.font, fontSize: 13, padding: '4px 10px', borderRadius: 3, border: '1px solid ' + WP.blue, color: WP.blue, background: '#f6f7f7', cursor: 'pointer' }}>Ajouter un produit</button>
-            <span style={{ marginLeft: 'auto', fontFamily: WP.mono, fontSize: 11.5, color: WP.muted }}>Synchronisé avec la boutique · modifications enregistrées</span>
+            {!wpConnected && <button onClick={() => setAdding(true)} style={{ fontFamily: WP.font, fontSize: 13, padding: '4px 10px', borderRadius: 3, border: '1px solid ' + WP.blue, color: WP.blue, background: '#f6f7f7', cursor: 'pointer' }}>Ajouter un produit</button>}
+            <span style={{ marginLeft: 'auto', fontFamily: WP.mono, fontSize: 11.5, color: WP.muted }}>{wpConnected ? 'Catalogue WooCommerce · lecture seule ici' : 'Synchronisé avec la boutique · modifications enregistrées'}</span>
           </div>
-          <p style={{ fontSize: 13, color: WP.muted, marginBottom: 18 }}>Gérez le catalogue WooCommerce : modifiez les prix, le stock et les promotions. Les changements s'appliquent au site en direct.</p>
+          <p style={{ fontSize: 13, color: WP.muted, marginBottom: 18 }}>{wpConnected ? 'Le catalogue est lu depuis votre WordPress. Prix, stock et promotions se gèrent dans wp-admin.' : 'Gérez le catalogue WooCommerce : modifiez les prix, le stock et les promotions. Les changements s\'appliquent au site en direct.'}</p>
+
+          {wpConnected && (
+            <div style={{ background: '#fcf9e8', border: '1px solid ' + WP.border, borderLeft: '4px solid #dba617', borderRadius: 4, padding: '12px 16px', marginBottom: 18, fontSize: 13, color: WP.text, lineHeight: 1.6, boxShadow: '0 1px 1px rgba(0,0,0,0.04)' }}>
+              <strong>Catalogue géré par WooCommerce</strong> — les modifications ci-dessous ne changent QUE cet écran. Gérez prix et stock dans wp-admin.{' '}
+              {wpAdminProductsUrl
+                ? <a href={wpAdminProductsUrl} target="_blank" rel="noopener noreferrer" style={{ color: WP.blue, fontWeight: 600 }}>Ouvrir la gestion des produits ↗</a>
+                : <span style={{ color: WP.muted }}>(renseignez l'URL WordPress dans « Connexion WordPress » pour un lien direct)</span>}
+            </div>
+          )}
 
           <WpConnect Store={Store} showToast={showToast} />
           <OrderNotify showToast={showToast} />
@@ -173,7 +194,7 @@ function AdminApp() {
               <input type="checkbox" disabled style={{ accentColor: WP.blue }} />
               <span>Nom</span><span>SKU</span><span>Stock</span><span>Prix</span><span>Étiquette</span><span></span>
             </div>
-            {list.map((p, i) => <WpRow key={p.id} product={p} Store={Store} showToast={showToast} stripe={i % 2 === 1} />)}
+            {list.map((p, i) => <WpRow key={p.id} product={p} Store={Store} showToast={showToast} stripe={i % 2 === 1} readOnly={wpConnected && String(p.id).indexOf('wp') === 0} />)}
             {list.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: WP.muted, fontSize: 13.5, lineHeight: 1.7 }}>Aucun produit pour l'instant.<br />Cliquez « Ajouter un produit » ou importez votre catalogue depuis WooCommerce.</div>}
           </div>
           <div style={{ marginTop: 10, fontSize: 12.5, color: WP.muted }}>{list.length} élément{list.length > 1 ? 's' : ''}</div>
@@ -193,23 +214,26 @@ function AdminApp() {
   );
 }
 
-function WpRow({ product, Store, showToast, stripe }) {
+function WpRow({ product, Store, showToast, stripe, readOnly }) {
   const [price, setPrice] = React.useState(String(product.price));
   const [old, setOld] = React.useState(product.oldPrice != null ? String(product.oldPrice) : '');
   React.useEffect(() => { setPrice(String(product.price)); }, [product.price]);
   React.useEffect(() => { setOld(product.oldPrice != null ? String(product.oldPrice) : ''); }, [product.oldPrice]);
 
-  const commitPrice = () => { const n = parseFloat(price.replace(',', '.')); if (!isNaN(n) && n !== product.price) { Store.update(product.id, 'price', Math.round(n * 100) / 100); showToast('Prix mis à jour'); } };
+  const commitPrice = () => { if (readOnly) return; const n = parseFloat(price.replace(',', '.')); if (!isNaN(n) && n !== product.price) { Store.update(product.id, 'price', Math.round(n * 100) / 100); showToast('Prix mis à jour'); } };
   const commitOld = () => {
+    if (readOnly) return;
     const v = old.trim();
     if (v === '') { if (product.oldPrice != null) { Store.update(product.id, 'oldPrice', null); showToast('Promo retirée'); } return; }
     const n = parseFloat(v.replace(',', '.')); if (!isNaN(n) && n !== product.oldPrice) { Store.update(product.id, 'oldPrice', Math.round(n * 100) / 100); showToast('Promo mise à jour'); }
   };
 
-  const inp = { width: '100%', padding: '6px 8px', border: '1px solid ' + WP.border, borderRadius: 3, fontFamily: WP.mono, fontSize: 12.5, color: WP.text, outline: 'none', fontVariantNumeric: 'tabular-nums' };
+  const roHint = readOnly ? 'Produit WooCommerce — gérez-le dans wp-admin' : undefined;
+  const inp = { width: '100%', padding: '6px 8px', border: '1px solid ' + WP.border, borderRadius: 3, fontFamily: WP.mono, fontSize: 12.5, color: readOnly ? WP.muted : WP.text, outline: 'none', fontVariantNumeric: 'tabular-nums', background: readOnly ? '#f6f7f7' : '#fff', cursor: readOnly ? 'not-allowed' : 'text' };
   const sku = 'LC151-' + product.id.toUpperCase();
   const curLabel = product.badge ? (product.badge.tone === 'new' ? 'new' : product.badge.tone === 'graded' ? 'graded' : 'sale') : 'none';
   const setBadge = (val) => {
+    if (readOnly) return;
     if (val === 'none') Store.update(product.id, 'badge', null);
     else if (val === 'new') Store.update(product.id, 'badge', { tone: 'new', label: 'Nouveau' });
     else if (val === 'graded') Store.update(product.id, 'badge', { tone: 'graded', label: product.badge && product.badge.tone === 'graded' ? product.badge.label : 'PSA 10' });
@@ -231,7 +255,8 @@ function WpRow({ product, Store, showToast, stripe }) {
       </div>
       <span style={{ fontFamily: WP.mono, fontSize: 11.5, color: WP.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sku}</span>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
-        <button onClick={() => Store.update(product.id, 'inStock', !product.inStock)} style={{ justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 3, border: '1px solid', borderColor: product.inStock ? WP.green : WP.red, background: '#fff', fontSize: 12, fontWeight: 600, color: product.inStock ? WP.green : WP.red, cursor: 'pointer' }}>
+        <button onClick={() => { if (readOnly) return; Store.update(product.id, 'inStock', !product.inStock); }} disabled={readOnly} title={roHint}
+          style={{ justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 3, border: '1px solid', borderColor: product.inStock ? WP.green : WP.red, background: readOnly ? '#f6f7f7' : '#fff', fontSize: 12, fontWeight: 600, color: product.inStock ? WP.green : WP.red, cursor: readOnly ? 'not-allowed' : 'pointer', opacity: readOnly ? 0.75 : 1 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: product.inStock ? WP.green : WP.red }}></span>{product.inStock ? 'En stock' : 'Rupture'}
         </button>
         {Store.isUnique(product.id) && (
@@ -239,16 +264,16 @@ function WpRow({ product, Store, showToast, stripe }) {
         )}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <input style={inp} value={price} onChange={(e) => setPrice(e.target.value)} onBlur={commitPrice} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
-        <input style={{ ...inp, color: old ? WP.red : WP.muted, fontSize: 11.5 }} value={old} placeholder="prix barré" onChange={(e) => setOld(e.target.value)} onBlur={commitOld} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
+        <input style={inp} value={price} disabled={readOnly} title={roHint} onChange={(e) => setPrice(e.target.value)} onBlur={commitPrice} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
+        <input style={{ ...inp, color: readOnly ? WP.muted : (old ? WP.red : WP.muted), fontSize: 11.5 }} value={old} placeholder="prix barré" disabled={readOnly} title={roHint} onChange={(e) => setOld(e.target.value)} onBlur={commitOld} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
       </div>
-      <select value={curLabel} onChange={(e) => setBadge(e.target.value)} style={{ padding: '6px 6px', border: '1px solid ' + WP.border, borderRadius: 3, fontSize: 12.5, color: WP.text, background: '#fff', cursor: 'pointer', width: '100%', fontFamily: WP.font }}>
+      <select value={curLabel} disabled={readOnly} title={roHint} onChange={(e) => setBadge(e.target.value)} style={{ padding: '6px 6px', border: '1px solid ' + WP.border, borderRadius: 3, fontSize: 12.5, color: readOnly ? WP.muted : WP.text, background: readOnly ? '#f6f7f7' : '#fff', cursor: readOnly ? 'not-allowed' : 'pointer', width: '100%', fontFamily: WP.font }}>
         <option value="none">— Aucune</option><option value="new">Nouveau</option><option value="sale">Promo</option><option value="graded">Gradée</option>
       </select>
       <div style={{ justifySelf: 'end' }}>
-        {Store.isCustom(product.id)
+        {!readOnly && Store.isCustom(product.id)
           ? <button onClick={() => { if (confirm('Supprimer ce produit ?')) { Store.remove(product.id); showToast('Produit supprimé'); } }} title="Corbeille" style={{ color: WP.red, fontSize: 13, background: 'none', border: 'none', cursor: 'pointer' }}>Corbeille</button>
-          : <span style={{ color: WP.border, fontSize: 12 }}>—</span>}
+          : <span title={roHint} style={{ color: WP.border, fontSize: 12 }}>—</span>}
       </div>
     </div>
   );

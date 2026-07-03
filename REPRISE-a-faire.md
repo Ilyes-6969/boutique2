@@ -51,6 +51,27 @@ _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment E
 - Domaine du sitemap : variable d'env **`SITE_URL`** dans Vercel (sinon `https://leclub151.fr`).
 - Test local : `npx serve dist -l 5151` puis `node smoke-test.mjs`.
 
+## Backend opérationnel (03/07/2026) : le site est prêt pour WooCommerce
+- **Proxy `/api/catalog`** : la boutique lit le catalogue via le serveur du site
+  (plus de souci de CORS côté WordPress, prix/stock toujours frais).
+- **Pagination partout** : build, serveur de prix et boutique lisent le catalogue
+  WooCommerce par pages de 100 — plusieurs centaines de produits sans troncature.
+  Et si WooCommerce est injoignable au moment d'un build, le déploiement **échoue
+  franchement** au lieu de publier un site sans pages produit (Vercel garde alors
+  la version précédente en ligne).
+- **Création de commande WooCommerce par le webhook Stripe** : à chaque paiement,
+  la commande est écrite dans WooCommerce → le **stock est décrémenté** pour tous
+  les visiteurs et le **client reçoit l'e-mail de confirmation** WooCommerce.
+- **Variables à créer dans Vercel** au branchement : `WC_STORE_URL` +
+  **`WC_CONSUMER_KEY`** / **`WC_CONSUMER_SECRET`** (clé API REST Lecture/Écriture,
+  générée dans wp-admin).
+- **Le guide complet pour le propriétaire** (hébergement WordPress, création des
+  produits et des catégories, clés, stock magasin/TPE Qonto, checklist de
+  bascule) : **`GUIDE-WOOCOMMERCE.md`**.
+- Admin local (`admin.html`) : une fois WooCommerce connecté, le panneau produits
+  passe en **lecture seule** et renvoie vers wp-admin — les modifications locales
+  ne changeaient que ton navigateur, jamais le site des visiteurs.
+
 ## Rappel technique utile
 - Astuce si le site semble « pas à jour » après un push : Vercel/cache. Vérifier dans **Vercel → Deployments** que le **dernier commit** est bien déployé (Ready), sinon re-pousser un petit changement. Côté navigateur : **Ctrl + Maj + R**.
 - Détails complets dans **`DEPLOIEMENT-PAIEMENT.md`**.

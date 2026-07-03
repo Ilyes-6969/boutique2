@@ -125,13 +125,21 @@
   }
 
   // ---- WordPress / WooCommerce ----
-  // Reads the public WooCommerce Store API (no key needed):
-  //   GET {site}/wp-json/wc/store/v1/products
-  // Set the site URL in the back-office (admin.html) → « Connexion WordPress ».
+  // Deux chemins de chargement du catalogue :
+  //  1. lc151_wp_url (localStorage, admin.html → « Connexion WordPress ») :
+  //     lecture DIRECTE de la Store API publique du WordPress (mode test
+  //     admin), avec pagination (per_page=100, page=N) et timeout 10 s.
+  //  2. Sinon (chemin normal des visiteurs) : GET /api/catalog — proxy même
+  //     origine (pas de CORS), produits DÉJÀ au format du site (CONTRAT
+  //     PRODUIT partagé avec lib/serverCatalog.js).
+  // Panne : le dernier catalogue réussi est conservé 24 h dans localStorage
+  // (lc151_wc_cache) et réutilisé — le site ne se vide pas pour une panne
+  // transitoire, et le panier n'est jamais purgé sur un catalogue absent.
   let wpUrl = '';
   try { wpUrl = localStorage.getItem(K_WP) || ''; } catch (e) {}
   let wpProducts = [];
-  let wpStatus = { state: wpUrl ? 'loading' : 'off', count: 0, error: '' }; // off|loading|ok|error
+  let wpStatus = { state: 'loading', count: 0, error: '' }; // off|loading|ok|error
+  let wpFetchSeq = 0;   // jeton de requête : les réponses obsolètes sont ignorées
 
   function typeFromCategories(cats) {
     const s = (cats || []).map((c) => (c.name || '').toLowerCase()).join(' ');
@@ -141,6 +149,20 @@
     return 'single';
   }
 
+  // Précommande : une catégorie OU un tag contenant « précommande »/« preorder »
+  // (mêmes règles que lib/serverCatalog.js — à garder synchronisées).
+  function isPreorderWoo(p) {
+    const terms = [].concat(p.categories || [], p.tags || [])
+      .map((t) => (((t && t.name) || '') + ' ' + ((t && t.slug) || '')))
+      .join(' ').toLowerCase();
+    return /pr[ée]commande|preorder/.test(terms);
+  }
+
+  // Mappe un produit BRUT de la Store API vers le CONTRAT PRODUIT du site —
+  // mêmes champs que lib/serverCatalog.js (mapWooProduct), pour que le chemin
+  // direct WP (mode test admin) et /api/catalog produisent des objets identiques :
+  // { id:'wp<ID>', name, price, oldPrice, image, thumb, desc, cat, set, num,
+  //   type, unique, preorder, inStock, stockLeft, maxQty }
   function mapWoo(p) {
     const minor = (p.prices && p.prices.currency_minor_unit != null) ? p.prices.currency_minor_unit : 2;
     const div = Math.pow(10, minor);
@@ -148,8 +170,27 @@
     const regular = p.prices && p.prices.regular_price != null ? Number(p.prices.regular_price) / div : price;
     const onSale = !!p.on_sale && regular > price;
     const cat = (p.categories && p.categories[0] && p.categories[0].name) || 'Carte';
-    const img = (p.images && p.images[0] && p.images[0].src) || null;
+    const img = (p.images && p.images[0]) || null;
     const strip = (html) => (html || '').replace(/<[^>]*>/g, '').trim();
+    // quantity_limits.maximum fait foi (« Vendu individuellement » ou stock=1
+    // → maximum=1). Fallback pour les vieux Woo sans quantity_limits :
+    // « sold_individually », puis l'heuristique catégories historique.
+    const ql = (p.quantity_limits && p.quantity_limits.maximum != null) ? Number(p.quantity_limits.maximum) : null;
+    let maxQty = 999;
+    if (ql != null && isFinite(ql)) maxQty = Math.max(1, Math.min(999, ql));
+    let unique;
+    if (ql != null && isFinite(ql)) {
+      unique = ql === 1;
+    } else if (p.sold_individually === true) {
+      unique = true;
+    } else {
+      const catNames = (p.categories || []).map((c) => (c.name || '').toLowerCase()).join(' ');
+      unique = /grad|psa|bgs|cgc|unit|single/.test(catNames);
+    }
+    if (unique) maxQty = 1;
+    const stockLeft = (p.low_stock_remaining != null && isFinite(Number(p.low_stock_remaining)))
+      ? Number(p.low_stock_remaining) : null;
+    const preorder = isPreorderWoo(p);
     return {
       id: 'wp' + p.id,
       name: p.name,
@@ -158,34 +199,125 @@
       num: p.sku || '—',
       type: typeFromCategories(p.categories),
       price: Math.round(price * 100) / 100,
-      oldPrice: onSale ? Math.round(regular * 100) / 100 : undefined,
-      image: img,
+      oldPrice: onSale ? Math.round(regular * 100) / 100 : null,
+      image: (img && img.src) || null,
+      thumb: (img && img.thumbnail) || null,
       inStock: p.is_in_stock !== false,
-      badge: p.on_sale ? { tone: 'sale', label: 'Promo' } : undefined,
+      stockLeft: stockLeft,
+      maxQty: maxQty,
+      unique: unique,
+      preorder: preorder,
+      badge: onSale ? { tone: 'sale', label: 'Promo' } : (preorder ? { tone: 'sale', label: 'Précommande' } : undefined),
       rarity: '—',
       desc: strip(p.short_description) || strip(p.description),
       wp: true,
     };
   }
 
+  // ---- Cache du dernier catalogue réussi (robustesse aux pannes) ----
+  const K_WC_CACHE = 'lc151_wc_cache';            // { ts, products }
+  const WC_CACHE_MAX_AGE = 24 * 60 * 60 * 1000;   // 24 h
+  function saveCatalogCache(products) {
+    try { localStorage.setItem(K_WC_CACHE, JSON.stringify({ ts: Date.now(), products: products })); } catch (e) {}
+  }
+  function loadCatalogCache() {
+    try {
+      const raw = localStorage.getItem(K_WC_CACHE);
+      if (!raw) return null;
+      const c = JSON.parse(raw);
+      if (!c || typeof c.ts !== 'number' || !Array.isArray(c.products) || !c.products.length) return null;
+      if (Date.now() - c.ts > WC_CACHE_MAX_AGE) return null;
+      return c.products;
+    } catch (e) { return null; }
+  }
+
+  // fetch avec délai maximal — retombe sur fetch nu quand l'environnement
+  // n'offre pas AbortController/setTimeout (bac à sable Node de build.mjs).
+  const WC_FETCH_TIMEOUT_MS = 10000;
+  function fetchWithTimeout(url) {
+    if (typeof AbortController === 'undefined' || typeof setTimeout === 'undefined') return fetch(url);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), WC_FETCH_TIMEOUT_MS);
+    return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
+  }
+
+  // Toutes les pages de la Store API (mode test admin) : ?page=N&per_page=100
+  // jusqu'à une réponse incomplète, garde-fou 30 pages (3 000 produits).
+  function fetchAllWooPages(base) {
+    const PER_PAGE = 100, MAX_PAGES = 30;
+    const all = [];
+    const fetchPage = (page) =>
+      fetchWithTimeout(base + '/wp-json/wc/store/v1/products?per_page=' + PER_PAGE + '&page=' + page)
+        .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then((list) => {
+          const arr = Array.isArray(list) ? list : [];
+          arr.forEach((p) => all.push(p));
+          if (arr.length < PER_PAGE || page >= MAX_PAGES) return all;
+          return fetchPage(page + 1);
+        });
+    return fetchPage(1);
+  }
+
+  function applyCatalog(products, seq) {
+    if (seq !== wpFetchSeq) return;               // réponse obsolète
+    wpProducts = products;
+    wpStatus = { state: 'ok', count: products.length, error: '' };
+    saveCatalogCache(products);
+    rebuild(); emitStore();
+  }
+  function applyCatalogFailure(err, seq) {
+    if (seq !== wpFetchSeq) return;
+    const cached = loadCatalogCache();
+    if (cached) {
+      // Panne transitoire → dernier catalogue connu (< 24 h), site utilisable.
+      wpProducts = cached;
+      wpStatus = { state: 'ok', count: cached.length, error: '' };
+    } else if (!wpUrl && demoEnabled()) {
+      // Pas d'API joignable (file://, hébergement statique…) : on retombe sur la
+      // logique démo — l'état « erreur » n'a de sens que là où la démo est masquée.
+      wpProducts = [];
+      wpStatus = { state: 'off', count: 0, error: '' };
+    } else {
+      wpProducts = [];
+      wpStatus = { state: 'error', count: 0, error: String((err && err.message) || err) };
+    }
+    rebuild(); emitStore();
+  }
+  function applyNoCatalog(seq) {   // pas d'API ou catalogue vide → logique démo/vide
+    if (seq !== wpFetchSeq) return;
+    wpProducts = [];
+    wpStatus = { state: 'off', count: 0, error: '' };
+    rebuild(); emitStore();
+  }
+
   function refreshFromWp() {
-    if (!wpUrl) { wpProducts = []; wpStatus = { state: 'off', count: 0, error: '' }; rebuild(); emitStore(); return; }
+    const seq = ++wpFetchSeq;
     wpStatus = { state: 'loading', count: 0, error: '' };
-    rebuild();            // drop demo data immediately → show loading, never demo cards
+    rebuild();            // mode admin : drop demo data immediately → loading, never demo cards
     emitStore();
-    const base = wpUrl.replace(/\/+$/, '');
-    fetch(base + '/wp-json/wc/store/v1/products?per_page=100')
-      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-      .then((list) => {
-        wpProducts = (Array.isArray(list) ? list : []).map(mapWoo);
-        wpStatus = { state: 'ok', count: wpProducts.length, error: '' };
-        rebuild(); emitStore();
+    if (typeof fetch === 'undefined') { applyNoCatalog(seq); return; }
+    if (wpUrl) {
+      // 1. Mode test admin : lecture directe du WordPress renseigné dans admin.html.
+      fetchAllWooPages(wpUrl.replace(/\/+$/, ''))
+        .then((list) => applyCatalog(list.map(mapWoo), seq))
+        .catch((err) => applyCatalogFailure(err, seq));
+      return;
+    }
+    // 2. Chemin normal : proxy même origine — produits déjà au CONTRAT PRODUIT.
+    fetch('/api/catalog')
+      .then((r) => {
+        if (r.status === 404) return null;        // pas d'API (hébergement statique) → démo/vide
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
       })
-      .catch((err) => {
-        wpProducts = [];
-        wpStatus = { state: 'error', count: 0, error: String(err.message || err) };
-        rebuild(); emitStore();
-      });
+      .then((data) => {
+        if (data === null) { applyNoCatalog(seq); return; }
+        if (!data || data.ok !== true || !Array.isArray(data.products)) throw new Error('Réponse catalogue invalide');
+        const products = data.products.filter((p) => p && typeof p.id === 'string' && p.name && typeof p.price === 'number');
+        if (!products.length) { applyNoCatalog(seq); return; }
+        applyCatalog(products, seq);
+      })
+      .catch((err) => applyCatalogFailure(err, seq));
   }
 
   // ---- Build live PRODUCTS = defaults (+overrides) ++ custom ----
@@ -215,7 +347,11 @@
     // ROOT-CAUSE FIX: demo seed data must appear ONLY when no real shop is
     // connected. Once a WooCommerce URL is configured, the catalogue is the
     // real products (+ owner-added) — demo cards never leak into production.
-    const base = wpUrl ? wpProducts : (demoEnabled() ? DEFAULTS : []);
+    // Base du catalogue :
+    //  - mode test admin (wpUrl) : uniquement ce que renvoie le WordPress ;
+    //  - catalogue réel chargé (/api/catalog ou cache de panne) : les produits réels ;
+    //  - sinon : la démo (jamais sur le domaine de production).
+    const base = wpUrl ? wpProducts : (wpProducts.length ? wpProducts : (demoEnabled() ? DEFAULTS : []));
     const combined = base.concat(custom);
     const merged = combined.map((p) => {
       const o = overrides[p.id] || {};
@@ -227,8 +363,9 @@
     PRODUCTS.length = 0;
     merged.forEach((p) => PRODUCTS.push(p));
   }
-  rebuild();
-  if (wpUrl) refreshFromWp();
+  // (Amorçage — rebuild() + refreshFromWp() — déplacé tout en FIN d'IIFE :
+  // l'appeler ici exécutait emitStore() AVANT la déclaration de storeListeners
+  // → ReferenceError (TDZ), window.LC151 jamais défini, site blanc.)
 
   // ---- product-change emitter ----
   const storeListeners = new Set();
@@ -286,8 +423,27 @@
     if (e.key === K_OVR || e.key === K_CUSTOM) { rebuild(); emitStore(); }
   });
 
-  // A single card or a graded card is a one-of-one: only ONE edition exists.
-  function isUnique(p) { return !!p && (p.unique === true || p.type === 'single' || p.type === 'graded'); }
+  // Pièce unique : le champ `unique` du CONTRAT PRODUIT (WooCommerce —
+  // quantity_limits.maximum === 1) fait foi quand il est renseigné.
+  // L'heuristique historique « single/graded = pièce unique » ne s'applique
+  // QU'AUX produits (démo) qui ne renseignent pas ce champ.
+  function isUnique(p) {
+    if (!p) return false;
+    if (typeof p.unique === 'boolean') return p.unique;
+    return p.type === 'single' || p.type === 'graded';
+  }
+
+  // Plafond de quantité par ligne : limites WooCommerce (maxQty) et stock
+  // restant connu (stockLeft). Le serveur re-clampe de toute façon au paiement
+  // (lib/serverCatalog.js) — ici on évite juste de promettre plus que le stock.
+  function qtyCap(p) {
+    if (!p) return 1;
+    if (isUnique(p)) return 1;
+    let cap = 999;
+    if (typeof p.maxQty === 'number' && isFinite(p.maxQty) && p.maxQty > 0) cap = Math.min(cap, p.maxQty);
+    if (typeof p.stockLeft === 'number' && isFinite(p.stockLeft) && p.stockLeft > 0) cap = Math.min(cap, p.stockLeft);
+    return Math.max(1, cap);
+  }
 
   // ---- Cart store ----
   const cartListeners = new Set();
@@ -308,14 +464,22 @@
       if (isUnique(p)) {
         // unique edition — never more than 1 in the cart
         if (!line) cart.push({ id, qty: 1 });
-      } else if (line) { line.qty += qty; } else { cart.push({ id, qty }); }
+      } else if (line) {
+        line.qty = Math.min(line.qty + qty, qtyCap(p));
+      } else {
+        cart.push({ id, qty: Math.max(1, Math.min(qty, qtyCap(p))) });
+      }
       emitCart();
     },
     setQty(id, qty) {
       const p = Store.get(id);
       const line = cart.find((l) => l.id === id);
-      if (line) { line.qty = isUnique(p) ? 1 : Math.max(1, qty); emitCart(); }
+      if (!line) return;
+      line.qty = Math.max(1, Math.min(qty, qtyCap(p)));   // pièce unique → cap 1
+      emitCart();
     },
+    // Plafond de quantité d'un produit (stepper / clamps UI).
+    qtyCap: (id) => qtyCap(Store.get(id)),
     remove(id) { cart = cart.filter((l) => l.id !== id); emitCart(); },
     clear() { cart = []; emitCart(); },
     // Keep the cart consistent with the live catalogue (single source of truth):
@@ -327,7 +491,10 @@
         if (!Store.get(l.id)) { removed.push(l); changed = true; return false; }
         return true;
       });
-      cart.forEach((l) => { if (isUnique(Store.get(l.id)) && l.qty !== 1) { l.qty = 1; changed = true; } });
+      cart.forEach((l) => {
+        const cap = qtyCap(Store.get(l.id));       // pièce unique → 1, stock/maxQty sinon
+        if (l.qty > cap) { l.qty = cap; changed = true; }
+      });
       if (changed) emitCart();
       return removed;
     },
@@ -336,7 +503,12 @@
 
   // Cart self-heals whenever the catalogue changes (admin edit, WooCommerce
   // refresh, cross-tab delete) — a stale line can never reach render and crash.
-  Store.subscribe(function () { Cart.reconcile(); });
+  // JAMAIS pendant un chargement ni sur un catalogue vide : une panne
+  // transitoire (Woo injoignable) ne doit pas purger le panier du client.
+  Store.subscribe(function () {
+    if (wpStatus.state === 'loading' || PRODUCTS.length === 0) return;
+    Cart.reconcile();
+  });
 
   const FREE_SHIP = 100;
 
@@ -507,6 +679,13 @@
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
     notify: notifyForm,   // formulaires contact / newsletter → même réception que les commandes
   };
+
+  // ---- Amorçage — impérativement APRÈS toutes les déclarations ci-dessus.
+  // refreshFromWp() émet sur storeListeners : l'appeler plus haut (avant la
+  // déclaration de storeListeners) plantait toute l'IIFE (ReferenceError TDZ)
+  // et laissait le site blanc, window.LC151 restant indéfini.
+  rebuild();
+  refreshFromWp();
 })();
 
 /* ---- Bandeau cookies (RGPD) — léger, sans dépendance ----

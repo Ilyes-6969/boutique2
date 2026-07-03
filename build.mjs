@@ -37,30 +37,59 @@ const demoOnSite = PROD_HOSTS.indexOf(new URL(SITE).hostname.toLowerCase()) === 
   || process.env.ALLOW_DEMO_CHECKOUT === '1';
 
 // Vrai catalogue WooCommerce (Store API publique) au moment du build.
-async function wooProducts() {
-  const base = String(process.env.WC_STORE_URL || '').replace(/\/+$/, '');
-  if (!base) return null;
+// Pagination : ?page=N&per_page=100, arrêt dès qu'une page renvoie moins de
+// 100 produits (garde-fou 30 pages, timeout 10 s par page) — même logique que
+// lib/serverCatalog.js et data.js. Au-delà de 100 produits, l'ancien fetch
+// unique tronquait silencieusement le catalogue (pages produit manquantes).
+const WOO_PER_PAGE = 100;
+const WOO_MAX_PAGES = 30;
+const WOO_PAGE_TIMEOUT_MS = 10000;
+
+async function fetchWooPage(base, page) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), WOO_PAGE_TIMEOUT_MS);
   try {
-    const r = await fetch(base + '/wp-json/wc/store/v1/products?per_page=100');
+    const r = await fetch(base + '/wp-json/wc/store/v1/products?page=' + page + '&per_page=' + WOO_PER_PAGE, { signal: ctrl.signal });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const list = await r.json();
-    const strip = (h) => String(h || '').replace(/<[^>]*>/g, '').trim();
-    return (Array.isArray(list) ? list : []).map((p) => {
-      const minor = (p.prices && p.prices.currency_minor_unit != null) ? Number(p.prices.currency_minor_unit) : 2;
-      const price = (Number(p.prices && p.prices.price) || 0) / Math.pow(10, minor);
-      return {
-        id: 'wp' + p.id,
-        name: p.name,
-        price: Math.round(price * 100) / 100,
-        desc: strip(p.short_description) || strip(p.description),
-        image: (p.images && p.images[0] && p.images[0].src) || null,
-        inStock: p.is_in_stock !== false,
-      };
-    });
-  } catch (e) {
-    console.warn('⚠️ WooCommerce injoignable au build (' + e.message + ') — pas de pages produits cette fois.');
-    return [];
+    return Array.isArray(list) ? list : [];
+  } finally {
+    clearTimeout(timer);
   }
+}
+
+async function wooProducts() {
+  const base = String(process.env.WC_STORE_URL || '').replace(/\/+$/, '');
+  if (!base) return null; // pas de WooCommerce configuré → mode démo inchangé
+  const raw = [];
+  try {
+    for (let page = 1; page <= WOO_MAX_PAGES; page += 1) {
+      const list = await fetchWooPage(base, page);
+      raw.push(...list);
+      if (list.length < WOO_PER_PAGE) break; // dernière page atteinte
+    }
+  } catch (e) {
+    // WC_STORE_URL est configurée : sortir un site sans pages produit
+    // effacerait silencieusement tout le SEO. On échoue FRANCHEMENT →
+    // Vercel conserve le déploiement précédent, rien n'est cassé en ligne.
+    console.error('✖ Build interrompu : WooCommerce injoignable (' + e.message + ').');
+    console.error('  WC_STORE_URL = ' + base + ' — on refuse de publier un site sans pages produit.');
+    console.error('  Vérifie que le WordPress répond, puis relance le déploiement.');
+    process.exit(1);
+  }
+  const strip = (h) => String(h || '').replace(/<[^>]*>/g, '').trim();
+  return raw.map((p) => {
+    const minor = (p.prices && p.prices.currency_minor_unit != null) ? Number(p.prices.currency_minor_unit) : 2;
+    const price = (Number(p.prices && p.prices.price) || 0) / Math.pow(10, minor);
+    return {
+      id: 'wp' + p.id,
+      name: p.name,
+      price: Math.round(price * 100) / 100,
+      desc: strip(p.short_description) || strip(p.description),
+      image: (p.images && p.images[0] && p.images[0].src) || null,
+      inStock: p.is_in_stock !== false,
+    };
+  });
 }
 
 // _ds_bundle.js (248 Ko) contient : 6 composants du design system (Button,

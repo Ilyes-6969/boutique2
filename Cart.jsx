@@ -48,7 +48,7 @@ function CartDrawer({ open, onClose, navigate }) {
                 return (
                   <div key={line.id} style={{ display: 'flex', gap: 14, padding: '16px 0', borderBottom: '1.5px solid var(--line)' }}>
                     <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, overflow: 'hidden' }}>
-                      {p.image ? <img src={p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
+                      {(p.thumb || p.image) ? <img src={p.thumb || p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5, lineHeight: 1.25 }}>{p.name}</div>
@@ -56,7 +56,7 @@ function CartDrawer({ open, onClose, navigate }) {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         {window.LC151.Cart.isUnique(line.id)
                           ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '5px 9px' }}>Pièce unique · 1</span>
-                          : <DS.QtyStepper value={line.qty} onChange={(q) => cart.setQty(line.id, q)} max={10} />}
+                          : <DS.QtyStepper value={line.qty} onChange={(q) => cart.setQty(line.id, q)} max={Math.min(10, cart.qtyCap(line.id))} />}
                         <DS.PriceTag price={p.price * line.qty} size="sm" />
                       </div>
                     </div>
@@ -128,7 +128,7 @@ function CartPage({ navigate }) {
                 return (
                   <div key={line.id} style={{ display: 'flex', gap: 16, padding: '18px 20px', borderBottom: '1.5px solid var(--line)' }}>
                     <a href={window.LC151.productUrl(p.id)} style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, overflow: 'hidden' }}>
-                      {p.image ? <img src={p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
+                      {(p.thumb || p.image) ? <img src={p.thumb || p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
                     </a>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <a href={window.LC151.productUrl(p.id)} style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, lineHeight: 1.25, color: 'var(--ink)' }}>{p.name}</a>
@@ -136,7 +136,7 @@ function CartPage({ navigate }) {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                         {cart.isUnique(line.id)
                           ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>Pièce unique · 1</span>
-                          : <DS.QtyStepper value={line.qty} onChange={(q) => cart.setQty(line.id, q)} max={10} />}
+                          : <DS.QtyStepper value={line.qty} onChange={(q) => cart.setQty(line.id, q)} max={Math.min(10, cart.qtyCap(line.id))} />}
                         <DS.PriceTag price={p.price * line.qty} size="md" />
                       </div>
                     </div>
