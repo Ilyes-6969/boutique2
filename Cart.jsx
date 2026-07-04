@@ -1,4 +1,33 @@
 /* leclub151 — Panier (slide-over drawer) */
+
+/* Anime doucement un montant vers sa nouvelle valeur (~250 ms, easeOut cubic)
+   pour éviter le saut brutal des totaux quand une quantité change.
+   Respecte prefers-reduced-motion : renvoie la cible telle quelle, sans animation.
+   Renvoie toujours un nombre arrondi au centime (PriceTag formate en euros). */
+function useCountUp(value) {
+  const reduced = typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const [display, setDisplay] = React.useState(value);
+  const shownRef = React.useRef(value);   // dernière valeur affichée → départ de l'animation suivante
+  React.useEffect(() => {
+    if (reduced) { shownRef.current = value; setDisplay(value); return; }
+    const from = shownRef.current;
+    if (from === value) return;
+    const DURATION = 250;
+    const start = performance.now();
+    let raf = requestAnimationFrame(function tick(now) {
+      const t = Math.min(1, (now - start) / DURATION);
+      const eased = 1 - Math.pow(1 - t, 3);                                 // easeOutCubic
+      const v = Math.round((from + (value - from) * eased) * 100) / 100;    // arrondi au centime
+      shownRef.current = v;
+      setDisplay(v);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [value, reduced]);
+  return reduced ? value : display;
+}
+
 function CartDrawer({ open, onClose, navigate }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const cart = useCart();
@@ -6,16 +35,43 @@ function CartDrawer({ open, onClose, navigate }) {
   const { fmt, FREE_SHIP } = window.LC151;
   const items = cart.items();
   const subtotal = cart.subtotal();
+  const animatedSubtotal = useCountUp(subtotal);   // count-up doux du sous-total (respecte reduced-motion)
   const remaining = Math.max(0, FREE_SHIP - subtotal);
   const pct = Math.min(100, (subtotal / FREE_SHIP) * 100);
   const loggedIn = auth.isLoggedIn();
+
+  // Gestion du focus à l'ouverture : le drawer reste monté en permanence (pour
+  // l'animation), le piège partagé lcUseFocusTrap — pensé pour des modales
+  // montées/démontées — ne s'applique donc pas tel quel. Focus initial sur le
+  // panneau, Tab en boucle dedans, restauration à la fermeture. Échap est déjà
+  // géré par le Header (listener document).
+  const panelRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!open || !panelRef.current) return;
+    const panel = panelRef.current;
+    const prev = document.activeElement;
+    panel.focus();
+    const onKey = (e) => {
+      if (e.key !== 'Tab') return;
+      const focusables = panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (!focusables.length) { e.preventDefault(); return; }
+      const first = focusables[0], last = focusables[focusables.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === panel)) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    panel.addEventListener('keydown', onKey);
+    return () => {
+      panel.removeEventListener('keydown', onKey);
+      try { if (prev && prev.focus) prev.focus(); } catch (e) {}
+    };
+  }, [open]);
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, pointerEvents: open ? 'auto' : 'none' }}>
       {/* scrim */}
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(26,23,20,0.45)', opacity: open ? 1 : 0, transition: 'opacity 0.3s ease' }}></div>
       {/* panel */}
-      <aside role="dialog" aria-modal="true" aria-label="Votre panier" aria-hidden={!open} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 'min(440px, 100%)', background: 'var(--paper)', borderLeft: '1.5px solid var(--line)', boxShadow: 'var(--shadow-lg)', transform: open ? 'translateX(0)' : 'translateX(100%)', visibility: open ? 'visible' : 'hidden', transition: 'transform 0.32s cubic-bezier(0.2,0.8,0.2,1), visibility 0.32s', display: 'flex', flexDirection: 'column' }}>
+      <aside ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Votre panier" aria-hidden={!open} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 'min(440px, 100%)', background: 'var(--paper)', borderLeft: '1.5px solid var(--line)', boxShadow: 'var(--shadow-lg)', transform: open ? 'translateX(0)' : 'translateX(100%)', visibility: open ? 'visible' : 'hidden', transition: 'transform 0.32s cubic-bezier(0.2,0.8,0.2,1), visibility 0.32s', display: 'flex', flexDirection: 'column', outline: 'none' }}>
         {/* head */}
         <div style={{ padding: '20px 22px', borderBottom: '1.5px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19 }}>Votre panier <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 14 }}>({cart.count()})</span></div>
@@ -70,7 +126,7 @@ function CartDrawer({ open, onClose, navigate }) {
             <div style={{ padding: '18px 22px 22px', borderTop: '1.5px solid var(--line)', background: 'var(--card)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                 <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>Sous-total</span>
-                <DS.PriceTag price={subtotal} size="lg" />
+                <DS.PriceTag price={animatedSubtotal} size="lg" />
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 14 }}>Taxes incluses · livraison calculée à l'étape suivante</div>
               {loggedIn && (
@@ -86,7 +142,10 @@ function CartDrawer({ open, onClose, navigate }) {
                   <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 4 }}>Créez un compte pour suivre vos commandes.</div>
                 </div>
               )}
-              <button onClick={onClose} style={{ width: '100%', marginTop: 10, fontSize: 13.5, color: 'var(--ink-2)', fontFamily: 'var(--font-body)' }}>Continuer mes achats</button>
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                <button onClick={onClose} style={{ flex: 1, fontSize: 13.5, color: 'var(--ink-2)', fontFamily: 'var(--font-body)' }}>Continuer mes achats</button>
+                <a href="panier.html" style={{ flex: 1, textAlign: 'center', alignSelf: 'center', fontSize: 13.5, color: 'var(--ink-2)', textDecoration: 'underline' }}>Voir le panier</a>
+              </div>
             </div>
           </React.Fragment>
         )}
@@ -101,6 +160,7 @@ function CartPage({ navigate }) {
   const { fmt, FREE_SHIP } = window.LC151;
   const items = cart.items();
   const subtotal = cart.subtotal();
+  const animatedSubtotal = useCountUp(subtotal);   // count-up doux du sous-total (respecte reduced-motion)
   const remaining = Math.max(0, FREE_SHIP - subtotal);
   const pct = Math.min(100, (subtotal / FREE_SHIP) * 100);
   const loggedIn = auth.isLoggedIn();
@@ -157,7 +217,7 @@ function CartPage({ navigate }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                 <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>Sous-total ({cart.count()})</span>
-                <DS.PriceTag price={subtotal} size="lg" />
+                <DS.PriceTag price={animatedSubtotal} size="lg" />
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 16 }}>Taxes incluses · livraison à l'étape suivante</div>
               <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => openModal('checkout')}>Passer commande</DS.Button>

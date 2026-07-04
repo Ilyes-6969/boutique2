@@ -27,6 +27,18 @@ function useStore() {
   return window.LC151.Store;
 }
 
+/* Favoris persistants (data.js) — même modèle que useCart, mais défensif :
+   renvoie null si le store Favorites n'est pas chargé (le cœur est alors masqué). */
+function useFavorites() {
+  const [, force] = React.useReducer((x) => x + 1, 0);
+  React.useEffect(() => {
+    const F = window.LC151 && window.LC151.Favorites;
+    if (!F || typeof F.subscribe !== 'function') return undefined;
+    return F.subscribe(force);
+  }, []);
+  return (window.LC151 && window.LC151.Favorites) || null;
+}
+
 function useAuth() {
   const [, force] = React.useReducer((x) => x + 1, 0);
   React.useEffect(() => window.LC151.Auth.subscribe(force), []);
@@ -263,25 +275,145 @@ function ThemeToggle({ light }) {
   );
 }
 
+/* --- Recherche instantanée (C1) ------------------------------------------ */
+/* Vignette de secours « 151 » — même visuel que le onError de StoreCard. */
+const LC_THUMB_FALLBACK = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' rx='8' fill='%23efe9da'/%3E%3Ctext x='50' y='80' font-family='sans-serif' font-size='28' font-weight='bold' fill='%23b9ad95' text-anchor='middle'%3E151%3C/text%3E%3C/svg%3E";
+
+/* Insensible à la casse ET aux accents (« evoli » trouve « Évoli »). */
+function lcNormalize(s) {
+  const str = String(s || '').toLowerCase();
+  try { return str.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) { return str; }
+}
+
+/* Champ de recherche du header + panneau de suggestions (dès 2 caractères,
+   debounce 150 ms, 7 correspondances max sur nom / série / numéro). Lecture
+   directe de window.LC151.Store.all() à la frappe — pas d'abonnement.
+   Clavier : ↑/↓ déplacent la sélection (aria-activedescendant, le focus reste
+   dans l'input), Entrée ouvre la fiche, Échap ferme. `compact` = variante mobile. */
+function SearchBox({ compact }) {
+  const t = useLang();
+  const [query, setQuery] = React.useState('');
+  const [sugg, setSugg] = React.useState([]);
+  const [open, setOpen] = React.useState(false);
+  const [sel, setSel] = React.useState(-1);
+  const boxRef = React.useRef(null);
+  const idRef = React.useRef(null);
+  if (idRef.current === null) idRef.current = 'lc-sugg-' + (window.__lcSuggSeq = (window.__lcSuggSeq || 0) + 1);
+  const idBase = idRef.current;
+  const listId = idBase + '-list';
+  const fmt = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  const urlFor = (id) => (window.LC151 && window.LC151.productUrl) ? window.LC151.productUrl(id) : 'produit.html?id=' + encodeURIComponent(id);
+  const runSearch = () => { window.location.href = 'boutique.html?q=' + encodeURIComponent(query.trim()); };
+  const close = () => { setOpen(false); setSel(-1); };
+
+  // Suggestions : recherche à la frappe (debounce 150 ms), dès 2 caractères.
+  React.useEffect(() => {
+    const nq = lcNormalize(query.trim());
+    if (nq.length < 2) { setSugg([]); setOpen(false); setSel(-1); return; }
+    const timer = setTimeout(() => {
+      let list = [];
+      try {
+        const S = window.LC151 && window.LC151.Store;
+        const all = (S && typeof S.all === 'function') ? S.all() : [];
+        list = all.filter((p) => lcNormalize(p.name).includes(nq) || lcNormalize(p.set).includes(nq) || lcNormalize(p.num).includes(nq)).slice(0, 7);
+      } catch (e) { list = []; }
+      setSugg(list);
+      setSel(-1);
+      setOpen(true);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Fermeture au clic extérieur — même mécanique que LangSelect.
+  React.useEffect(() => {
+    if (!open) return;
+    const onDoc = (e) => { if (boxRef.current && !boxRef.current.contains(e.target)) close(); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [open]);
+
+  const total = sugg.length + 1;   // + la ligne « Voir tous les résultats → »
+  const onKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      if (open && sel >= 0 && sel < sugg.length) { e.preventDefault(); window.location.href = urlFor(sugg[sel].id); return; }
+      runSearch();
+      return;
+    }
+    if (!open) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSel((s) => (s + 1) % total); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setSel((s) => (s - 1 + total) % total); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); e.currentTarget.focus(); }
+  };
+
+  return (
+    <div ref={boxRef} style={{ position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: compact ? '0 6px 0 14px' : '0 6px 0 16px', height: compact ? 42 : 44, borderRadius: 'var(--radius-pill)', border: compact ? undefined : '1.5px solid transparent', background: 'var(--card)' }}>
+        <span style={{ display: 'flex', color: 'var(--muted)' }} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg></span>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKeyDown}
+          onFocus={() => { if (query.trim().length >= 2 && sugg.length) setOpen(true); }}
+          placeholder={t('search_ph')} aria-label={t('search_ph')}
+          role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" autoComplete="off"
+          aria-activedescendant={open && sel >= 0 ? idBase + '-' + sel : undefined}
+          style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
+        <button onClick={runSearch} style={{ height: compact ? 32 : 34, padding: compact ? '0 14px' : '0 16px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: compact ? 11 : 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
+      </div>
+      {open && (
+        <div role="listbox" id={listId} aria-label="Suggestions de recherche"
+          style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', overflow: 'hidden', zIndex: 70 }}>
+          {sugg.length === 0 && <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--muted)' }}>Aucune correspondance directe.</div>}
+          {sugg.map((p, i) => (
+            <a key={p.id} id={idBase + '-' + i} role="option" aria-selected={sel === i}
+              href={urlFor(p.id)} onMouseEnter={() => setSel(i)}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: sel === i ? 'var(--accent-wash)' : 'transparent', color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>
+              <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 6, background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                <img src={p.thumb || p.image || LC_THUMB_FALLBACK} alt="" loading="lazy" decoding="async"
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = LC_THUMB_FALLBACK; }}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+              </span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+              <span style={{ flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(p.price)}&nbsp;€</span>
+            </a>
+          ))}
+          <a id={idBase + '-' + sugg.length} role="option" aria-selected={sel === sugg.length}
+            href={'boutique.html?q=' + encodeURIComponent(query.trim())}
+            onClick={(e) => { e.preventDefault(); runSearch(); }} onMouseEnter={() => setSel(sugg.length)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 12px', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', background: sel === sugg.length ? 'var(--accent-wash)' : 'transparent' }}>
+            Voir tous les résultats →
+          </a>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Header({ navigate, active, onCart }) {
   const cart = useCart();
   const auth = useAuth();
   const t = useLang();
   const count = cart.count();
   const loggedIn = auth.isLoggedIn();
-  const [query, setQuery] = React.useState('');
-  const runSearch = () => { window.location.href = 'boutique.html?q=' + encodeURIComponent(query.trim()); };
+  // C3 — drawer panier : si Cart.jsx est chargé (window.CartDrawer défini), le
+  // clic panier ouvre le drawer au lieu de naviguer. Sur panier.html on garde
+  // la navigation actuelle (on est déjà sur la page panier). Le bouton conserve
+  // data-cart-btn : le fly-to-cart continue de viser la même cible DOM.
+  const Drawer = window.CartDrawer;
+  const onCartPage = /\/panier\.html$/i.test(window.location.pathname);
+  const hasDrawer = typeof Drawer === 'function' && !onCartPage;
+  const [drawerOpen, setDrawerOpen] = React.useState(false);
+  const handleCart = () => { if (hasDrawer) setDrawerOpen(true); else if (onCart) onCart(); };
+  React.useEffect(() => {
+    if (!drawerOpen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setDrawerOpen(false); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [drawerOpen]);
   return (
     <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--header-bg)', borderBottom: '3px solid var(--accent)' }}>
       {/* main row */}
       <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 24, height: 76 }}>
         <Logo onClick={() => navigate('home')} size={26} />
         <div className="lc-search" style={{ flex: 1, maxWidth: 540, marginLeft: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px 0 16px', height: 44, borderRadius: 'var(--radius-pill)', border: '1.5px solid transparent', background: 'var(--card)' }}>
-            <span style={{ display: 'flex', color: 'var(--muted)' }} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg></span>
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }} aria-label={t('search_ph')} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
-            <button onClick={runSearch} style={{ height: 34, padding: '0 16px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
-          </div>
+          <SearchBox />
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
           <ThemeToggle light />
@@ -296,7 +428,7 @@ function Header({ navigate, active, onCart }) {
               </svg>
             )}
           </a>
-          <button onClick={onCart} aria-label="Panier" data-cart-btn="1"
+          <button onClick={handleCart} aria-label="Panier" data-cart-btn="1"
             style={{ position: 'relative', height: 40, padding: '0 18px 0 16px', display: 'flex', alignItems: 'center', gap: 9, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 600 }}>
             {t('h_cart')}
             <span key={count} className={count > 0 ? 'lc-bump' : undefined} style={{ minWidth: 20, height: 20, padding: '0 5px', borderRadius: 'var(--radius-pill)', background: 'var(--on-accent)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 700 }}>{count}</span>
@@ -305,13 +437,17 @@ function Header({ navigate, active, onCart }) {
       </div>
       {/* Recherche mobile (visible uniquement sur petit écran, voir storefront2.css) */}
       <div className="lc-search-mobile" style={{ padding: '0 16px 12px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 6px 0 14px', height: 42, borderRadius: 'var(--radius-pill)', background: 'var(--card)' }}>
-          <span style={{ display: 'flex', color: 'var(--muted)' }} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg></span>
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('search_ph')} onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }} aria-label={t('search_ph')} style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
-          <button onClick={runSearch} style={{ height: 32, padding: '0 14px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
-        </div>
+        <SearchBox compact />
       </div>
       <MegaNav navigate={navigate} active={active} />
+      {/* C3 — drawer panier rendu via portal dans <body> : le header sticky
+          (zIndex 50) crée un contexte d'empilement qui piégerait le zIndex 100
+          du drawer sous la barre mobile .lc-sticky-cta (zIndex 80, contexte
+          racine). Rendu en permanence pour conserver la transition. */}
+      {hasDrawer && ReactDOM.createPortal(
+        <Drawer open={drawerOpen} onClose={() => setDrawerOpen(false)} navigate={navigate} />,
+        document.body
+      )}
     </header>
   );
 }
@@ -597,9 +733,10 @@ function lcBadgeStyle(tone) {
 
 function StoreCard({ product, navigate }) {
   const cart = useCart();
+  const favs = useFavorites();   // null si le store Favorites est absent → cœur masqué
   const open = () => navigate('product', product.id);
   const [hover, setHover] = React.useState(false);
-  const [liked, setLiked] = React.useState(false);
+  const liked = !!(favs && favs.has(product.id));
   const fmt = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   const pct = product.oldPrice && product.oldPrice > product.price ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
   const low = product.inStock && typeof product.stockLeft === 'number' && product.stockLeft <= 3;
@@ -617,8 +754,9 @@ function StoreCard({ product, navigate }) {
           {product.badge && product.badge.tone !== 'graded' && <span style={lcBadgeStyle(product.badge.tone)}>{product.badge.label}</span>}
         </span>
         {!product.inStock && <span style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}><span style={lcBadgeStyle('oos')}>Rupture</span></span>}
-        {product.inStock && (
-          <button type="button" aria-label="Favoris" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setLiked((v) => !v); }}
+        {favs && product.inStock && (
+          <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); favs.toggle(product.id); }}
             style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', fontSize: 14, color: liked ? 'var(--accent)' : 'var(--muted)', opacity: hover || liked ? 1 : 0, transition: 'opacity 0.2s ease' }}>{liked ? '♥' : '♡'}</button>
         )}
         {product.image ? (
@@ -994,4 +1132,4 @@ function lcNavigate(view, arg) {
   if (view === 'cart') { window.location.href = '/panier.html'; return; }
   window.location.href = '/index.html';
 }
-Object.assign(window, { lcNavigate, useCart, useStore, useAuth, useAlerts, lcUseFocusTrap: useFocusTrap, Pokeball, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });
+Object.assign(window, { lcNavigate, useCart, useStore, useAuth, useAlerts, useFavorites, lcUseFocusTrap: useFocusTrap, Pokeball, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });

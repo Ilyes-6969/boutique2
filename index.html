@@ -35,7 +35,7 @@
 <link rel="preload" as="image" href="assets/hero-cards.webp">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="storefront2.css">
-<style>main section{opacity:1 !important}</style>
+<style>main section:not(.lc-reveal){opacity:1 !important}</style><!-- garde anti-contenu-invisible ; les sections .lc-reveal gèrent leur fondu (JS only) -->
 <script src="https://unpkg.com/react@18.3.1/umd/react.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
@@ -64,6 +64,7 @@
 <script src="data.js"></script>
 <script src="i18n.js"></script>
 <script type="text/babel" src="Chrome.jsx"></script>
+<script type="text/babel" src="Cart.jsx"></script>
 <script type="text/babel" src="Home.jsx"></script>
 <script src="payments.js"></script>
 <script type="text/babel" src="Checkout.jsx"></script>

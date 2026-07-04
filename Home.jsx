@@ -32,6 +32,34 @@ function Home({ navigate }) {
   const ventes = [...new Map(['d1', 'd4', 'd5', 'd3', 'd6', 'd8'].map((id) => Store.get(id)).filter(Boolean).map((p) => [p.id, p])).values()];
   const ventesFill = ventes.length ? ventes : all.slice(0, 8);
 
+  // RÉVEILS AU SCROLL des sections .lc-reveal — variante « jamais caché » :
+  // l'état masqué (.lc-reveal-init, voir storefront2.css) n'est posé que par CE
+  // code, juste avant l'observation. Sans JS, sans IntersectionObserver ou en
+  // reduced-motion, rien n'est jamais caché. Les sections déjà dans le viewport
+  // au chargement restent visibles telles quelles (zéro flash). Dépend de `has` :
+  // le bloc des rayons monte quand le catalogue arrive (souvent APRÈS le mount).
+  React.useEffect(() => {
+    if (typeof IntersectionObserver === 'undefined') return undefined;
+    const mq = (q) => { try { return !!(window.matchMedia && window.matchMedia(q).matches); } catch (e) { return false; } };
+    if (mq('(prefers-reduced-motion: reduce)')) return undefined;
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('in');       // une seule fois, puis on lâche
+        io.unobserve(entry.target);
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.lc-reveal:not(.in)').forEach((el) => {
+      if (!el.classList.contains('lc-reveal-init')) {
+        const r = el.getBoundingClientRect();
+        if (r.top < window.innerHeight && r.bottom > 0) return; // déjà visible → on ne cache pas
+        el.classList.add('lc-reveal-init');
+      }
+      io.observe(el);
+    });
+    return () => io.disconnect();
+  }, [has]);
+
   return (
     <div>
       {/* HERO */}
@@ -67,7 +95,7 @@ function Home({ navigate }) {
       </section>
 
       {/* REASSURANCE STRIP */}
-      <section style={{ background: 'var(--card)', borderBottom: '1.5px solid var(--line)' }}>
+      <section className="lc-reveal" style={{ background: 'var(--card)', borderBottom: '1.5px solid var(--line)' }}>
         <div className="container-wide" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '20px 24px' }}>
           {[['check', 'Authentifié', 'Chaque pièce vérifiée'], ['truck', 'Livraison offerte', 'Dès 100 € d’achat'], ['bouclier', 'Paiement sécurisé', 'CB · PayPal · Apple Pay']].map(([ic, t, s]) => (
             <div key={t} className="lc-reassure" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
@@ -82,7 +110,7 @@ function Home({ navigate }) {
       </section>
 
       {/* NOS UNIVERS (jeux TCG) */}
-      <section className="container-wide" style={{ padding: '40px 24px 8px' }}>
+      <section className="container-wide lc-reveal" style={{ padding: '40px 24px 8px' }}>
         <div style={{ marginBottom: 18 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Nos univers</div>
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>Tous vos jeux de cartes</h2>
@@ -101,7 +129,7 @@ function Home({ navigate }) {
       </section>
 
       {/* CATEGORY TILES */}
-      <section className="container-wide" style={{ padding: '48px 24px 8px' }}>
+      <section className="container-wide lc-reveal" style={{ padding: '48px 24px 8px' }}>
         <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {[["Cartes à l'unité", 'single', 'Du Set de Base à aujourd’hui'], ['Cartes gradées', 'graded', 'PSA · BGS authentifiées'], ['Scellé', 'sealed', 'Displays · ETB · coffrets'], ['Accessoires', 'accessory', 'Sleeves · classeurs · tapis']].map(([t, key, sub]) => (
             <a key={key} href={'boutique.html?cat=' + key} onClick={(e) => { e.preventDefault(); navigate('catalogue', key); }}
@@ -116,13 +144,13 @@ function Home({ navigate }) {
 
       {/* RAYONS (only when products exist) or EMPTY STATE */}
       {has ? (
-        <div className="container-wide" style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 48 }}>
+        <div className="container-wide lc-reveal" style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 48 }}>
           <ProductRow eyebrow="Tout juste arrivé" title="Nouveautés" products={nouveautes} navigate={navigate} onSeeAll={() => navigate('catalogue', 'all')} />
           <ProductRow eyebrow="Réservez les prochaines sorties" title="Précommandes" products={preorders} navigate={navigate} onSeeAll={() => navigate('catalogue', 'preorder')} />
           <ProductRow eyebrow="Les préférées des collectionneurs" title="Meilleures ventes" products={ventesFill} navigate={navigate} onSeeAll={() => navigate('catalogue', 'all')} />
         </div>
       ) : (
-        <section className="container-wide" style={{ padding: '56px 24px 64px' }}>
+        <section className="container-wide lc-reveal" style={{ padding: '56px 24px 64px' }}>
           <div style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: '48px 32px', textAlign: 'center', maxWidth: 720, margin: '0 auto' }}>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', marginBottom: 12 }}>On garnit les rayons</h2>
             <p style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 500, margin: '0 auto 24px' }}>
@@ -137,7 +165,7 @@ function Home({ navigate }) {
       )}
 
       {/* NOTRE BOUTIQUE À VIENNE */}
-      <section className="container-wide" style={{ padding: '8px 24px 16px' }}>
+      <section className="container-wide lc-reveal" style={{ padding: '8px 24px 16px' }}>
         <div className="lc-shop-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1.5px solid var(--line)', background: 'var(--card)' }}>
           <div style={{ padding: '36px 36px 38px' }}>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 14 }}><Pokeball size={14} />Boutique physique</div>
@@ -180,7 +208,7 @@ function Home({ navigate }) {
       </section>
 
       {/* SHOP POLICY BAND */}
-      <section style={{ background: 'var(--ink)', color: 'var(--on-ink)' }}>
+      <section className="lc-reveal" style={{ background: 'var(--ink)', color: 'var(--on-ink)' }}>
         <div className="container-wide" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '40px 24px', flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em' }}>Passez nous voir — on adore parler cartes</div>

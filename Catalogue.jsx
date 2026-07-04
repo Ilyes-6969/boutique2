@@ -22,6 +22,11 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   // catalogue (/api/catalog résout souvent APRÈS le montage React) au lieu
   // de rester figée sur les squelettes.
   const Store = useStore();
+  // Favoris (C4) — useFavorites (Chrome.jsx) s'abonne au store et renvoie null
+  // s'il est absent : le chip « ♥ Favoris » n'apparaît alors jamais.
+  const favStore = useFavorites();
+  const favIds = favStore ? favStore.all() : [];
+  const showFavChip = !!favStore && (favIds.length > 0 || filter === 'favs');
   const wp = Store.wpStatus();              // { state: off|loading|ok|error, error }
   const loading = wp.state === 'loading';
   const errored = wp.state === 'error';
@@ -29,7 +34,9 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   const stateBox = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '72px 24px' };
 
   const q = query.trim().toLowerCase();
-  let list = comingSoon ? [] : PRODUCTS.filter((p) => filter === 'all' ? true : filter === 'preorder' ? p.preorder : p.type === filter);
+  let list = comingSoon ? [] : filter === 'favs'
+    ? PRODUCTS.filter((p) => favIds.indexOf(p.id) !== -1)
+    : PRODUCTS.filter((p) => filter === 'all' ? true : filter === 'preorder' ? p.preorder : p.type === filter);
   if (q) list = list.filter((p) => ((p.name || '') + ' ' + (p.set || '') + ' ' + (p.num || '') + ' ' + (p.cat || '')).toLowerCase().includes(q));
   if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
   if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
@@ -62,6 +69,7 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
         <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {CHIPS.map((f) => <DS.Tag key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>{f.label}</DS.Tag>)}
+            {showFavChip && <DS.Tag active={filter === 'favs'} onClick={() => setFilter('favs')}>♥ Favoris</DS.Tag>}
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>{loading ? '…' : list.length + ' produits'}</span>
@@ -99,10 +107,17 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
             </div>
           </div>
         ) : list.length === 0 ? (
+          filter === 'favs' ? (
+            <div style={stateBox}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Aucun favori pour l'instant</div>
+              <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Cliquez le ♥ d'une carte pour la retrouver ici.</p>
+            </div>
+          ) : (
           <div style={stateBox}>
             <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Aucun produit pour le moment</div>
             <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Les rayons se remplissent — revenez très vite !</p>
           </div>
+          )
         ) : (
           <React.Fragment>
             <div style={gridStyle}>

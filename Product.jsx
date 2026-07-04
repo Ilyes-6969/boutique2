@@ -9,7 +9,23 @@ function Product({ navigate, productId, onCart }) {
   const product = window.LC151.get(productId);
   const [qty, setQty] = React.useState(1);
   const [added, setAdded] = React.useState(false);
+  // GALERIE : index de l'image affichée + plein écran mobile (lightbox).
+  const [imgIdx, setImgIdx] = React.useState(0);
+  const [lightbox, setLightbox] = React.useState(false);
+  // BARRE STICKY MOBILE : visible quand le CTA principal est sorti par le haut.
+  const [stickyOn, setStickyOn] = React.useState(false);
+  const zoomImgRef = React.useRef(null);
+  const ctaRef = React.useRef(null);
   const lockedUnique = product ? (cart.isUnique(product.id) && cart.items().some((l) => l.id === product.id)) : false;
+
+  // Préférences visiteur — le zoom loupe est désactivé si l'utilisateur demande
+  // moins d'animations (prefers-reduced-motion) ou sur écran tactile
+  // (pointer: coarse) : là, un tap ouvre un simple plein écran.
+  const mq = (q) => { try { return !!(window.matchMedia && window.matchMedia(q).matches); } catch (e) { return false; } };
+  const hoverZoomOn = !mq('(prefers-reduced-motion: reduce)') && !mq('(pointer: coarse)');
+
+  // Changement de produit (navigation SPA) → repartir sur la première image.
+  React.useEffect(() => { setImgIdx(0); setLightbox(false); }, [product && product.id]);
 
   // SEO par produit : sans cela, toutes les fiches partagent le même <title>,
   // la même description et le même og:title (duplicate content) → aucune carte
@@ -52,6 +68,39 @@ function Product({ navigate, productId, onCart }) {
       },
     });
   }, [product && product.id, product && product.price, product && product.inStock]);
+
+  // Lightbox : fermeture Échap + verrou du scroll d'arrière-plan.
+  React.useEffect(() => {
+    if (!lightbox) return;
+    const onKey = (e) => { if (e.key === 'Escape') setLightbox(false); };
+    document.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prevOverflow; };
+  }, [lightbox]);
+
+  // VU RÉCEMMENT : enregistre la visite (store créé par un autre module —
+  // garde défensive, le site fonctionne sans).
+  React.useEffect(() => {
+    if (!product) return;
+    const R = window.LC151 && window.LC151.Recent;
+    if (R && typeof R.add === 'function') { try { R.add(product.id); } catch (e) {} }
+  }, [product && product.id]);
+
+  // BARRE STICKY : IntersectionObserver sur le CTA principal — visible → barre
+  // cachée ; sorti de l'écran par le HAUT → barre visible.
+  React.useEffect(() => {
+    if (!product || product.inStock === false) return;
+    const el = ctaRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver((entries) => {
+      const en = entries[0];
+      setStickyOn(!en.isIntersecting && en.boundingClientRect.top < 0);
+    }, { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [product && product.id, product && product.inStock]);
+
   if (!product) {
     // Catalogue encore en chargement → squelette, PAS de faux « Produit
     // indisponible » : l'indisponibilité n'est affirmée qu'une fois le
@@ -84,11 +133,51 @@ function Product({ navigate, productId, onCart }) {
   const related = PRODUCTS.filter((p) => p.id !== product.id && p.type === product.type).slice(0, 4);
   const relList = related.length ? related : PRODUCTS.filter((p) => p.id !== product.id).slice(0, 4);
 
+  // VU RÉCEMMENT (affichage) : jusqu'à 4 produits, hors produit courant.
+  // Store optionnel (créé ailleurs) → tout est gardé, section masquée sinon.
+  const Recent = window.LC151 && window.LC151.Recent;
+  let recentProducts = [];
+  if (Recent && typeof Recent.all === 'function') {
+    try {
+      const ids = Recent.all();
+      recentProducts = (Array.isArray(ids) ? ids : [])
+        .filter((id) => id !== product.id)
+        .map((id) => window.LC151.get(id))
+        .filter(Boolean)
+        .slice(0, 4);
+    } catch (e) { recentProducts = []; }
+  }
+
   const addToCart = (e) => {
     Cart.add(product.id, qty);
     if (e && e.currentTarget && window.lcFlyToCart) window.lcFlyToCart(e.currentTarget);
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+  };
+
+  // GALERIE : contrat « images » [{ src, thumb }] (max 6, /api/catalog), avec
+  // repli sur l'image unique historique — compat descendante garantie.
+  const gallery = (product.images && product.images.length)
+    ? product.images.filter((im) => im && im.src)
+    : (product.image ? [{ src: product.image, thumb: product.thumb || product.image }] : []);
+  const current = gallery.length ? gallery[Math.min(imgIdx, gallery.length - 1)] : null;
+  const placeholderSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' rx='8' fill='%23efe9da'/%3E%3Ctext x='50' y='80' font-family='sans-serif' font-size='28' font-weight='bold' fill='%23b9ad95' text-anchor='middle'%3E151%3C/text%3E%3C/svg%3E";
+
+  // ZOOM loupe : scale(2) + transform-origin suivant le pointeur, dans un
+  // conteneur overflow:hidden (compositor-friendly : transform uniquement,
+  // pas de re-rendu React — style posé directement via ref).
+  const handleZoomMove = (e) => {
+    const img = zoomImgRef.current;
+    if (!img) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, ((e.clientX - r.left) / r.width) * 100));
+    const y = Math.max(0, Math.min(100, ((e.clientY - r.top) / r.height) * 100));
+    img.style.transformOrigin = x + '% ' + y + '%';
+    img.style.transform = 'scale(2)';
+  };
+  const handleZoomLeave = () => {
+    const img = zoomImgRef.current;
+    if (img) img.style.transform = 'none';
   };
 
   // Caractéristiques ADAPTÉES au type d'article (cohérentes, sans champ vide
@@ -132,12 +221,40 @@ function Product({ navigate, productId, onCart }) {
         {/* GALLERY */}
         <div className="lc-prod-gallery" style={{ position: 'sticky', top: 92 }}>
           <div style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
-            {product.image ? (
-              <img src={product.image} alt={product.name} decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' rx='8' fill='%23efe9da'/%3E%3Ctext x='50' y='80' font-family='sans-serif' font-size='28' font-weight='bold' fill='%23b9ad95' text-anchor='middle'%3E151%3C/text%3E%3C/svg%3E"; }} style={{ maxHeight: 440, filter: 'drop-shadow(0 22px 36px rgba(26,23,20,0.30))' }} />
+            {current ? (
+              <button type="button" aria-label="Agrandir l'image"
+                onMouseMove={hoverZoomOn ? handleZoomMove : undefined}
+                onMouseLeave={hoverZoomOn ? handleZoomLeave : undefined}
+                onClick={() => setLightbox(true)}
+                style={{ overflow: 'hidden', border: 'none', background: 'transparent', padding: 0, margin: 0, cursor: 'zoom-in', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center', maxWidth: '100%' }}>
+                {/* key={imgIdx} : remonte l'<img> au changement de vignette →
+                    remet aussi à zéro le transform posé impérativement par la loupe */}
+                <img key={imgIdx} ref={zoomImgRef} src={current.src} alt={product.name} decoding="async"
+                  onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholderSvg; }}
+                  style={{ maxHeight: 440, maxWidth: '100%', display: 'block', filter: 'drop-shadow(0 22px 36px rgba(26,23,20,0.30))', transition: hoverZoomOn ? 'transform 0.18s ease' : 'none' }} />
+              </button>
             ) : (
               <div style={{ width: '70%' }}><ProductStage glyph={product.glyph} ratio="3 / 4" big /></div>
             )}
           </div>
+          {gallery.length > 1 && (
+            <div role="group" aria-label="Images du produit"
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowRight') { e.preventDefault(); setImgIdx((i) => (i + 1) % gallery.length); }
+                if (e.key === 'ArrowLeft') { e.preventDefault(); setImgIdx((i) => (i - 1 + gallery.length) % gallery.length); }
+              }}
+              style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+              {gallery.map((im, i) => (
+                <button key={i} type="button" aria-label={'Image ' + (i + 1)} aria-current={i === imgIdx ? 'true' : undefined}
+                  onClick={() => setImgIdx(i)}
+                  style={{ width: 64, height: 64, padding: 4, borderRadius: 'var(--radius-sm)', cursor: 'pointer', background: 'var(--card)', border: '2px solid', borderColor: i === imgIdx ? 'var(--accent)' : 'var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                  <img src={im.thumb || im.src} alt="" decoding="async" loading="lazy"
+                    onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholderSvg; }}
+                    style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* INFO */}
@@ -158,7 +275,7 @@ function Product({ navigate, productId, onCart }) {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
+          <div ref={ctaRef} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
             {!window.LC151.Cart.isUnique(product.id) && <DS.QtyStepper value={qty} onChange={setQty} max={Math.min(10, cart.qtyCap(product.id))} />}
             <div style={{ flex: 1 }}>
               <DS.Button variant="accent" size="lg" block disabled={!product.inStock || lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
@@ -193,6 +310,48 @@ function Product({ navigate, productId, onCart }) {
           </div>
         </div>
       </section>
+
+      {/* VUS RÉCEMMENT — store optionnel (window.LC151.Recent), section masquée
+          s'il est absent ou s'il n'y a rien à montrer hors produit courant */}
+      {recentProducts.length > 0 && (
+        <section style={{ borderTop: '1.5px solid var(--line)' }}>
+          <div className="container-wide" style={{ padding: '56px 24px 80px' }}>
+            <h2 className="display-3" style={{ marginBottom: 26 }}>Vus récemment</h2>
+            <div className="lc-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
+              {recentProducts.map((p) => <StoreCard key={p.id} product={p.thumb ? { ...p, image: p.thumb } : p} navigate={navigate} />)}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* LIGHTBOX plein écran (tap mobile / clic) — fermeture Échap ou scrim */}
+      {lightbox && current && (
+        <div role="dialog" aria-modal="true" aria-label={product.name}
+          onClick={() => setLightbox(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(12,10,8,0.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, cursor: 'zoom-out' }}>
+          <img src={current.src} alt={product.name} decoding="async"
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholderSvg; }}
+            style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 'var(--radius-sm)' }} />
+          <button type="button" aria-label="Fermer" autoFocus onClick={() => setLightbox(false)}
+            style={{ position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', color: 'var(--ink)', fontSize: 16, cursor: 'pointer' }}>✕</button>
+        </div>
+      )}
+
+      {/* BARRE D'ACHAT STICKY MOBILE — positionnement géré par la classe
+          .lc-sticky-cta (+ .on) dans le CSS ; ici uniquement le contenu */}
+      {product.inStock && (
+        <div className={'lc-sticky-cta' + (stickyOn ? ' on' : '')}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</div>
+              <DS.PriceTag price={product.price} oldPrice={product.oldPrice} size="sm" />
+            </div>
+            <DS.Button variant="accent" disabled={lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
+              {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : 'Ajouter au panier')}
+            </DS.Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

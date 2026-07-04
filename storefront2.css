@@ -81,14 +81,27 @@ img { -webkit-user-drag: none; user-select: none; }
 }
 .lc-skip:focus { top: 16px; }
 
-/* ---- Section entrance (CSS-only — can NEVER get stuck hidden) ----
-   A CSS animation always completes to its `to` state (opacity 1); if animations
-   are disabled/unsupported the element just uses its default (visible). No JS,
-   no IntersectionObserver dependency, so content can never stay invisible. */
+/* ---- Entrée de section au chargement (CSS pur — ne peut jamais rester caché :
+   lcRise n'anime que transform, l'opacité reste à 1 ; si l'animation ne joue
+   pas, l'élément garde simplement son état visible par défaut). Les .lc-reveal
+   de l'accueil sont exclus : ils ont leur propre réveil au scroll ci-dessous,
+   et le fill « both » de lcRise écraserait leur transform de transition. */
 @keyframes lcRise { from { transform: translateY(22px); } to { transform: none; } }
-main section { animation: lcRise 0.55s cubic-bezier(0.2,0.8,0.2,1) both; }
-/* legacy hooks kept inert (in case any cached JS references them) */
-.lc-reveal, .lc-reveal.lc-in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: no-preference) {
+  main section:not(.lc-reveal) { animation: lcRise 0.55s cubic-bezier(0.2,0.8,0.2,1) both; }
+}
+
+/* ---- Réveils au scroll de l'accueil (.lc-reveal — classes posées par Home.jsx) ----
+   Sécurité anti-« contenu bloqué invisible » : l'état caché n'existe que via
+   .lc-reveal-init, ajoutée par le JS juste AVANT l'observation. Sans JS
+   (noscript, robots), sans IntersectionObserver ou en reduced-motion, aucune
+   règle ne cache quoi que ce soit. */
+@media (prefers-reduced-motion: no-preference) {
+  .lc-reveal.lc-reveal-init { opacity: 0; transform: translateY(14px); transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.2,0.8,0.2,1); }
+  .lc-reveal.lc-reveal-init.in { opacity: 1; transform: none; }
+}
+/* Garde-fou hors media query : une fois révélé, toujours visible. */
+.lc-reveal.in { opacity: 1; transform: none; }
 /* ---- Hero ken-burns drift ---- */
 @keyframes lcKenburns { 0% { transform: scale(1) translate3d(0,0,0); } 100% { transform: scale(1.09) translate3d(-1.4%,-1%,0); } }
 /* ---- Pokéball hover spin ---- */
@@ -119,6 +132,9 @@ main section { animation: lcRise 0.55s cubic-bezier(0.2,0.8,0.2,1) both; }
 }
 /* Recherche mobile : masquée sur grand écran, affichée sous l'en-tête sur mobile */
 .lc-search-mobile { display: none; }
+/* Barre d'achat sticky mobile (fiche produit — markup posé par Product.jsx) :
+   masquée par défaut, activée uniquement dans la media query mobile ci-dessous. */
+.lc-sticky-cta { display: none; }
 
 @media (max-width: 680px) {
   .container, .container-wide { padding-left: 16px !important; padding-right: 16px !important; }
@@ -144,6 +160,29 @@ main section { animation: lcRise 0.55s cubic-bezier(0.2,0.8,0.2,1) both; }
   .lc-mega-cols a { white-space: normal !important; }
   .lc-mega-rail { display: none !important; }
   .lc-mega-games { grid-template-columns: 1fr 1fr !important; gap: 10px !important; padding: 16px !important; }
+  /* Barre d'achat sticky (fiche produit) : z-index 80 → au-dessus du contenu et
+     du header (50), SOUS le tiroir panier (100), les modales (120) et le zoom
+     photo (200). Le padding du contenu (10px 14px) est déjà porté en inline par
+     Product.jsx → ici uniquement le conteneur + la zone sûre iOS (encoche). */
+  .lc-sticky-cta {
+    display: flex;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 80;
+    /* visibility retardée par la transition : la barre masquée sort AUSSI de
+       l'ordre de tabulation et de l'arbre d'accessibilité (pas de CTA fantôme). */
+    visibility: hidden;
+    background: var(--card);
+    border-top: 1.5px solid var(--line);
+    padding: 0 0 env(safe-area-inset-bottom);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(110%);
+    transition: transform 0.28s cubic-bezier(0.2,0.8,0.2,1), visibility 0.28s;
+  }
+  .lc-sticky-cta > * { flex: 1 1 auto; min-width: 0; }
+  .lc-sticky-cta.on { transform: translateY(0); visibility: visible; }
+}
+@media (max-width: 680px) and (prefers-reduced-motion: reduce) {
+  /* Reduced-motion : la barre apparaît/disparaît sans glissement. */
+  .lc-sticky-cta { transition: none; }
 }
 @media (max-width: 460px) {
   .lc-cat-tiles { grid-template-columns: 1fr !important; }
@@ -192,4 +231,24 @@ body.lc-scrolled header { box-shadow: 0 8px 30px rgba(0,0,0,0.14); }
 
   /* Petit zoom doux des cartes au survol (image déjà gérée en inline) */
   .lc-card { will-change: transform; }
+}
+
+/* ============================================
+   VIEW TRANSITIONS entre pages (cross-document)
+   Pur CSS, zéro JS. Chrome 126+ / Safari 18.2+ :
+   fondu doux entre les pages du site (même origine).
+   Navigateurs non compatibles : règle ignorée,
+   navigation classique (fallback naturel).
+============================================ */
+/* @view-transition au niveau racine : son imbrication sous @media est encore
+   inégale selon les versions de navigateurs. Le reduced-motion est donc géré
+   juste en dessous en neutralisant les animations des pseudo-éléments
+   ::view-transition-* → la transition se termine instantanément (aucun fondu). */
+@view-transition { navigation: auto; }
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 0.22s; }
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-image-pair(*),
+  ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }

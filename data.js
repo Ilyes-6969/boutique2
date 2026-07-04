@@ -202,6 +202,12 @@
       oldPrice: onSale ? Math.round(regular * 100) / 100 : null,
       image: (img && img.src) || null,
       thumb: (img && img.thumbnail) || null,
+      // CONTRAT IMAGES : galerie [{ src, thumb }] (max 6), en COMPLÉMENT de
+      // image/thumb — même champ que lib/serverCatalog.js pour que le chemin
+      // direct WP (mode test admin) et /api/catalog restent identiques.
+      images: (p.images || []).slice(0, 6)
+        .map((im) => ({ src: (im && im.src) || null, thumb: (im && (im.thumbnail || im.src)) || null }))
+        .filter((im) => im.src),
       inStock: p.is_in_stock !== false,
       stockLeft: stockLeft,
       maxQty: maxQty,
@@ -510,6 +516,49 @@
     Cart.reconcile();
   });
 
+  // ---- Favoris (cœur sur cartes / fiches produit) ----
+  // Même modèle que les autres stores : localStorage + Set de listeners + emit.
+  // Ids inconnus TOLÉRÉS (produit disparu du catalogue) : ils sont filtrés à
+  // l'affichage par les consommateurs, jamais ici.
+  const K_FAVS = 'lc151_favs';
+  const toIdArray = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
+  let favs = toIdArray(load(K_FAVS, []));
+  const favListeners = new Set();
+  function emitFavs() { save(K_FAVS, favs); favListeners.forEach((fn) => fn()); }
+  const Favorites = {
+    all: () => favs.slice(),
+    has: (id) => favs.indexOf(id) !== -1,
+    toggle(id) {
+      if (!id) return;
+      if (favs.indexOf(id) !== -1) favs = favs.filter((f) => f !== id);
+      else favs = favs.concat([id]);
+      emitFavs();
+    },
+    subscribe(fn) { favListeners.add(fn); return () => favListeners.delete(fn); },
+  };
+
+  // ---- Vu récemment (fiches produit consultées, max 8) ----
+  const K_RECENT = 'lc151_recent';
+  const RECENT_MAX = 8;
+  let recent = toIdArray(load(K_RECENT, [])).slice(0, RECENT_MAX);
+  const recentListeners = new Set();
+  function emitRecent() { save(K_RECENT, recent); recentListeners.forEach((fn) => fn()); }
+  const Recent = {
+    all: () => recent.slice(),   // du plus récent au plus ancien
+    add(id) {
+      if (!id) return;
+      recent = [id].concat(recent.filter((r) => r !== id)).slice(0, RECENT_MAX);
+      emitRecent();
+    },
+    subscribe(fn) { recentListeners.add(fn); return () => recentListeners.delete(fn); },
+  };
+
+  // Sync inter-onglets — même mécanique que la synchro admin → boutique plus haut.
+  window.addEventListener('storage', (e) => {
+    if (e.key === K_FAVS) { favs = toIdArray(load(K_FAVS, [])); favListeners.forEach((fn) => fn()); }
+    if (e.key === K_RECENT) { recent = toIdArray(load(K_RECENT, [])).slice(0, RECENT_MAX); recentListeners.forEach((fn) => fn()); }
+  });
+
   const FREE_SHIP = 100;
 
   // ---- Auth (compte client) ----
@@ -673,7 +722,7 @@
   }
 
   window.LC151 = {
-    PRODUCTS, FILTERS, Cart, Store, Auth, Alerts, Orders, FREE_SHIP,
+    PRODUCTS, FILTERS, Cart, Store, Auth, Alerts, Orders, Favorites, Recent, FREE_SHIP,
     get: (id) => Store.get(id),
     productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
