@@ -4,8 +4,10 @@
 // toutes les pages) — garde défensive : no-op si absent, comme Checkout.jsx.
 const useFocusTrap = window.lcUseFocusTrap || function () {};
 // Hook favoris partagé (Chrome.jsx) — garde défensive : renvoie null si le
-// store Favorites est absent, le cœur est alors masqué (même logique que StoreCard).
+// store Favorites est absent, le bouton est alors masqué (même logique que StoreCard).
 const useFavorites = window.useFavorites || function () { return null; };
+// Icône Pokéball « Attraper » partagée (Chrome.jsx, chargé avant) — repli discret.
+const CatchBall = window.CatchBall || function () { return null; };
 
 /* LIGHTBOX plein écran (tap mobile / clic) — sous-composant monté uniquement
    quand le zoom est ouvert : le piège à focus (focus initial, Tab en boucle,
@@ -192,9 +194,9 @@ function Product({ navigate, productId, onCart }) {
   // (pas d'opacity au survol) ; bouton rendu uniquement si le store existe.
   const liked = !!(favs && favs.has(product.id));
   const favBtn = (size) => favs && (
-    <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+    <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Attraper cette carte'} title={liked ? 'Dans ma collection' : 'Attraper'}
       onClick={() => favs.toggle(product.id)}
-      style={{ width: size, height: size, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', fontSize: size >= 36 ? 15 : 14, color: liked ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer', transition: 'color 0.2s ease' }}>{liked ? '♥' : '♡'}</button>
+      style={{ width: size, height: size, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', cursor: 'pointer', transition: 'border-color 0.2s ease' }}><CatchBall caught={liked} size={size >= 36 ? 19 : 16} /></button>
   );
 
   // GALERIE : contrat « images » [{ src, thumb }] (max 6, /api/catalog), avec
