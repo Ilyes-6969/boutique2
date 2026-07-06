@@ -732,29 +732,21 @@ function Footer({ navigate }) {
    Self-contained (inline badges + price) so the grid never depends on the
    compiled bundle lagging a turn behind component edits. */
 /* Pointeur grossier (tactile) détecté une seule fois au chargement : pas de
-   hover fiable sur mobile, le bouton « Attraper » reste donc toujours visible. */
+   hover fiable sur mobile, le bouton favori reste donc toujours visible. */
 let lcCoarsePointer = false;
 try { lcCoarsePointer = window.matchMedia('(pointer: coarse)').matches; } catch (e) {}
 
-/* Icône Pokéball « Attraper » (toggle collection) — contour quand la carte
-   n'est pas attrapée, Pokéball rouge pleine quand elle l'est. Style ligne des
-   autres icônes du site ; le rouge/blanc reste lisible dans les deux thèmes. */
-function CatchBall({ caught, size = 18 }) {
-  if (caught) {
-    return (
-      <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" style={{ display: 'block' }}>
-        <circle cx="12" cy="12" r="9" fill="var(--accent)" stroke="var(--accent)" strokeWidth="1.6" />
-        <path d="M3 12h18" stroke="#fff" strokeWidth="1.9" strokeLinecap="round" />
-        <circle cx="12" cy="12" r="3.3" fill="#fff" />
-        <circle cx="12" cy="12" r="1.3" fill="var(--accent)" />
-      </svg>
-    );
-  }
+/* Icône favori « marque-page » (toggle collection) — contour discret quand la
+   carte n'est pas dans la collection, ruban rouge plein quand elle y est.
+   Le contour idle suit la couleur du bouton (currentColor). */
+function FavRibbon({ caught, size = 18 }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ display: 'block' }}>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M3 12h18" />
-      <circle cx="12" cy="12" r="3.2" />
+    <svg width={size} height={size} viewBox="0 0 24 24"
+      fill={caught ? 'var(--accent)' : 'none'}
+      stroke={caught ? 'var(--accent)' : 'currentColor'}
+      strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"
+      aria-hidden="true" style={{ display: 'block' }}>
+      <path d="M6 3h12v18l-6-4-6 4Z" />
     </svg>
   );
 }
@@ -774,7 +766,7 @@ function StoreCard({ product, navigate }) {
   const favs = useFavorites();   // null si le store Favorites est absent → bouton masqué
   const open = () => navigate('product', product.id);
   const [hover, setHover] = React.useState(false);
-  // Focus clavier sur le bouton Attraper : force sa visibilité (sinon opacity 0 hors hover).
+  // Focus clavier sur le bouton favori : force sa visibilité (sinon opacity 0 hors hover).
   const [heartFocus, setHeartFocus] = React.useState(false);
   const liked = !!(favs && favs.has(product.id));
   const fmt = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
@@ -795,10 +787,10 @@ function StoreCard({ product, navigate }) {
         </span>
         {!product.inStock && <span style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}><span style={lcBadgeStyle('oos')}>Rupture</span></span>}
         {favs && product.inStock && (
-          <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Attraper cette carte'} title={liked ? 'Dans ma collection' : 'Attraper'}
+          <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Ajouter à ma collection'} title={liked ? 'Dans ma collection' : 'Ajouter à ma collection'}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); favs.toggle(product.id); }}
             onFocus={() => setHeartFocus(true)} onBlur={() => setHeartFocus(false)}
-            style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', opacity: hover || liked || heartFocus || lcCoarsePointer ? 1 : 0, transition: 'opacity 0.2s ease, border-color 0.2s ease' }}><CatchBall caught={liked} size={17} /></button>
+            style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', opacity: hover || liked || heartFocus || lcCoarsePointer ? 1 : 0, transition: 'opacity 0.2s ease, border-color 0.2s ease' }}><FavRibbon caught={liked} size={16} /></button>
         )}
         {product.image ? (
           <div style={{ aspectRatio: '1 / 1', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22, overflow: 'hidden' }}>
@@ -1173,4 +1165,4 @@ function lcNavigate(view, arg) {
   if (view === 'cart') { window.location.href = '/panier.html'; return; }
   window.location.href = '/index.html';
 }
-Object.assign(window, { lcNavigate, useCart, useStore, useAuth, useAlerts, useFavorites, lcUseFocusTrap: useFocusTrap, Pokeball, CatchBall, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });
+Object.assign(window, { lcNavigate, useCart, useStore, useAuth, useAlerts, useFavorites, lcUseFocusTrap: useFocusTrap, Pokeball, FavRibbon, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });

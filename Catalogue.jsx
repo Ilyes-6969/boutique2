@@ -8,8 +8,8 @@ function catNormalize(s) {
   try { return str.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) { return str; }
 }
 
-// Icône Pokéball « Attraper » partagée (Chrome.jsx, chargé avant) — repli discret.
-const CatchBall = window.CatchBall || function () { return null; };
+// Icône favori « marque-page » partagée (Chrome.jsx, chargé avant) — repli discret.
+const FavRibbon = window.FavRibbon || function () { return null; };
 
 function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   const DS = window.ADITCGDesignSystem_df75b7;
@@ -81,7 +81,7 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
         <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {CHIPS.map((f) => <DS.Tag key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>{f.label}</DS.Tag>)}
-            {showFavChip && <DS.Tag active={filter === 'favs'} onClick={() => setFilter('favs')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><CatchBall caught={true} size={13} />Ma collection</span></DS.Tag>}
+            {showFavChip && <DS.Tag active={filter === 'favs'} onClick={() => setFilter('favs')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><FavRibbon caught={true} size={12} />Ma collection</span></DS.Tag>}
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--muted)' }}>{loading ? '…' : list.length + ' produits'}</span>
@@ -129,9 +129,9 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
             </div>
           ) : filter === 'favs' ? (
             <div style={stateBox}>
-              <div style={{ marginBottom: 16, opacity: 0.9 }}><CatchBall caught={true} size={44} /></div>
+              <div style={{ marginBottom: 16, opacity: 0.9 }}><FavRibbon caught={true} size={40} /></div>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Votre collection est vide</div>
-              <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Attrapez une carte avec la Pokéball pour la retrouver ici.</p>
+              <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Cliquez le marque-page d'une carte pour la retrouver ici.</p>
             </div>
           ) : (
           <div style={stateBox}>
