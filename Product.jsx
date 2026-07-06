@@ -1,4 +1,32 @@
 /* leclub151 — Fiche produit (product detail) */
+
+// Piège à focus partagé (défini dans Chrome.jsx, chargé avant ce fichier dans
+// toutes les pages) — garde défensive : no-op si absent, comme Checkout.jsx.
+const useFocusTrap = window.lcUseFocusTrap || function () {};
+// Hook favoris partagé (Chrome.jsx) — garde défensive : renvoie null si le
+// store Favorites est absent, le cœur est alors masqué (même logique que StoreCard).
+const useFavorites = window.useFavorites || function () { return null; };
+
+/* LIGHTBOX plein écran (tap mobile / clic) — sous-composant monté uniquement
+   quand le zoom est ouvert : le piège à focus (focus initial, Tab en boucle,
+   Échap, restauration du focus) y est appelé inconditionnellement (règles des
+   hooks). Fermeture Échap ou clic sur le scrim. */
+function ProductLightbox({ src, name, placeholderSvg, onClose }) {
+  const panelRef = React.useRef(null);
+  useFocusTrap(panelRef, onClose);
+  return (
+    <div ref={panelRef} role="dialog" aria-modal="true" aria-label={name} tabIndex={-1}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(12,10,8,0.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, cursor: 'zoom-out', outline: 'none' }}>
+      <img src={src} alt={name} decoding="async"
+        onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholderSvg; }}
+        style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 'var(--radius-sm)' }} />
+      <button type="button" aria-label="Fermer" autoFocus onClick={onClose}
+        style={{ position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', color: 'var(--ink)', fontSize: 16, cursor: 'pointer' }}>✕</button>
+    </div>
+  );
+}
+
 function Product({ navigate, productId, onCart }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const { PRODUCTS, Cart, FREE_SHIP, fmt } = window.LC151;
@@ -16,6 +44,9 @@ function Product({ navigate, productId, onCart }) {
   const [stickyOn, setStickyOn] = React.useState(false);
   const zoomImgRef = React.useRef(null);
   const ctaRef = React.useRef(null);
+  // FAVORIS — appelé inconditionnellement (règles des hooks), AVANT l'early
+  // return : null si le store Favorites est absent → cœur masqué.
+  const favs = useFavorites();
   const lockedUnique = product ? (cart.isUnique(product.id) && cart.items().some((l) => l.id === product.id)) : false;
 
   // Préférences visiteur — le zoom loupe est désactivé si l'utilisateur demande
@@ -67,7 +98,9 @@ function Product({ navigate, productId, onCart }) {
         url: url,
       },
     });
-  }, [product && product.id, product && product.price, product && product.inStock]);
+    // name/image/desc aussi en deps : le catalogue (/api/catalog) peut se
+    // résoudre en deux temps — sans elles, les métadonnées resteraient périmées.
+  }, [product && product.id, product && product.price, product && product.inStock, product && product.name, product && product.image, product && product.desc]);
 
   // Lightbox : fermeture Échap + verrou du scroll d'arrière-plan.
   React.useEffect(() => {
@@ -154,6 +187,15 @@ function Product({ navigate, productId, onCart }) {
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   };
+
+  // FAVORI — même cœur que StoreCard (Chrome.jsx), toujours visible ici
+  // (pas d'opacity au survol) ; bouton rendu uniquement si le store existe.
+  const liked = !!(favs && favs.has(product.id));
+  const favBtn = (size) => favs && (
+    <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
+      onClick={() => favs.toggle(product.id)}
+      style={{ width: size, height: size, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', fontSize: size >= 36 ? 15 : 14, color: liked ? 'var(--accent)' : 'var(--muted)', cursor: 'pointer', transition: 'color 0.2s ease' }}>{liked ? '♥' : '♡'}</button>
+  );
 
   // GALERIE : contrat « images » [{ src, thumb }] (max 6, /api/catalog), avec
   // repli sur l'image unique historique — compat descendante garantie.
@@ -282,6 +324,7 @@ function Product({ navigate, productId, onCart }) {
                 {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : product.inStock ? 'Ajouter au panier' : 'Indisponible')}
               </DS.Button>
             </div>
+            {favBtn(36)}
           </div>
           <DS.Button variant="outline" size="lg" block onClick={() => { Cart.add(product.id, qty); onCart(); }} disabled={!product.inStock}>Acheter maintenant</DS.Button>
 
@@ -324,17 +367,9 @@ function Product({ navigate, productId, onCart }) {
         </section>
       )}
 
-      {/* LIGHTBOX plein écran (tap mobile / clic) — fermeture Échap ou scrim */}
+      {/* LIGHTBOX plein écran — sous-composant ProductLightbox (piège à focus) */}
       {lightbox && current && (
-        <div role="dialog" aria-modal="true" aria-label={product.name}
-          onClick={() => setLightbox(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(12,10,8,0.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, cursor: 'zoom-out' }}>
-          <img src={current.src} alt={product.name} decoding="async"
-            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholderSvg; }}
-            style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 'var(--radius-sm)' }} />
-          <button type="button" aria-label="Fermer" autoFocus onClick={() => setLightbox(false)}
-            style={{ position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', color: 'var(--ink)', fontSize: 16, cursor: 'pointer' }}>✕</button>
-        </div>
+        <ProductLightbox src={current.src} name={product.name} placeholderSvg={placeholderSvg} onClose={() => setLightbox(false)} />
       )}
 
       {/* BARRE D'ACHAT STICKY MOBILE — positionnement géré par la classe
@@ -346,6 +381,7 @@ function Product({ navigate, productId, onCart }) {
               <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name}</div>
               <DS.PriceTag price={product.price} oldPrice={product.oldPrice} size="sm" />
             </div>
+            {favBtn(32)}
             <DS.Button variant="accent" disabled={lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
               {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : 'Ajouter au panier')}
             </DS.Button>

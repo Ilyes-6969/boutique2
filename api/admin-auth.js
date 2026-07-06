@@ -12,12 +12,17 @@
 // ---------------------------------------------------------------------------
 
 const crypto = require('crypto');
-const { applyCors } = require('../lib/serverCatalog');
+const { applyCors, rateLimit } = require('../lib/serverCatalog');
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  // Bucket dédié, volontairement strict : 5 requêtes / 15 min / IP (anti brute-force).
+  if (!rateLimit(req, 'admin-auth', 5, 15 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Trop de tentatives — réessayez plus tard.' });
+  }
 
   const expected = process.env.ADMIN_PASSWORD || '';
   if (!expected) {

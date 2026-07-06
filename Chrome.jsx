@@ -296,6 +296,9 @@ function SearchBox({ compact }) {
   const [sugg, setSugg] = React.useState([]);
   const [open, setOpen] = React.useState(false);
   const [sel, setSel] = React.useState(-1);
+  // Focus de l'input : bordure accent sur le conteneur (l'input garde
+  // outline:none, la bordure transparente réservée ci-dessous prend le relais).
+  const [focused, setFocused] = React.useState(false);
   const boxRef = React.useRef(null);
   const idRef = React.useRef(null);
   if (idRef.current === null) idRef.current = 'lc-sugg-' + (window.__lcSuggSeq = (window.__lcSuggSeq || 0) + 1);
@@ -347,10 +350,11 @@ function SearchBox({ compact }) {
 
   return (
     <div ref={boxRef} style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: compact ? '0 6px 0 14px' : '0 6px 0 16px', height: compact ? 42 : 44, borderRadius: 'var(--radius-pill)', border: compact ? undefined : '1.5px solid transparent', background: 'var(--card)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: compact ? '0 6px 0 14px' : '0 6px 0 16px', height: compact ? 42 : 44, borderRadius: 'var(--radius-pill)', border: '1.5px solid ' + (focused ? 'var(--accent)' : 'transparent'), background: 'var(--card)', transition: 'border-color 0.15s ease' }}>
         <span style={{ display: 'flex', color: 'var(--muted)' }} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg></span>
         <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKeyDown}
-          onFocus={() => { if (query.trim().length >= 2 && sugg.length) setOpen(true); }}
+          onFocus={() => { setFocused(true); if (query.trim().length >= 2 && sugg.length) setOpen(true); }}
+          onBlur={() => setFocused(false)}
           placeholder={t('search_ph')} aria-label={t('search_ph')}
           role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" autoComplete="off"
           aria-activedescendant={open && sel >= 0 ? idBase + '-' + sel : undefined}
@@ -362,7 +366,7 @@ function SearchBox({ compact }) {
           style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', overflow: 'hidden', zIndex: 70 }}>
           {sugg.length === 0 && <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--muted)' }}>Aucune correspondance directe.</div>}
           {sugg.map((p, i) => (
-            <a key={p.id} id={idBase + '-' + i} role="option" aria-selected={sel === i}
+            <a key={p.id} id={idBase + '-' + i} role="option" aria-selected={sel === i} tabIndex={-1}
               href={urlFor(p.id)} onMouseEnter={() => setSel(i)}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: sel === i ? 'var(--accent-wash)' : 'transparent', color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>
               <span style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 6, background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
@@ -374,7 +378,7 @@ function SearchBox({ compact }) {
               <span style={{ flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(p.price)}&nbsp;€</span>
             </a>
           ))}
-          <a id={idBase + '-' + sugg.length} role="option" aria-selected={sel === sugg.length}
+          <a id={idBase + '-' + sugg.length} role="option" aria-selected={sel === sugg.length} tabIndex={-1}
             href={'boutique.html?q=' + encodeURIComponent(query.trim())}
             onClick={(e) => { e.preventDefault(); runSearch(); }} onMouseEnter={() => setSel(sugg.length)}
             style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '11px 12px', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', background: sel === sugg.length ? 'var(--accent-wash)' : 'transparent' }}>
@@ -475,6 +479,10 @@ const NAV = [
   { key: 'catalogue', label: 'Toute la boutique' },
 ];
 
+/* Libellés du méga-menu trop génériques pour pré-remplir la recherche (?q) :
+   pour ceux-là, le lien pointe vers le rayon complet (?cat seul). */
+const LC_MEGA_GENERIC = ['Dernière série', 'Meilleures ventes'];
+
 function MegaNav({ navigate, active }) {
   const [open, setOpen] = React.useState(null);
   const t = useLang();
@@ -517,7 +525,9 @@ function MegaNav({ navigate, active }) {
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: 14 }}>{col.title}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: col.items.length > 6 ? '1fr 1fr' : '1fr', gap: '9px 36px' }}>
                     {col.items.map((it) => (
-                      <a key={it} href={'/boutique.html?cat=' + encodeURIComponent(c.key)}
+                      /* boutique.html lit ?q et le passe à Catalogue (initialQuery) :
+                         chaque sous-lien pré-filtre son rayon, sauf libellés génériques. */
+                      <a key={it} href={'/boutique.html?cat=' + encodeURIComponent(c.key) + (LC_MEGA_GENERIC.indexOf(it) !== -1 ? '' : '&q=' + encodeURIComponent(it))}
                         style={{ fontSize: 14, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}
                         onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink)'; }}
                         onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-2)'; }}>{it}</a>
@@ -721,6 +731,11 @@ function Footer({ navigate }) {
    placeholder card for sealed/accessory items. One consistent unit.
    Self-contained (inline badges + price) so the grid never depends on the
    compiled bundle lagging a turn behind component edits. */
+/* Pointeur grossier (tactile) détecté une seule fois au chargement : pas de
+   hover fiable sur mobile, le cœur favoris reste donc toujours visible. */
+let lcCoarsePointer = false;
+try { lcCoarsePointer = window.matchMedia('(pointer: coarse)').matches; } catch (e) {}
+
 function lcBadgeStyle(tone) {
   const map = {
     sale: { background: 'var(--ink)', color: 'var(--on-ink)', border: '1.5px solid var(--ink)' },
@@ -736,6 +751,8 @@ function StoreCard({ product, navigate }) {
   const favs = useFavorites();   // null si le store Favorites est absent → cœur masqué
   const open = () => navigate('product', product.id);
   const [hover, setHover] = React.useState(false);
+  // Focus clavier sur le cœur : force sa visibilité (sinon opacity 0 hors hover).
+  const [heartFocus, setHeartFocus] = React.useState(false);
   const liked = !!(favs && favs.has(product.id));
   const fmt = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   const pct = product.oldPrice && product.oldPrice > product.price ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
@@ -757,7 +774,8 @@ function StoreCard({ product, navigate }) {
         {favs && product.inStock && (
           <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer des favoris' : 'Ajouter aux favoris'}
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); favs.toggle(product.id); }}
-            style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', fontSize: 14, color: liked ? 'var(--accent)' : 'var(--muted)', opacity: hover || liked ? 1 : 0, transition: 'opacity 0.2s ease' }}>{liked ? '♥' : '♡'}</button>
+            onFocus={() => setHeartFocus(true)} onBlur={() => setHeartFocus(false)}
+            style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', fontSize: 14, color: liked ? 'var(--accent)' : 'var(--muted)', opacity: hover || liked || heartFocus || lcCoarsePointer ? 1 : 0, transition: 'opacity 0.2s ease' }}>{liked ? '♥' : '♡'}</button>
         )}
         {product.image ? (
           <div style={{ aspectRatio: '1 / 1', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22, overflow: 'hidden' }}>

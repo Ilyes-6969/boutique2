@@ -9,7 +9,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { applyCors, rateLimit } = require('../lib/serverCatalog');
+const { applyCors, rateLimit, maskEmail } = require('../lib/serverCatalog');
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
@@ -36,7 +36,8 @@ module.exports = async function handler(req, res) {
       status: intent.status,                 // succeeded | processing | requires_payment_method | ...
       amount: intent.amount,                 // CENTIMES, fixés par le serveur à la création
       ref: intent.id,
-      email: intent.receipt_email || null,
+      // Masqué (a***@domaine.fr) : le client se reconnaît, un tiers n'en tire rien.
+      email: maskEmail(intent.receipt_email),
       orderRef: (intent.metadata && intent.metadata.orderRef) || '',
     });
   } catch (err) {

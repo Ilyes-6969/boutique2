@@ -22,7 +22,9 @@ function cleanCustomer(raw) {
   const out = {};
   Object.keys(CUSTOMER_LIMITS).forEach(function (k) {
     const v = raw[k];
-    out[k] = typeof v === 'string' ? v.trim().slice(0, CUSTOMER_LIMITS[k]) : '';
+    // Caractères de contrôle neutralisés : ces champs partent dans pi.shipping,
+    // la commande WooCommerce et les e-mails (anti-injection de lignes).
+    out[k] = typeof v === 'string' ? v.replace(/[\x00-\x1f\x7f]+/g, ' ').trim().slice(0, CUSTOMER_LIMITS[k]) : '';
   });
   if (!out.name && !out.email && !out.addr) return null;
   return out;

@@ -1,4 +1,13 @@
 /* leclub151 — Catalogue (boutique grid + filters) */
+
+/* Normalisation accents/casse — même logique que lcNormalize de Chrome.jsx
+   (SearchBox) : les liens du méga-menu pré-remplissent q avec des libellés
+   accentués (« Écarlate & Violet »…), le filtre doit matcher comme le header. */
+function catNormalize(s) {
+  const str = String(s || '').toLowerCase();
+  try { return str.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) { return str; }
+}
+
 function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const { PRODUCTS, FILTERS } = window.LC151;
@@ -33,11 +42,11 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', gap: 18 };
   const stateBox = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '72px 24px' };
 
-  const q = query.trim().toLowerCase();
+  const q = catNormalize(query.trim());
   let list = comingSoon ? [] : filter === 'favs'
     ? PRODUCTS.filter((p) => favIds.indexOf(p.id) !== -1)
     : PRODUCTS.filter((p) => filter === 'all' ? true : filter === 'preorder' ? p.preorder : p.type === filter);
-  if (q) list = list.filter((p) => ((p.name || '') + ' ' + (p.set || '') + ' ' + (p.num || '') + ' ' + (p.cat || '')).toLowerCase().includes(q));
+  if (q) list = list.filter((p) => catNormalize((p.name || '') + ' ' + (p.set || '') + ' ' + (p.num || '') + ' ' + (p.cat || '')).includes(q));
   if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
   if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
   const visible = list.slice(0, visibleCount);
@@ -107,7 +116,15 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
             </div>
           </div>
         ) : list.length === 0 ? (
-          filter === 'favs' ? (
+          q ? (
+            /* Recherche active sans résultat (ex. sous-lien du méga-menu) :
+               sortie propre vers le rayon complet plutôt qu'une grille vide. */
+            <div style={stateBox}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Aucun résultat pour «&nbsp;{query.trim()}&nbsp;» dans ce rayon</div>
+              <p style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 16, maxWidth: 440 }}>Essayez un autre terme, ou parcourez l'ensemble du rayon.</p>
+              <DS.Button variant="outline" onClick={() => setQuery('')}>Voir tout le rayon</DS.Button>
+            </div>
+          ) : filter === 'favs' ? (
             <div style={stateBox}>
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Aucun favori pour l'instant</div>
               <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Cliquez le ♥ d'une carte pour la retrouver ici.</p>
