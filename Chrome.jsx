@@ -359,7 +359,7 @@ function SearchBox({ compact }) {
           role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" autoComplete="off"
           aria-activedescendant={open && sel >= 0 ? idBase + '-' + sel : undefined}
           style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
-        <button onClick={runSearch} style={{ height: compact ? 32 : 34, padding: compact ? '0 14px' : '0 16px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: compact ? 11 : 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
+        <button onClick={runSearch} className="lc-press" style={{ height: compact ? 32 : 34, padding: compact ? '0 14px' : '0 16px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: compact ? 11 : 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
       </div>
       {open && (
         <div role="listbox" id={listId} aria-label="Suggestions de recherche"
@@ -432,7 +432,7 @@ function Header({ navigate, active, onCart }) {
               </svg>
             )}
           </a>
-          <button onClick={handleCart} aria-label="Panier" data-cart-btn="1"
+          <button onClick={handleCart} aria-label="Panier" data-cart-btn="1" className="lc-press"
             style={{ position: 'relative', height: 40, padding: '0 18px 0 16px', display: 'flex', alignItems: 'center', gap: 9, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 600 }}>
             {t('h_cart')}
             <span key={count} className={count > 0 ? 'lc-bump' : undefined} style={{ minWidth: 20, height: 20, padding: '0 5px', borderRadius: 'var(--radius-pill)', background: 'var(--on-accent)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 700 }}>{count}</span>
@@ -605,6 +605,8 @@ function Footer({ navigate }) {
   const t = useLang();
   const col = (title, items) => (
     <div>
+      {/* Filet or au-dessus du sur-titre mono — code visuel « maison premium ». */}
+      <span className="lc-gold-rule" aria-hidden="true" style={{ display: 'block', marginBottom: 10 }}></span>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: 18 }}>{title}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 13 }}>
         {items.map((it) => (
@@ -755,7 +757,7 @@ function lcBadgeStyle(tone) {
   const map = {
     sale: { background: 'var(--ink)', color: 'var(--on-ink)', border: '1.5px solid var(--ink)' },
     new: { background: 'var(--accent)', color: 'var(--on-accent)', border: '1.5px solid var(--accent)' },
-    graded: { background: 'var(--card)', color: 'var(--ink)', border: '1.5px solid var(--line-strong)' },
+    graded: { background: 'var(--ink)', color: 'var(--yellow)', border: '1.5px solid var(--yellow-deep)' },
     oos: { background: 'var(--red-soft)', color: 'var(--red)', border: '1.5px solid transparent' },
   };
   return { display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 'var(--radius-xs)', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1.4, whiteSpace: 'nowrap', ...(map[tone] || map.new) };
@@ -768,32 +770,44 @@ function StoreCard({ product, navigate }) {
   const [hover, setHover] = React.useState(false);
   // Focus clavier sur le bouton favori : force sa visibilité (sinon opacity 0 hors hover).
   const [heartFocus, setHeartFocus] = React.useState(false);
+  // Compteur d'AJOUTS aux favoris : incrémenté à chaque « ajout » (jamais au retrait).
+  // Sert de key au cœur → rejoue lc-fav-pop, façon key={count} du badge panier.
+  const [favPops, setFavPops] = React.useState(0);
   const liked = !!(favs && favs.has(product.id));
+  const toggleFav = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const wasLiked = liked;
+    favs.toggle(product.id);
+    if (!wasLiked) setFavPops((n) => n + 1);   // pop uniquement quand on AJOUTE
+  };
   const fmt = (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   const pct = product.oldPrice && product.oldPrice > product.price ? Math.round((1 - product.price / product.oldPrice) * 100) : 0;
   const low = product.inStock && typeof product.stockLeft === 'number' && product.stockLeft <= 3;
   const unique = cart.isUnique(product.id);
   const inCart = cart.items().some((l) => l.id === product.id);
   const lockedUnique = unique && inCart;          // already in cart → can't add another
+  // Slab gradée : liseré + ombre dorés sur toute la carte, halo doré sous l'image.
+  // Le badge grade (« PSA 10 ») est réintégré : pastille navy à texte or, mono.
+  const isGraded = product.type === 'graded';
 
   return (
-    <a href="#" className="lc-card" onClick={(e) => { e.preventDefault(); open(); }}
+    <a href="#" className={'lc-card' + (isGraded ? ' lc-graded' : '')} onClick={(e) => { e.preventDefault(); open(); }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ display: 'flex', flexDirection: 'column', background: 'var(--card)', border: '1.5px solid', borderColor: hover ? 'var(--line-strong)' : 'var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden', transition: 'all 0.2s ease', transform: hover ? 'translateY(-4px)' : 'none', boxShadow: hover ? 'var(--shadow-lg)' : 'var(--shadow-xs)', color: 'var(--ink)' }}>
+      style={{ display: 'flex', flexDirection: 'column', background: 'var(--card)', border: '1.5px solid', borderColor: isGraded ? 'var(--yellow-deep)' : (hover ? 'var(--line-strong)' : 'var(--line)'), borderRadius: 'var(--radius)', overflow: 'hidden', transition: 'all 0.2s ease', transform: hover ? 'translateY(-4px)' : 'none', boxShadow: isGraded ? undefined : (hover ? 'var(--shadow-lg)' : 'var(--shadow-xs)'), color: 'var(--ink)' }}>
       <div style={{ position: 'relative' }}>
         <span style={{ position: 'absolute', top: 12, left: 12, zIndex: 2, display: 'flex', gap: 6 }}>
           {pct > 0 && <span style={lcBadgeStyle('sale')}>−{pct}%</span>}
-          {product.badge && product.badge.tone !== 'graded' && <span style={lcBadgeStyle(product.badge.tone)}>{product.badge.label}</span>}
+          {product.badge && <span style={lcBadgeStyle(product.badge.tone)}>{product.badge.label}</span>}
         </span>
         {!product.inStock && <span style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}><span style={lcBadgeStyle('oos')}>Rupture</span></span>}
         {favs && product.inStock && (
           <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Ajouter à ma collection'} title={liked ? 'Dans ma collection' : 'Ajouter à ma collection'}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); favs.toggle(product.id); }}
+            onClick={toggleFav}
             onFocus={() => setHeartFocus(true)} onBlur={() => setHeartFocus(false)}
-            style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', opacity: hover || liked || heartFocus || lcCoarsePointer ? 1 : 0, transition: 'opacity 0.2s ease, border-color 0.2s ease' }}><FavRibbon caught={liked} size={16} /></button>
+            style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', opacity: hover || liked || heartFocus || lcCoarsePointer ? 1 : 0, transition: 'opacity 0.2s ease, border-color 0.2s ease' }}><span key={favPops} className={favPops > 0 ? 'lc-fav-pop' : undefined} style={{ display: 'flex', lineHeight: 0 }}><FavRibbon caught={liked} size={16} /></span></button>
         )}
         {product.image ? (
-          <div style={{ aspectRatio: '1 / 1', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22, overflow: 'hidden' }}>
+          <div className={isGraded ? 'lc-stage-lux' : undefined} style={{ position: 'relative', aspectRatio: '1 / 1', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22, overflow: 'hidden' }}>
             <img src={product.image} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' rx='8' fill='%23efe9da'/%3E%3Ctext x='50' y='80' font-family='sans-serif' font-size='28' font-weight='bold' fill='%23b9ad95' text-anchor='middle'%3E151%3C/text%3E%3C/svg%3E"; }} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.18))', transition: 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1)', transform: hover ? 'scale(1.06)' : 'scale(1)' }} />
           </div>
         ) : <ProductStage glyph={product.glyph} />}
@@ -810,7 +824,7 @@ function StoreCard({ product, navigate }) {
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: product.inStock ? (low ? 'var(--accent)' : 'var(--green)') : 'var(--line-strong)' }}></span>
           {product.inStock ? (product.preorder ? 'Précommande · à la sortie' : low ? `Plus que ${product.stockLeft} en stock` : 'En stock · expédié sous 48 h') : 'Bientôt de retour'}
         </div>
-        <button type="button" disabled={!product.inStock || lockedUnique} aria-label="Ajouter au panier"
+        <button type="button" className="lc-press" disabled={!product.inStock || lockedUnique} aria-label="Ajouter au panier"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (product.inStock && !lockedUnique) { cart.add(product.id); lcFlyToCart(e.currentTarget); } }}
           style={{ marginTop: 12, width: '100%', height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: (product.inStock && !lockedUnique) ? 'pointer' : 'not-allowed', transition: 'all 0.18s ease', border: '1.5px solid', borderColor: lockedUnique ? 'var(--green)' : (product.inStock ? 'var(--ink)' : 'var(--line)'), background: lockedUnique ? 'var(--green-soft)' : (!product.inStock ? 'transparent' : hover ? 'var(--accent)' : 'var(--ink)'), color: lockedUnique ? 'var(--green)' : (!product.inStock ? 'var(--muted)' : (hover ? 'var(--on-accent)' : 'var(--on-ink)')), boxShadow: product.inStock && hover && !lockedUnique ? 'var(--shadow-accent)' : 'none' }}>
           {lockedUnique ? <React.Fragment><span style={{ fontSize: 15 }}>✓</span> Dans le panier (1/1)</React.Fragment> : (product.inStock ? <React.Fragment><span style={{ fontSize: 16 }}>＋</span> {product.preorder ? 'Précommander' : 'Ajouter au panier'}</React.Fragment> : 'Indisponible')}
@@ -895,7 +909,6 @@ function useFocusTrap(panelRef, onClose) {
 }
 
 const lcField = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--paper)', fontSize: 14.5, color: 'var(--ink)', outline: 'none', marginBottom: 12, boxSizing: 'border-box' };
-function lcCta() { return { width: '100%', height: 46, borderRadius: 'var(--radius-sm)', border: 'none', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 15, cursor: 'pointer', background: 'var(--accent)', color: 'var(--on-accent)' }; }
 
 function ModalShell({ title, children, onClose }) {
   const panelRef = React.useRef(null);
@@ -915,16 +928,18 @@ function ModalShell({ title, children, onClose }) {
 }
 
 function LcSuccess({ message, onClose }) {
+  const DS = window.ADITCGDesignSystem_df75b7;
   return (
     <div style={{ textAlign: 'center', padding: '12px 0 6px' }}>
       <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'var(--accent)', color: 'var(--on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>✓</div>
       <p style={{ fontSize: 15.5, color: 'var(--ink-2)', marginBottom: 20, lineHeight: 1.55 }}>{message}</p>
-      <button onClick={onClose} style={lcCta()}>Fermer</button>
+      <DS.Button variant="accent" size="lg" block className="lc-press" onClick={onClose}>Fermer</DS.Button>
     </div>
   );
 }
 
 function FormModal({ title, fields, cta, success, onClose }) {
+  const DS = window.ADITCGDesignSystem_df75b7;
   const [sent, setSent] = React.useState(false);
   const submit = (e) => {
     e.preventDefault();
@@ -943,7 +958,7 @@ function FormModal({ title, fields, cta, success, onClose }) {
           {fields.map((f) => f.type === 'textarea'
             ? <textarea key={f.ph} name={f.ph} required placeholder={f.ph} rows={4} style={{ ...lcField, resize: 'vertical' }} />
             : <input key={f.ph} name={f.ph} type={f.type || 'text'} required placeholder={f.ph} style={lcField} />)}
-          <button type="submit" style={lcCta()}>{cta}</button>
+          <DS.Button type="submit" variant="accent" size="lg" block className="lc-press">{cta}</DS.Button>
         </form>
       )}
     </ModalShell>
@@ -951,6 +966,7 @@ function FormModal({ title, fields, cta, success, onClose }) {
 }
 
 function AccountModal({ onClose }) {
+  const DS = window.ADITCGDesignSystem_df75b7;
   const auth = useAuth();
   const [tab, setTab] = React.useState('login');
   const [sent, setSent] = React.useState(false);
@@ -969,13 +985,16 @@ function AccountModal({ onClose }) {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 18 }}>
           {[['Mes commandes', 'orders'], ['Mes adresses', 'addresses'], ['Mes alertes', 'alerts']].map(([it, target]) => (
-            <button key={it} onClick={() => { openModal(target); }} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '11px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line)', background: 'var(--card)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer' }}>
+            <button key={it} onClick={() => { openModal(target); }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.background = 'var(--accent-wash)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.background = 'var(--card)'; }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '11px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line)', background: 'var(--card)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', transition: 'border-color 0.18s ease, background 0.18s ease' }}>
               {it}
               {it === 'Mes alertes' && window.LC151.Alerts.count() > 0 && <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontSize: 11.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.LC151.Alerts.count()}</span>}
             </button>
           ))}
         </div>
-        <button onClick={() => { auth.logout(); onClose(); }} style={{ ...lcCta(), background: 'var(--ink)', color: 'var(--on-ink)' }}>Se déconnecter</button>
+        <DS.Button variant="primary" size="lg" block className="lc-press" onClick={() => { auth.logout(); onClose(); }}>Se déconnecter</DS.Button>
       </ModalShell>
     );
   }
@@ -991,14 +1010,17 @@ function AccountModal({ onClose }) {
         <React.Fragment>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {[['login', 'Connexion'], ['register', 'Créer un compte']].map(([k, l]) => (
-              <button key={k} onClick={() => setTab(k)} style={{ flex: 1, height: 38, borderRadius: 'var(--radius-sm)', border: '1.5px solid', borderColor: tab === k ? 'var(--ink)' : 'var(--line-strong)', background: tab === k ? 'var(--ink)' : 'transparent', color: tab === k ? 'var(--on-ink)' : 'var(--ink)', fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>{l}</button>
+              <button key={k} onClick={() => setTab(k)}
+                onMouseEnter={(e) => { if (tab !== k) { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.background = 'var(--accent-wash)'; } }}
+                onMouseLeave={(e) => { if (tab !== k) { e.currentTarget.style.borderColor = 'var(--line-strong)'; e.currentTarget.style.background = 'transparent'; } }}
+                style={{ flex: 1, height: 38, borderRadius: 'var(--radius-sm)', border: '1.5px solid', borderColor: tab === k ? 'var(--ink)' : 'var(--line-strong)', background: tab === k ? 'var(--ink)' : 'transparent', color: tab === k ? 'var(--on-ink)' : 'var(--ink)', fontWeight: 600, fontSize: 13.5, cursor: 'pointer', transition: 'border-color 0.18s ease, background 0.18s ease' }}>{l}</button>
             ))}
           </div>
           <form onSubmit={submit}>
             {tab === 'register' && <input required placeholder="Nom" value={name} onChange={(e) => setName(e.target.value)} style={lcField} />}
             <input required type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} style={lcField} />
             <input required type="password" placeholder="Mot de passe" style={lcField} />
-            <button type="submit" style={lcCta()}>{tab === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>
+            <DS.Button type="submit" variant="accent" size="lg" block className="lc-press">{tab === 'login' ? 'Se connecter' : 'Créer mon compte'}</DS.Button>
           </form>
         </React.Fragment>
       )}
@@ -1058,6 +1080,7 @@ function AlertsModal({ onClose }) {
 }
 
 function OrdersModal({ onClose }) {
+  const DS = window.ADITCGDesignSystem_df75b7;
   const auth = useAuth();
   const [, force] = React.useReducer((x) => x + 1, 0);
   React.useEffect(() => window.LC151.Orders.subscribe(force), []);
@@ -1069,7 +1092,7 @@ function OrdersModal({ onClose }) {
       {list.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           <p style={{ fontSize: 14.5, color: 'var(--ink-2)', marginBottom: 18 }}>Vous n'avez pas encore passé de commande.</p>
-          <button onClick={onClose} style={lcCta()}>Explorer la boutique</button>
+          <DS.Button variant="accent" size="lg" block className="lc-press" onClick={onClose}>Explorer la boutique</DS.Button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1093,6 +1116,7 @@ function OrdersModal({ onClose }) {
 }
 
 function AddressesModal({ onClose }) {
+  const DS = window.ADITCGDesignSystem_df75b7;
   const auth = useAuth();
   // Hooks TOUJOURS appelés avant tout return conditionnel (règles des hooks) :
   // se connecter pendant que la modale est ouverte ne doit pas faire varier leur nombre.
@@ -1138,7 +1162,7 @@ function AddressesModal({ onClose }) {
         <div><label style={lbl} htmlFor="lc-addr-phone">Téléphone (optionnel)</label><input id="lc-addr-phone" style={lcField} value={a.phone} onChange={(e) => set('phone', e.target.value)} /></div>
         {Object.keys(err).length > 0 && <div role="alert" style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>Veuillez vérifier les champs en rouge.</div>}
         {done && <div role="status" style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><span>✓</span> Adresse enregistrée.</div>}
-        <button onClick={save} style={lcCta()}>{done ? 'Enregistré ✓' : 'Enregistrer l’adresse'}</button>
+        <DS.Button variant="accent" size="lg" block className="lc-press" onClick={save}>{done ? 'Enregistré ✓' : 'Enregistrer l’adresse'}</DS.Button>
       </div>
     </ModalShell>
   );

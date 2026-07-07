@@ -109,34 +109,47 @@ function Home({ navigate }) {
         </div>
       </section>
 
-      {/* NOS UNIVERS (jeux TCG) */}
-      <section className="container-wide lc-reveal" style={{ padding: '40px 24px 8px' }}>
-        <div style={{ marginBottom: 18 }}>
+      {/* NOS UNIVERS (jeux TCG) — tuiles éditoriales hautes : lettre-logo géante
+          en filigrane, fond légèrement teinté de la couleur du jeu, respiration. */}
+      <section className="container-wide lc-reveal" style={{ padding: '48px 24px 8px' }}>
+        <div style={{ marginBottom: 24 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Nos univers</div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>Tous vos jeux de cartes</h2>
+          <div className="lc-gold-rule" style={{ marginBottom: 14 }}></div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(30px, 3.4vw, 38px)', letterSpacing: '-0.025em', lineHeight: 1.04 }}>Tous vos jeux de cartes</h2>
         </div>
         <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
-          {[['Pokémon', 'boutique.html', '#FFCB05', 'Le cœur de la boutique', false], ['Disney Lorcana', 'lorcana.html', '#1E63C8', 'Singles & chapitres', true], ['One Piece', 'one-piece.html', '#D8232A', 'Romance Dawn & +', true], ['Magic', 'magic.html', '#E08A2B', 'The Gathering', true], ['Yu-Gi-Oh!', 'yugioh.html', '#6A3FB5', 'Cartes & coffrets', true]].map(([t, href, color, sub, soon]) => (
-            <a key={href} href={href}
-              style={{ position: 'relative', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '20px 20px', display: 'flex', flexDirection: 'column', gap: 6, overflow: 'hidden' }}>
+          {[['Pokémon', 'boutique.html', '#FFCB05', 'Le cœur de la boutique', false, 'P'], ['Disney Lorcana', 'lorcana.html', '#1E63C8', 'Singles & chapitres', true, 'L'], ['One Piece', 'one-piece.html', '#D8232A', 'Romance Dawn & +', true, 'O'], ['Magic', 'magic.html', '#E08A2B', 'The Gathering', true, 'M'], ['Yu-Gi-Oh!', 'yugioh.html', '#6A3FB5', 'Cartes & coffrets', true, 'Y']].map(([t, href, color, sub, soon, initial]) => (
+            <a key={href} href={href} className="lc-tile"
+              style={{ position: 'relative', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '22px 20px 20px', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 176, overflow: 'hidden' }}>
+              {/* voile teinté de la couleur du jeu, très bas */}
+              <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: color, opacity: 0.05, pointerEvents: 'none' }}></span>
+              {/* lettre-logo géante en filigrane, débordant en bas à droite */}
+              <span aria-hidden="true" style={{ position: 'absolute', right: -10, bottom: -30, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 130, lineHeight: 1, color: color, opacity: 0.1, letterSpacing: '-0.04em', pointerEvents: 'none', userSelect: 'none' }}>{initial}</span>
               <span style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: color }}></span>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, letterSpacing: '-0.01em' }}>{t}</span>
-              <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{sub}</span>
-              <span style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: soon ? 'var(--muted)' : 'var(--accent)', fontWeight: 600 }}>{soon ? 'Bientôt disponible' : 'Explorer →'}</span>
+              <span style={{ position: 'relative', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 19, letterSpacing: '-0.01em' }}>{t}</span>
+              <span style={{ position: 'relative', fontSize: 12.5, color: 'var(--ink-2)' }}>{sub}</span>
+              <span style={{ position: 'relative', marginTop: 'auto', paddingTop: 10, fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: soon ? 'var(--muted)' : 'var(--accent)', fontWeight: 600 }}>{soon ? 'Bientôt disponible' : 'Explorer →'}</span>
             </a>
           ))}
         </div>
       </section>
 
-      {/* CATEGORY TILES */}
-      <section className="container-wide lc-reveal" style={{ padding: '48px 24px 8px' }}>
-        <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+      {/* CATÉGORIES — plus compactes/discrètes que « Nos univers » : filet fin à
+          gauche, sous-titre, un rayon = une ligne. Header propre (eyebrow + titre). */}
+      <section className="container-wide lc-reveal" style={{ padding: '44px 24px 8px' }}>
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Par rayon</div>
+          <div className="lc-gold-rule" style={{ marginBottom: 12 }}></div>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(26px, 2.8vw, 32px)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>Trouvez ce que vous cherchez</h2>
+        </div>
+        <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
           {[["Cartes à l'unité", 'single', 'Du Set de Base à aujourd’hui'], ['Cartes gradées', 'graded', 'PSA · BGS authentifiées'], ['Scellé', 'sealed', 'Displays · ETB · coffrets'], ['Accessoires', 'accessory', 'Sleeves · classeurs · tapis']].map(([t, key, sub]) => (
-            <a key={key} href={'boutique.html?cat=' + key} onClick={(e) => { e.preventDefault(); navigate('catalogue', key); }}
-              style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <a key={key} href={'boutique.html?cat=' + key} onClick={(e) => { e.preventDefault(); navigate('catalogue', key); }} className="lc-tile"
+              style={{ position: 'relative', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '16px 18px 15px 20px', display: 'flex', flexDirection: 'column', gap: 3, overflow: 'hidden' }}>
+              <span aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: key === 'graded' ? 'var(--yellow-deep)' : 'var(--line-strong)' }}></span>
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>{t}</span>
-              <span style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{sub}</span>
-              <span style={{ marginTop: 8, fontFamily: 'var(--font-body)', fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>Découvrir →</span>
+              <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{sub}</span>
+              <span style={{ marginTop: 7, fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 600 }}>Découvrir →</span>
             </a>
           ))}
         </div>
@@ -166,10 +179,11 @@ function Home({ navigate }) {
 
       {/* NOTRE BOUTIQUE À VIENNE */}
       <section className="container-wide lc-reveal" style={{ padding: '8px 24px 16px' }}>
-        <div className="lc-shop-grid" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1.5px solid var(--line)', background: 'var(--card)' }}>
+        <div className="lc-shop-grid lc-tile" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1.5px solid var(--line)', background: 'var(--card)' }}>
           <div style={{ padding: '36px 36px 38px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 14 }}><Pokeball size={14} />Boutique physique</div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em', marginBottom: 12 }}>Retrouvez-nous à Vienne</h2>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 12 }}><Pokeball size={14} />Boutique physique</div>
+            <div className="lc-gold-rule" style={{ marginBottom: 14 }}></div>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(28px, 3vw, 34px)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 12 }}>Retrouvez-nous à Vienne</h2>
             <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 440, marginBottom: 22 }}>
               Poussez la porte de la boutique pour voir les pièces en vrai, faire estimer vos cartes ou retirer une commande. On adore parler collection.
             </p>
@@ -207,13 +221,23 @@ function Home({ navigate }) {
         </div>
       </section>
 
-      {/* SHOP POLICY BAND */}
-      <section className="lc-reveal" style={{ background: 'var(--ink)', color: 'var(--on-ink)' }}>
-        <div className="container-wide" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, padding: '40px 24px', flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 28, letterSpacing: '-0.02em' }}>Passez nous voir — on adore parler cartes</div>
+      {/* BANDE FINALE — Pokéball géante en filigrane (débordante, masquée par
+          overflow), eyebrow + filet or, sous-titre. Marque sans surcharger. */}
+      <section className="lc-reveal" style={{ position: 'relative', background: 'var(--ink)', color: 'var(--on-ink)', overflow: 'hidden' }}>
+        {/* Pokéball géante en filigrane, débordant à droite, très basse opacité */}
+        <div aria-hidden="true" style={{ position: 'absolute', right: -70, top: '50%', transform: 'translateY(-50%)', opacity: 0.06, pointerEvents: 'none', filter: 'grayscale(1)' }}>
+          <Pokeball size={300} />
+        </div>
+        <div className="container-wide" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 28, padding: '52px 24px', flexWrap: 'wrap' }}>
+          <div style={{ maxWidth: 560 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--yellow)', marginBottom: 10 }}>Rue de la Juiverie · Vienne</div>
+            <div className="lc-gold-rule" style={{ marginBottom: 16 }}></div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(28px, 3.4vw, 38px)', letterSpacing: '-0.025em', lineHeight: 1.05, marginBottom: 12 }}>Passez nous voir — on adore parler cartes</div>
+            <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--on-ink)', opacity: 0.82, maxWidth: 480 }}>
+              Un doute sur une carte, une collection à faire estimer, ou juste l'envie de fouiner : la porte est ouverte du mardi au samedi.
+            </p>
           </div>
-          <DS.Button variant="accent" size="lg" type="button" onClick={() => openModal('contact')}>Nous trouver</DS.Button>
+          <DS.Button className="lc-press" variant="accent" size="lg" type="button" onClick={() => openModal('contact')}>Nous trouver</DS.Button>
         </div>
       </section>
     </div>

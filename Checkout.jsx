@@ -8,7 +8,29 @@
 // pages. Garde défensive : no-op si absent, pour ne jamais casser le paiement.
 const useFocusTrap = window.lcUseFocusTrap || function () {};
 
+// Radio « mode de livraison » — état hover local (comme DS.Button) : bordure accent
+// au survol même hors sélection, transition douce. Sélectionné : fond accent-wash.
+function ShipOption({ selected, onSelect, label, eta, cost, fmt }) {
+  const [hover, setHover] = React.useState(false);
+  const active = selected || hover;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      aria-pressed={selected}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid', borderColor: active ? 'var(--accent)' : 'var(--line)', background: selected ? 'var(--accent-wash)' : 'var(--card)', cursor: 'pointer', textAlign: 'left', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease), background var(--dur-fast, 150ms) var(--ease-out, ease)' }}
+    >
+      <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid', borderColor: active ? 'var(--accent)' : 'var(--line-strong)', flexShrink: 0, position: 'relative', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease)' }}>{selected && <span className="lc-pop" style={{ position: 'absolute', inset: 3, borderRadius: '50%', background: 'var(--accent)' }}></span>}</span>
+      <span style={{ flex: 1 }}><span style={{ fontWeight: 600, fontSize: 14, display: 'block' }}>{label}</span><span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{eta}</span></span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13.5, color: cost === 0 ? 'var(--green)' : 'var(--ink)' }}>{cost === 0 ? 'Offert' : fmt(cost)}</span>
+    </button>
+  );
+}
+
 function CheckoutModal({ onClose }) {
+  const DS = window.ADITCGDesignSystem_df75b7 || {};
   const cart = useCart();
   const auth = useAuth();
   const { fmt, Orders, FREE_SHIP } = window.LC151;
@@ -31,9 +53,43 @@ function CheckoutModal({ onClose }) {
   const shippingCost = Orders.shippingCost(ship.method, subtotal);
   const total = subtotal + shippingCost;
 
-  const field = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--paper)', fontSize: 14.5, color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' };
+  // Focus « dessiné » : anneau accent + bordure accent au focus de chaque champ.
+  // Piloté en React (onFocus/onBlur) plutôt qu'en CSS car les champs sont stylés inline.
+  const [focused, setFocused] = React.useState(null);
+  // Bordure en longhand (width/style/color séparés) et NON en raccourci `border` :
+  // React qui diffe `border` → `borderColor` réinitialise width/style à vide et fait
+  // « disparaître » la bordure au focus. Le longhand garde width/style stables.
+  const field = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', borderWidth: '1.5px', borderStyle: 'solid', borderColor: 'var(--line-strong)', background: 'var(--paper)', fontSize: 14.5, color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease), box-shadow var(--dur-fast, 150ms) var(--ease-out, ease)' };
   const lbl = { fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6, display: 'block' };
-  const errStyle = (k) => errors[k] ? { ...field, borderColor: 'var(--red)' } : field;
+  // Ordre de priorité visuelle : erreur (rouge) < focus (accent). Un champ en
+  // erreur qu'on refocalise passe à l'anneau accent — invitation claire à corriger.
+  const errStyle = (k) => {
+    const base = errors[k] ? { ...field, borderColor: 'var(--red)' } : field;
+    if (focused === k) return { ...base, borderColor: 'var(--accent)', boxShadow: '0 0 0 3px var(--accent-wash)' };
+    return base;
+  };
+  // Props communes à câbler sur chaque champ pour animer le focus.
+  const focusProps = (k) => ({ onFocus: () => setFocused(k), onBlur: () => setFocused((f) => (f === k ? null : f)) });
+
+  // Petites icônes SVG stroke (mêmes tracés que la réassurance de Chrome.jsx,
+  // recopiées ici car ce fichier ne peut pas importer Chrome.jsx).
+  const reIcon = (name) => {
+    const shapes = {
+      truck: <React.Fragment><rect x="1" y="3" width="15" height="13" rx="1"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></React.Fragment>,
+      bouclier: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>,
+      retour: <React.Fragment><polyline points="1 4 1 10 7 10"></polyline><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"></path></React.Fragment>,
+    };
+    return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>{shapes[name]}</svg>;
+  };
+  // Mini-logos moyens de paiement monochromes (CB / Visa / Mastercard), sobres.
+  const payMark = (name) => {
+    const marks = {
+      cb: <svg width="30" height="20" viewBox="0 0 34 22" aria-label="Carte bancaire" role="img"><rect x="0.75" y="0.75" width="32.5" height="20.5" rx="3.25" fill="none" stroke="currentColor" strokeWidth="1.5"></rect><rect x="4" y="7" width="6" height="5" rx="1" fill="currentColor" opacity="0.9"></rect><rect x="4" y="15" width="16" height="2" rx="1" fill="currentColor" opacity="0.55"></rect></svg>,
+      visa: <svg width="30" height="20" viewBox="0 0 34 22" aria-label="Visa" role="img"><rect x="0.75" y="0.75" width="32.5" height="20.5" rx="3.25" fill="none" stroke="currentColor" strokeWidth="1.5"></rect><text x="17" y="15" textAnchor="middle" fontFamily="var(--font-display, sans-serif)" fontWeight="800" fontSize="9" letterSpacing="0.06em" fill="currentColor">VISA</text></svg>,
+      mc: <svg width="30" height="20" viewBox="0 0 34 22" aria-label="Mastercard" role="img"><rect x="0.75" y="0.75" width="32.5" height="20.5" rx="3.25" fill="none" stroke="currentColor" strokeWidth="1.5"></rect><circle cx="14" cy="11" r="5.4" fill="none" stroke="currentColor" strokeWidth="1.5"></circle><circle cx="20" cy="11" r="5.4" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.55"></circle></svg>,
+    };
+    return marks[name];
+  };
 
   const setS = (k, v) => setShip((s) => ({ ...s, [k]: v }));
   const setP = (k, v) => setPay((p) => ({ ...p, [k]: v }));
@@ -211,6 +267,35 @@ function CheckoutModal({ onClose }) {
   const steps = [['livraison', 'Livraison'], ['paiement', 'Paiement'], ['confirme', 'Confirmation']];
   const stepIdx = steps.findIndex((s) => s[0] === step);
 
+  // Rangée de réassurance paiement : moyens acceptés (SVG monochromes) + mention
+  // « 100% sécurisé ». Partagée par le formulaire carte manuel et le Payment Element.
+  const payReassure = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16, color: 'var(--muted)' }}>
+      <span style={{ display: 'inline-flex', gap: 6 }} aria-hidden="true">{payMark('cb')}{payMark('visa')}{payMark('mc')}</span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-2)', fontWeight: 500 }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Paiement 100&nbsp;% sécurisé{stripeEmbedded ? ' par Stripe' : ''}
+      </span>
+    </div>
+  );
+
+  // Total économisé sur les articles en promotion (somme des remises oldPrice→price).
+  const savings = items.reduce((s, l) => {
+    const p = window.LC151.get(l.id);
+    if (p && p.oldPrice && p.oldPrice > p.price) return s + (p.oldPrice - p.price) * l.qty;
+    return s;
+  }, 0);
+  // Barre « livraison offerte » (même logique que le drawer panier).
+  const freeShipRemaining = Math.max(0, FREE_SHIP - subtotal);
+  const freeShipPct = Math.min(100, (subtotal / FREE_SHIP) * 100);
+
+  // Puces de garantie sous le total — rassurent au moment de payer.
+  const guaranteeItems = [
+    ['truck', 'Livraison suivie', 'Colissimo assuré, remis contre signature'],
+    ['bouclier', 'Authenticité garantie', 'Chaque carte vérifiée par nos soins'],
+    ['retour', 'Retours sous 14 jours', 'Rétractation simple, remboursement rapide'],
+  ];
+
   const summary = (
     <div style={{ background: 'var(--paper-2)', borderRadius: 'var(--radius)', padding: '18px 18px 20px', alignSelf: 'flex-start' }}>
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Récapitulatif</div>
@@ -228,10 +313,34 @@ function CheckoutModal({ onClose }) {
           </div>
         ); })}
       </div>
+      {/* Barre « livraison offerte » — halo de valeur avant le total */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 7 }}>
+          {freeShipRemaining > 0
+            ? <span>Plus que <strong style={{ color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>{fmt(freeShipRemaining)}</strong> pour la livraison offerte</span>
+            : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 600 }}><span className="lc-pop" style={{ display: 'inline-flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Livraison offerte débloquée</span>}
+        </div>
+        <div className={freeShipRemaining === 0 ? 'lc-shimmer' : undefined} style={{ height: 6, borderRadius: 3, background: 'var(--card)', overflow: 'hidden' }}>
+          <div style={{ width: freeShipPct + '%', height: '100%', background: freeShipRemaining === 0 ? 'var(--green)' : 'var(--accent)', transition: 'width var(--dur-normal, 300ms) var(--ease-out, ease)' }}></div>
+        </div>
+      </div>
       <div style={{ borderTop: '1.5px solid var(--line)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-2)' }}><span>Sous-total</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(subtotal)}</span></div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-2)' }}><span>Livraison</span><span style={{ fontFamily: 'var(--font-mono)' }}>{shippingCost === 0 ? 'Offerte' : fmt(shippingCost)}</span></div>
+        {savings > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)', fontWeight: 600 }}><span>Vous économisez</span><span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(savings)}</span></div>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-2)' }}><span>Livraison</span><span style={{ fontFamily: 'var(--font-mono)', color: shippingCost === 0 ? 'var(--green)' : 'var(--ink-2)', fontWeight: shippingCost === 0 ? 600 : 400 }}>{shippingCost === 0 ? 'Offerte' : fmt(shippingCost)}</span></div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 16, marginTop: 4 }}><span>Total</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(total)}</span></div>
+      </div>
+      {/* Puces de garantie */}
+      <div style={{ borderTop: '1px solid var(--line)', marginTop: 14, paddingTop: 14, display: 'flex', flexDirection: 'column', gap: 11 }}>
+        {guaranteeItems.map(([ic, ti, sub]) => (
+          <div key={ti} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <span style={{ color: 'var(--accent)', marginTop: 1, display: 'flex' }}>{reIcon(ic)}</span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>{ti}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--muted)', lineHeight: 1.35 }}>{sub}</div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -248,18 +357,29 @@ function CheckoutModal({ onClose }) {
           <button onClick={guardedClose} aria-label="Fermer" style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer', background: 'transparent' }}>×</button>
         </div>
 
-        {/* stepper */}
+        {/* stepper — pastilles avec transition douce background/color quand l'étape avance */}
         {step !== 'confirme' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 22 }}>
-            {steps.slice(0, 2).map(([k, label], i) => (
-              <React.Fragment key={k}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: i <= stepIdx ? 'var(--accent)' : 'var(--paper-2)', color: i <= stepIdx ? 'var(--on-accent)' : 'var(--muted)' }}>{i + 1}</span>
-                  <span style={{ fontSize: 13.5, fontWeight: 600, color: i <= stepIdx ? 'var(--ink)' : 'var(--muted)' }}>{label}</span>
-                </div>
-                {i === 0 && <span style={{ flex: 1, height: 1.5, background: 'var(--line)' }}></span>}
-              </React.Fragment>
-            ))}
+            {steps.slice(0, 2).map(([k, label], i) => {
+              const done = i < stepIdx;
+              const active = i === stepIdx;
+              const on = i <= stepIdx;
+              return (
+                <React.Fragment key={k}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span key={on ? 'on-' + k : 'off-' + k} className={active ? 'lc-pop' : undefined} style={{ width: 24, height: 24, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, background: on ? 'var(--accent)' : 'var(--paper-2)', color: on ? 'var(--on-accent)' : 'var(--muted)', transition: 'background var(--dur-normal, 300ms) var(--ease-out, ease), color var(--dur-normal, 300ms) var(--ease-out, ease)' }}>
+                      {done ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg> : (i + 1)}
+                    </span>
+                    <span style={{ fontSize: 13.5, fontWeight: 600, color: on ? 'var(--ink)' : 'var(--muted)', transition: 'color var(--dur-normal, 300ms) var(--ease-out, ease)' }}>{label}</span>
+                  </div>
+                  {i === 0 && (
+                    <span style={{ flex: 1, height: 1.5, background: 'var(--line)', position: 'relative', overflow: 'hidden' }}>
+                      <span style={{ position: 'absolute', inset: 0, background: 'var(--accent)', transformOrigin: 'left', transform: stepIdx >= 1 ? 'scaleX(1)' : 'scaleX(0)', transition: 'transform var(--dur-normal, 300ms) var(--ease-out, ease)' }}></span>
+                    </span>
+                  )}
+                </React.Fragment>
+              );
+            })}
           </div>
         )}
 
@@ -273,38 +393,36 @@ function CheckoutModal({ onClose }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Livraison</span><span>{Orders.methods()[order.method].label}</span></div>
               <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 8 }}>{order.paid ? 'Paiement reçu.' : 'À régler au retrait en boutique.'} Un e-mail de confirmation a été envoyé à {order.email}.</div>
             </div>
-            <button onClick={onClose} style={{ padding: '12px 28px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer mes achats</button>
+            {DS.Button
+              ? <DS.Button className="lc-press" variant="accent" size="lg" onClick={onClose}>Continuer mes achats</DS.Button>
+              : <button onClick={onClose} style={{ padding: '12px 28px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer mes achats</button>}
           </div>
         ) : (
           <div className="lc-checkout-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr', gap: 24 }}>
-            <div>
+            {/* key={step} → remonte à chaque changement d'étape : le fade-up .lc-line-in
+                se rejoue, livraison→paiement glisse (inerte sous reduced-motion). */}
+            <div key={step} className="lc-line-in">
               {step === 'livraison' ? (
                 <React.Fragment>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                    <div><label style={lbl} htmlFor="lc-co-name">Nom complet</label><input id="lc-co-name" autoComplete="name" aria-invalid={!!errors.name} style={errStyle('name')} value={ship.name} onChange={(e) => setS('name', e.target.value)} /></div>
-                    <div><label style={lbl} htmlFor="lc-co-email">E-mail</label><input id="lc-co-email" type="email" required autoComplete="email" aria-invalid={!!errors.email} style={errStyle('email')} value={ship.email} onChange={(e) => setS('email', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-name">Nom complet</label><input id="lc-co-name" autoComplete="name" aria-invalid={!!errors.name} style={errStyle('name')} {...focusProps('name')} value={ship.name} onChange={(e) => setS('name', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-email">E-mail</label><input id="lc-co-email" type="email" required autoComplete="email" aria-invalid={!!errors.email} style={errStyle('email')} {...focusProps('email')} value={ship.email} onChange={(e) => setS('email', e.target.value)} /></div>
                   </div>
-                  <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-addr">Adresse</label><input id="lc-co-addr" autoComplete="street-address" aria-invalid={!!errors.addr} style={errStyle('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" /></div>
+                  <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-addr">Adresse</label><input id="lc-co-addr" autoComplete="street-address" aria-invalid={!!errors.addr} style={errStyle('addr')} {...focusProps('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" /></div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
-                    <div><label style={lbl} htmlFor="lc-co-zip">Code postal</label><input id="lc-co-zip" autoComplete="postal-code" aria-invalid={!!errors.zip} style={errStyle('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} /></div>
-                    <div><label style={lbl} htmlFor="lc-co-city">Ville</label><input id="lc-co-city" autoComplete="address-level2" aria-invalid={!!errors.city} style={errStyle('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-zip">Code postal</label><input id="lc-co-zip" autoComplete="postal-code" aria-invalid={!!errors.zip} style={errStyle('zip')} {...focusProps('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-city">Ville</label><input id="lc-co-city" autoComplete="address-level2" aria-invalid={!!errors.city} style={errStyle('city')} {...focusProps('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} /></div>
                   </div>
-                  <div style={{ marginBottom: 16 }}><label style={lbl} htmlFor="lc-co-phone">Téléphone (optionnel)</label><input id="lc-co-phone" type="tel" autoComplete="tel" style={field} value={ship.phone} onChange={(e) => setS('phone', e.target.value)} /></div>
+                  <div style={{ marginBottom: 16 }}><label style={lbl} htmlFor="lc-co-phone">Téléphone (optionnel)</label><input id="lc-co-phone" type="tel" autoComplete="tel" style={errStyle('phone')} {...focusProps('phone')} value={ship.phone} onChange={(e) => setS('phone', e.target.value)} /></div>
                   <label style={lbl}>Mode de livraison</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
-                    {Object.values(Orders.methods()).map((m) => {
-                      const cost = Orders.shippingCost(m.key, subtotal);
-                      const on = ship.method === m.key;
-                      return (
-                        <button key={m.key} onClick={() => setS('method', m.key)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid', borderColor: on ? 'var(--accent)' : 'var(--line)', background: on ? 'var(--accent-wash)' : 'var(--card)', cursor: 'pointer', textAlign: 'left' }}>
-                          <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid', borderColor: on ? 'var(--accent)' : 'var(--line-strong)', flexShrink: 0, position: 'relative' }}>{on && <span style={{ position: 'absolute', inset: 3, borderRadius: '50%', background: 'var(--accent)' }}></span>}</span>
-                          <span style={{ flex: 1 }}><span style={{ fontWeight: 600, fontSize: 14, display: 'block' }}>{m.label}</span><span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{m.eta}</span></span>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13.5, color: cost === 0 ? 'var(--green)' : 'var(--ink)' }}>{cost === 0 ? 'Offert' : fmt(cost)}</span>
-                        </button>
-                      );
-                    })}
+                    {Object.values(Orders.methods()).map((m) => (
+                      <ShipOption key={m.key} selected={ship.method === m.key} onSelect={() => setS('method', m.key)} label={m.label} eta={m.eta} cost={Orders.shippingCost(m.key, subtotal)} fmt={fmt} />
+                    ))}
                   </div>
-                  <button onClick={goPay} style={{ width: '100%', height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer vers le paiement →</button>
+                  {DS.Button
+                    ? <DS.Button className="lc-press" variant="accent" size="lg" block iconRight="→" onClick={goPay}>Continuer vers le paiement</DS.Button>
+                    : <button onClick={goPay} style={{ width: '100%', height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer vers le paiement →</button>}
                 </React.Fragment>
               ) : (
                 <React.Fragment>
@@ -321,25 +439,31 @@ function CheckoutModal({ onClose }) {
                           <div style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 2px' }}>Chargement du paiement sécurisé…</div>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}><span>🔒</span> Paiement chiffré par Stripe · vos données bancaires ne sont jamais stockées sur ce site</div>
+                      {payReassure}
                     </React.Fragment>
                   ) : (
                     <React.Fragment>
-                      <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-card">Numéro de carte</label><input id="lc-co-card" inputMode="numeric" aria-invalid={!!errors.card} aria-describedby={errors.card ? 'lc-co-card-err' : undefined} style={errStyle('card')} value={pay.card} onChange={(e) => setP('card', fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" /></div>
+                      <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-card">Numéro de carte</label><input id="lc-co-card" inputMode="numeric" aria-invalid={!!errors.card} aria-describedby={errors.card ? 'lc-co-card-err' : undefined} style={errStyle('card')} {...focusProps('card')} value={pay.card} onChange={(e) => setP('card', fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" /></div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                        <div><label style={lbl} htmlFor="lc-co-exp">Expiration</label><input id="lc-co-exp" inputMode="numeric" aria-invalid={!!errors.exp} aria-describedby={errors.exp ? 'lc-co-card-err' : undefined} style={errStyle('exp')} value={pay.exp} onChange={(e) => setP('exp', fmtExp(e.target.value))} placeholder="MM/AA" /></div>
-                        <div><label style={lbl} htmlFor="lc-co-cvc">CVC</label><input id="lc-co-cvc" inputMode="numeric" aria-invalid={!!errors.cvc} aria-describedby={errors.cvc ? 'lc-co-card-err' : undefined} style={errStyle('cvc')} value={pay.cvc} onChange={(e) => setP('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" /></div>
+                        <div><label style={lbl} htmlFor="lc-co-exp">Expiration</label><input id="lc-co-exp" inputMode="numeric" aria-invalid={!!errors.exp} aria-describedby={errors.exp ? 'lc-co-card-err' : undefined} style={errStyle('exp')} {...focusProps('exp')} value={pay.exp} onChange={(e) => setP('exp', fmtExp(e.target.value))} placeholder="MM/AA" /></div>
+                        <div><label style={lbl} htmlFor="lc-co-cvc">CVC</label><input id="lc-co-cvc" inputMode="numeric" aria-invalid={!!errors.cvc} aria-describedby={errors.cvc ? 'lc-co-card-err' : undefined} style={errStyle('cvc')} {...focusProps('cvc')} value={pay.cvc} onChange={(e) => setP('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" /></div>
                       </div>
-                      <div style={{ marginBottom: 8 }}><label style={lbl} htmlFor="lc-co-holder">Titulaire de la carte</label><input id="lc-co-holder" autoComplete="cc-name" aria-invalid={!!errors.holder} aria-describedby={errors.holder ? 'lc-co-card-err' : undefined} style={errStyle('holder')} value={pay.holder} onChange={(e) => setP('holder', e.target.value)} /></div>
+                      <div style={{ marginBottom: 8 }}><label style={lbl} htmlFor="lc-co-holder">Titulaire de la carte</label><input id="lc-co-holder" autoComplete="cc-name" aria-invalid={!!errors.holder} aria-describedby={errors.holder ? 'lc-co-card-err' : undefined} style={errStyle('holder')} {...focusProps('holder')} value={pay.holder} onChange={(e) => setP('holder', e.target.value)} /></div>
                       {(errors.card || errors.exp || errors.cvc || errors.holder) && <div id="lc-co-card-err" role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>Vérifiez les informations de paiement saisies.</div>}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: 'var(--muted)', marginBottom: 16 }}><span>🔒</span> Paiement chiffré · vos données ne sont pas stockées</div>
+                      {payReassure}
                     </React.Fragment>
                   )}
                   {(errors.stock || errors.cart) && <div role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>{errors.cart ? 'Votre panier est vide.' : 'Un article n’est plus disponible — retirez-le du panier pour continuer.'}</div>}
                   {errors.pay && <div role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10, lineHeight: 1.5 }}>Paiement impossible : {errors.pay}</div>}
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>
-                    <button onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: (paying || (stripeEmbedded && !stripeReady)) ? 'wait' : 'pointer', opacity: (paying || (stripeEmbedded && !stripeReady)) ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+                    {DS.Button
+                      ? <DS.Button variant="outline" size="lg" iconLeft="←" onClick={() => { setErrors({}); setStep('livraison'); }}>Retour</DS.Button>
+                      : <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>}
+                    {/* flex:1 porté par le wrapper — ne pas passer `style` à DS.Button
+                        (son `style` calculé serait écrasé par le prop `rest`). */}
+                    {DS.Button
+                      ? <div style={{ flex: 1, display: 'flex' }}><DS.Button className="lc-press" variant="accent" size="lg" block onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</DS.Button></div>
+                      : <button onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: (paying || (stripeEmbedded && !stripeReady)) ? 'wait' : 'pointer', opacity: (paying || (stripeEmbedded && !stripeReady)) ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>}
                   </div>
                 </React.Fragment>
               )}

@@ -1,5 +1,23 @@
 /* leclub151 — Panier (slide-over drawer) */
 
+/* Somme des économies des lignes en promo : (oldPrice - price) * qty.
+   Ne compte que les lignes dont le produit existe encore et dont oldPrice
+   dépasse strictement le prix courant (garde défensive : oldPrice peut être
+   null, absent, ou passé sous le prix après une mise à jour catalogue). */
+function cartSavings(items) {
+  let total = 0;
+  for (const line of items) {
+    const p = window.LC151.get(line.id);
+    if (!p) continue;
+    const old = Number(p.oldPrice);
+    const now = Number(p.price);
+    if (Number.isFinite(old) && Number.isFinite(now) && old > now) {
+      total += (old - now) * line.qty;
+    }
+  }
+  return Math.round(total * 100) / 100;
+}
+
 /* Anime doucement un montant vers sa nouvelle valeur (~250 ms, easeOut cubic)
    pour éviter le saut brutal des totaux quand une quantité change.
    Respecte prefers-reduced-motion : renvoie la cible telle quelle, sans animation.
@@ -38,6 +56,8 @@ function CartDrawer({ open, onClose, navigate }) {
   const animatedSubtotal = useCountUp(subtotal);   // count-up doux du sous-total (respecte reduced-motion)
   const remaining = Math.max(0, FREE_SHIP - subtotal);
   const pct = Math.min(100, (subtotal / FREE_SHIP) * 100);
+  const freeShip = remaining === 0;                 // seuil livraison offerte atteint
+  const savings = cartSavings(items);               // total économisé sur les lignes en promo
   const loggedIn = auth.isLoggedIn();
 
   // Gestion du focus à l'ouverture : le drawer reste monté en permanence (pour
@@ -89,21 +109,24 @@ function CartDrawer({ open, onClose, navigate }) {
             {/* free-ship progress */}
             <div style={{ padding: '16px 22px', borderBottom: '1.5px solid var(--line)' }}>
               <div style={{ fontSize: 13, color: 'var(--ink-2)', marginBottom: 8 }}>
-                {remaining > 0 ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour la livraison offerte</span> : <span style={{ color: 'var(--green)', fontWeight: 600 }}>✓ Livraison offerte débloquée</span>}
+                {remaining > 0
+                  ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour la livraison offerte</span>
+                  : <span key="unlocked" className="lc-pop" style={{ display: 'inline-block', color: 'var(--green)', fontWeight: 600 }}>✓ Livraison offerte débloquée</span>}
               </div>
-              <div style={{ height: 6, borderRadius: 3, background: 'var(--paper-2)', overflow: 'hidden' }}>
-                <div style={{ width: pct + '%', height: '100%', background: 'var(--accent)', transition: 'width 0.3s ease' }}></div>
+              <div className={freeShip ? 'lc-shimmer' : undefined} style={{ height: 6, borderRadius: 3, background: 'var(--paper-2)', overflow: 'hidden' }}>
+                <div style={{ width: pct + '%', height: '100%', background: 'var(--accent)', transition: 'width var(--dur-slow) var(--ease-out)' }}></div>
               </div>
             </div>
 
-            {/* lines */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '8px 22px' }}>
-              {items.map((line) => {
+            {/* lines — key sur `open` : chaque ouverture remonte la liste et rejoue
+                l'entrée échelonnée .lc-line-in (inerte sous reduced-motion, géré CSS). */}
+            <div key={open ? 'open' : 'closed'} style={{ flex: 1, overflowY: 'auto', padding: '8px 22px' }}>
+              {items.map((line, i) => {
                 const p = window.LC151.get(line.id);
                 if (!p) return null;   // stale line — Cart.reconcile() prunes it; never crash
                 return (
-                  <div key={line.id} style={{ display: 'flex', gap: 14, padding: '16px 0', borderBottom: '1.5px solid var(--line)' }}>
-                    <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, overflow: 'hidden' }}>
+                  <div key={line.id} className="lc-line-in" style={{ animationDelay: (i * 0.05) + 's', display: 'flex', gap: 14, padding: '16px 0', borderBottom: '1.5px solid var(--line)' }}>
+                    <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', boxShadow: 'var(--shadow-xs)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, overflow: 'hidden' }}>
                       {(p.thumb || p.image) ? <img src={p.thumb || p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -128,14 +151,20 @@ function CartDrawer({ open, onClose, navigate }) {
                 <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>Sous-total</span>
                 <DS.PriceTag price={animatedSubtotal} size="lg" />
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 14 }}>Taxes incluses · livraison calculée à l'étape suivante</div>
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: savings > 0 ? 8 : 14 }}>Taxes incluses · livraison calculée à l'étape suivante</div>
+              {savings > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 14, fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>
+                  <span>Vous économisez</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(savings)}</span>
+                </div>
+              )}
               {loggedIn && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: 13, color: 'var(--ink-2)' }}>
                   <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--accent)', color: 'var(--on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}>{(auth.user().name || 'C')[0]}</span>
                   Connecté · {auth.user().name}
                 </div>
               )}
-              <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => { onClose(); openModal('checkout'); }}>Passer commande</DS.Button>
+              <DS.Button className="lc-press" variant="accent" size="lg" block iconRight="→" onClick={() => { onClose(); openModal('checkout'); }}>Passer commande</DS.Button>
               {!loggedIn && (
                 <div style={{ marginTop: 10, textAlign: 'center' }}>
                   <button onClick={() => { onClose(); openModal('account'); }} style={{ fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', background: 'transparent', textDecoration: 'underline', textUnderlineOffset: 2 }}>Vous avez un compte ? Se connecter</button>
@@ -163,6 +192,8 @@ function CartPage({ navigate }) {
   const animatedSubtotal = useCountUp(subtotal);   // count-up doux du sous-total (respecte reduced-motion)
   const remaining = Math.max(0, FREE_SHIP - subtotal);
   const pct = Math.min(100, (subtotal / FREE_SHIP) * 100);
+  const freeShip = remaining === 0;                 // seuil livraison offerte atteint
+  const savings = cartSavings(items);               // total économisé sur les lignes en promo
   const loggedIn = auth.isLoggedIn();
 
   return (
@@ -187,7 +218,7 @@ function CartPage({ navigate }) {
                 if (!p) return null;
                 return (
                   <div key={line.id} style={{ display: 'flex', gap: 16, padding: '18px 20px', borderBottom: '1.5px solid var(--line)' }}>
-                    <a href={window.LC151.productUrl(p.id)} style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, overflow: 'hidden' }}>
+                    <a href={window.LC151.productUrl(p.id)} style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', boxShadow: 'var(--shadow-xs)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, overflow: 'hidden' }}>
                       {(p.thumb || p.image) ? <img src={p.thumb || p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
                     </a>
                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -209,18 +240,26 @@ function CartPage({ navigate }) {
               <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 16 }}>Récapitulatif</div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--ink-2)', marginBottom: 8 }}>
-                  {remaining > 0 ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour la livraison offerte</span> : <span style={{ color: 'var(--green)', fontWeight: 600 }}>✓ Livraison offerte débloquée</span>}
+                  {remaining > 0
+                    ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour la livraison offerte</span>
+                    : <span key="unlocked" className="lc-pop" style={{ display: 'inline-block', color: 'var(--green)', fontWeight: 600 }}>✓ Livraison offerte débloquée</span>}
                 </div>
-                <div style={{ height: 6, borderRadius: 3, background: 'var(--paper-2)', overflow: 'hidden' }}>
-                  <div style={{ width: pct + '%', height: '100%', background: 'var(--accent)', transition: 'width 0.3s ease' }}></div>
+                <div className={freeShip ? 'lc-shimmer' : undefined} style={{ height: 6, borderRadius: 3, background: 'var(--paper-2)', overflow: 'hidden' }}>
+                  <div style={{ width: pct + '%', height: '100%', background: 'var(--accent)', transition: 'width var(--dur-slow) var(--ease-out)' }}></div>
                 </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                 <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>Sous-total ({cart.count()})</span>
                 <DS.PriceTag price={animatedSubtotal} size="lg" />
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: 16 }}>Taxes incluses · livraison à l'étape suivante</div>
-              <DS.Button variant="accent" size="lg" block iconRight="→" onClick={() => openModal('checkout')}>Passer commande</DS.Button>
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: savings > 0 ? 10 : 16 }}>Taxes incluses · livraison à l'étape suivante</div>
+              {savings > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>
+                  <span>Vous économisez</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(savings)}</span>
+                </div>
+              )}
+              <DS.Button className="lc-press" variant="accent" size="lg" block iconRight="→" onClick={() => openModal('checkout')}>Passer commande</DS.Button>
               {!loggedIn && (
                 <div style={{ marginTop: 10, textAlign: 'center' }}>
                   <button onClick={() => openModal('account')} style={{ fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', background: 'transparent', textDecoration: 'underline', textUnderlineOffset: 2 }}>Vous avez un compte ? Se connecter</button>

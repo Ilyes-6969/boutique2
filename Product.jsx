@@ -196,7 +196,11 @@ function Product({ navigate, productId, onCart }) {
   const favBtn = (size) => favs && (
     <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Ajouter à ma collection'} title={liked ? 'Dans ma collection' : 'Ajouter à ma collection'}
       onClick={() => favs.toggle(product.id)}
-      style={{ width: size, height: size, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', cursor: 'pointer', transition: 'border-color 0.2s ease' }}><FavRibbon caught={liked} size={size >= 36 ? 18 : 15} /></button>
+      style={{ width: size, height: size, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', cursor: 'pointer', transition: 'border-color 0.2s ease' }}>
+      {/* Micro-pop à l'« ajout » : la key liée à `liked` remonte le span →
+          rejoue .lc-fav-pop (n'anime que sous no-preference). */}
+      <span key={liked ? 'on' : 'off'} className={liked ? 'lc-fav-pop' : undefined} style={{ display: 'flex' }}><FavRibbon caught={liked} size={size >= 36 ? 18 : 15} /></span>
+    </button>
   );
 
   // GALERIE : contrat « images » [{ src, thumb }] (max 6, /api/catalog), avec
@@ -250,6 +254,27 @@ function Product({ navigate, productId, onCart }) {
         ['Référence', ref],
       ];
   const specs = rawSpecs.filter(function (row) { var v = row[1]; return v && String(v).trim() && v !== '—'; });
+
+  // CERTIFICATION « SLAB » (product.type === 'graded') — on met en scène la
+  // gradation à partir des seuls champs présents (badge / rarity / set), SANS
+  // fabriquer de faux numéro de certification affiché comme réel.
+  //   organisme + grade  ← badge.label (« PSA 10 »), repli « PSA » / rarity.
+  //   millésime          ← 1er groupe de 4 chiffres trouvé dans `set` (« … · 1999 »).
+  //   mention            ← rarity (« Gem Mint ») sinon « Certifiée ».
+  const isGraded = product.type === 'graded';
+  let cert = null;
+  if (isGraded) {
+    const badgeLabel = String((product.badge && product.badge.label) || '').trim();
+    const gm = badgeLabel.match(/([A-Za-z]{2,4})\s*([0-9]{1,2}(?:\.5)?)/); // « PSA 10 »
+    const org = (gm && gm[1]) ? gm[1].toUpperCase() : 'PSA';
+    const grade = (gm && gm[2]) ? gm[2] : '';
+    const ym = String(product.set || '').match(/\b(19|20)\d{2}\b/);      // millésime
+    const year = ym ? ym[0] : '';
+    const rarityLabel = String(product.rarity || '').trim();
+    // Mention d'organisme sobre : « Gem Mint · certifiée » quand la rareté existe.
+    const seal = rarityLabel ? (rarityLabel + ' · certifiée') : 'Certifiée · sous coque';
+    cert = { org, grade, year, seal };
+  }
 
   return (
     <div>
@@ -309,20 +334,27 @@ function Product({ navigate, productId, onCart }) {
           </div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>{product.cat} · {product.set}</div>
           <h1 className="display-2" style={{ marginBottom: 18 }}>{product.name}</h1>
-          <div style={{ marginBottom: 22 }}><DS.PriceTag price={product.price} oldPrice={product.oldPrice} size="lg" /></div>
+          {/* PRIX — plus de présence : filet or fin au-dessus + respiration.
+              Le filet code discrètement la valeur (l'or = rareté). */}
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1.5px solid var(--line)', marginBottom: 22 }}>
+            <div style={{ height: 2, width: 34, background: 'var(--yellow-deep)', borderRadius: 2, marginBottom: 14 }} aria-hidden="true"></div>
+            <DS.PriceTag price={product.price} oldPrice={product.oldPrice} size="lg" />
+          </div>
           <p style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--ink-2)', marginBottom: 28, maxWidth: 520 }}>{product.desc}</p>
 
           {window.LC151.Cart.isUnique(product.id) && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '10px 14px', marginBottom: 20, background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius-sm)', fontSize: 13.5, color: 'var(--ink)' }}>
-              <span style={{ fontWeight: 700, color: 'var(--accent)' }}>1 / 1</span>
-              <span style={{ color: 'var(--ink-2)' }}>Pièce unique — une seule édition disponible en boutique.</span>
+            /* SCEAU 1/1 — cachet de rareté doré (fond or lavé, bordure or foncé,
+               texte or foncé, mono) plutôt qu'un encadré rouge pâle générique. */
+            <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 15px', marginBottom: 20, background: 'rgba(224,174,0,0.10)', border: '1.5px solid var(--yellow-deep)', borderRadius: 'var(--radius-sm)', fontSize: 13.5, color: 'var(--ink)' }}>
+              <span style={{ flexShrink: 0, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, letterSpacing: '0.08em', color: 'var(--yellow-deep)', padding: '3px 9px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--yellow-deep)', background: 'rgba(224,174,0,0.08)' }}>1 / 1</span>
+              <span style={{ color: 'var(--ink-2)' }}><span style={{ fontWeight: 600, color: 'var(--ink)' }}>Pièce unique</span> — une seule édition disponible en boutique.</span>
             </div>
           )}
 
           <div ref={ctaRef} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
             {!window.LC151.Cart.isUnique(product.id) && <DS.QtyStepper value={qty} onChange={setQty} max={Math.min(10, cart.qtyCap(product.id))} />}
             <div style={{ flex: 1 }}>
-              <DS.Button variant="accent" size="lg" block disabled={!product.inStock || lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
+              <DS.Button className="lc-press" variant="accent" size="lg" block disabled={!product.inStock || lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
                 {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : product.inStock ? 'Ajouter au panier' : 'Indisponible')}
               </DS.Button>
             </div>
@@ -334,8 +366,38 @@ function Product({ navigate, productId, onCart }) {
             <span style={{ color: 'var(--ink)' }}>★</span> Livraison offerte dès {FREE_SHIP} € · expédition protégée sous 48 h
           </div>
 
+          {/* CERTIFICATION « SLAB » — bloc mis en scène, uniquement pour les
+              cartes gradées. Panneau navy FIXE (var(--footer-bg) reste sombre
+              dans les deux thèmes → l'or ressort), grade en display, organisme
+              + mention en or, référence/millésime en mono. Traitement slab doré
+              (.lc-graded) + halo doré radial (.lc-stage-lux). */}
+          {isGraded && cert && (
+            <div className="lc-graded lc-stage-lux" style={{ position: 'relative', marginTop: 32, background: 'var(--footer-bg)', borderRadius: 'var(--radius)', padding: '22px 24px', overflow: 'hidden' }}>
+              <div className="lc-line-in" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                {/* GRADE — chiffre en display, cadre or fin façon coque */}
+                <div style={{ flexShrink: 0, minWidth: 78, textAlign: 'center', padding: '10px 14px', border: '1.5px solid var(--yellow-deep)', borderRadius: 'var(--radius-sm)', background: 'rgba(255,203,5,0.06)' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--yellow)', marginBottom: 2 }}>Grade</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 42, lineHeight: 1, color: '#FFFFFF' }}>{cert.grade || '—'}</div>
+                </div>
+                {/* ORGANISME + MENTION */}
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, lineHeight: 1.05, color: '#FFFFFF' }}>{cert.org}</div>
+                  <div style={{ marginTop: 4, fontSize: 13.5, fontWeight: 600, color: 'var(--yellow)', textTransform: 'capitalize' }}>{cert.seal}</div>
+                  <div style={{ marginTop: 6, height: 2, width: 34, background: 'var(--yellow-deep)', borderRadius: 2 }} aria-hidden="true"></div>
+                </div>
+              </div>
+              {/* Filet or séparateur + méta (référence interne + millésime) en mono.
+                  On n'affiche PAS de numéro de certification (aucune donnée réelle). */}
+              <div className="lc-line-in" style={{ animationDelay: '0.06s', marginTop: 18, paddingTop: 14, borderTop: '1px solid rgba(255,203,5,0.22)', display: 'flex', flexWrap: 'wrap', gap: '6px 24px', fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.05em', color: 'rgba(255,255,255,0.62)' }}>
+                <span><span style={{ color: 'rgba(255,255,255,0.42)' }}>RÉF. </span>{ref}</span>
+                {cert.year && <span><span style={{ color: 'rgba(255,255,255,0.42)' }}>MILLÉSIME </span>{cert.year}</span>}
+                <span style={{ color: 'var(--yellow)' }}>SOUS COQUE · SCELLÉE</span>
+              </div>
+            </div>
+          )}
+
           {/* SPECS */}
-          <div style={{ marginTop: 32, border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+          <div style={{ marginTop: isGraded ? 16 : 32, border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
             {specs.map(([k, v], i) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '13px 18px', background: i % 2 ? 'transparent' : 'var(--paper-2)', fontSize: 14 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>{k}</span>
@@ -384,7 +446,7 @@ function Product({ navigate, productId, onCart }) {
               <DS.PriceTag price={product.price} oldPrice={product.oldPrice} size="sm" />
             </div>
             {favBtn(32)}
-            <DS.Button variant="accent" disabled={lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
+            <DS.Button className="lc-press" variant="accent" disabled={lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
               {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : 'Ajouter au panier')}
             </DS.Button>
           </div>

@@ -59,7 +59,9 @@
 
 /* ---- Add-to-cart bump ---- */
 @keyframes lcBump { 0% { transform: scale(1); } 30% { transform: scale(1.45); } 60% { transform: scale(0.88); } 100% { transform: scale(1); } }
-.lc-bump { animation: lcBump 0.42s ease; }
+@media (prefers-reduced-motion: no-preference) {
+  .lc-bump { animation: lcBump 0.42s ease; }
+}
 
 /* utility-bar link hover */
 .lc-util { transition: color 0.15s ease; }
@@ -251,4 +253,143 @@ body.lc-scrolled header { box-shadow: 0 8px 30px rgba(0,0,0,0.14); }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-image-pair(*),
   ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* ============================================================================
+   SOCLE PREMIUM — micro-interactions & traitements « maison de collectionneurs »
+   Contrat partagé (utilisé par les agents produit / panier / catalogue).
+   Les NOMS de classes et de tokens sont figés : ne pas les renommer.
+
+   Principe de sécurité motion :
+   - L'état de REPOS de chaque classe est toujours visible et complet.
+   - Les seules ANIMATIONS (keyframes qui jouent d'elles-mêmes) sont déclarées
+     sous @media (prefers-reduced-motion: no-preference).
+   - Les transitions au survol/clic sont conservées mais neutralisées au besoin
+     pour l'enfoncement (.lc-press) via une garde reduce dédiée.
+   Tokens motion : --dur-fast/normal/slow, --ease-out/spring/smooth (tokens/spacing.css).
+============================================================================ */
+
+/* ---- 1. Enfoncement au clic — CTA primaires (ajout panier, payer, steppers) ----
+   transition permanente (retour élastique), l'enfoncement lui-même est retiré
+   sous reduced-motion pour éviter tout micro-mouvement. */
+.lc-press { transition: transform var(--dur-fast) var(--ease-spring); }
+.lc-press:active { transform: scale(0.96); }
+@media (prefers-reduced-motion: reduce) {
+  .lc-press { transition: none; }
+  .lc-press:active { transform: none; }
+}
+
+/* ---- 2. Micro-pop du favori — rejoué via key/état à chaque « ajout » ----
+   Ne joue que sous no-preference ; sinon le cœur reste simplement posé. */
+@keyframes lcFavPop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.35); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lc-fav-pop { animation: lcFavPop 0.4s var(--ease-spring); }
+}
+
+/* ---- 3. Survol des tuiles cliquables — lift + ombre + bordure accent ----
+   transform/box-shadow/border-color uniquement (compositor-friendly). */
+.lc-tile {
+  transition:
+    transform var(--dur-normal) var(--ease-out),
+    box-shadow var(--dur-normal) var(--ease-out),
+    border-color var(--dur-normal) var(--ease-out);
+}
+.lc-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lc-tile { transition: box-shadow var(--dur-normal) var(--ease-out), border-color var(--dur-normal) var(--ease-out); }
+  .lc-tile:hover { transform: none; }
+}
+/* Dark : highlight de bord haut → la tuile « décolle » du fond navy même à plat. */
+[data-theme="dark"] .lc-tile {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), var(--shadow-sm);
+}
+[data-theme="dark"] .lc-tile:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), var(--shadow-lg);
+}
+
+/* ---- 4. Carte gradée — traitement « slab » doré (bordure + ombre dorées) ----
+   L'or code la rareté. Ombre chaude douce + fine bordure or foncé. */
+.lc-graded {
+  border: 1.5px solid var(--yellow-deep);
+  box-shadow:
+    0 0 0 1px rgba(224, 174, 0, 0.18),
+    0 10px 30px rgba(224, 174, 0, 0.20);
+}
+[data-theme="dark"] .lc-graded {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(255, 203, 5, 0.22),
+    0 12px 34px rgba(255, 203, 5, 0.16);
+}
+
+/* ---- 5. Stage lux — halo doré radial derrière l'image d'une carte gradée ----
+   background-image seul → n'écrase jamais un background (couleur) posé en inline.
+   position:relative attendu sur le stage côté consommateur. */
+.lc-stage-lux {
+  background-image:
+    radial-gradient(120% 90% at 50% 12%, rgba(255, 203, 5, 0.22) 0%, rgba(255, 203, 5, 0.08) 34%, transparent 66%);
+}
+[data-theme="dark"] .lc-stage-lux {
+  background-image:
+    radial-gradient(120% 90% at 50% 12%, rgba(255, 214, 51, 0.20) 0%, rgba(255, 214, 51, 0.06) 36%, transparent 68%);
+}
+
+/* ---- 6. Pop de célébration + balayage clair « livraison offerte » ----
+   .lc-pop : entrée scale (✓ offert, pastille d'étape).
+   .lc-shimmer : un seul balayage gauche→droite sur la barre livraison offerte. */
+@keyframes lcCelebPop {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes lcShimmer {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(120%); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .lc-pop { animation: lcCelebPop 0.5s var(--ease-spring) both; }
+  /* .lc-shimmer : conteneur relatif + overflow:hidden côté consommateur ;
+     le pseudo balaie une bande claire diagonale une seule fois. */
+  .lc-shimmer { position: relative; overflow: hidden; }
+  .lc-shimmer::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+    transform: translateX(-120%);
+    animation: lcShimmer 1.1s var(--ease-smooth) 0.15s 1;
+    pointer-events: none;
+  }
+}
+
+/* ---- 7. Entrée fade-up d'une ligne (panier) — animationDelay posé inline par index ----
+   Anim déclarée UNIQUEMENT sous no-preference. Sans JS / sans no-preference,
+   la ligne garde son état de repos visible (aucun état caché hors media query). */
+@keyframes lcLineIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: no-preference) {
+  .lc-line-in { animation: lcLineIn 0.45s var(--ease-out) backwards; }
+}
+
+/* ---- 8. Profondeur dark mode — highlight de bord aux cartes existantes ----
+   L'élévation se lit sans dépendre uniquement de la hairline : fin liseré clair
+   en haut, cumulé à l'ombre existante. Exclut les cartes gradées, qui gardent
+   leur ombre dorée (sinon cette règle, plus tardive, l'écraserait en dark). */
+[data-theme="dark"] .lc-card:not(.lc-graded) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045), var(--shadow-sm);
+}
+
+/* ---- 9. Filet or utilitaire — eyebrows / kickers premium ---- */
+.lc-gold-rule {
+  height: 2px;
+  width: 34px;
+  background: var(--yellow-deep);
+  border-radius: 2px;
 }

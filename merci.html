@@ -26,19 +26,30 @@
   /* Tokens fournis par /styles.css (tokens/colors.css, typography.css, spacing.css).
      Les fallbacks reprennent les valeurs light des tokens si la feuille ne charge pas. */
   body { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background: var(--paper, #EEF1F8); }
-  .lc-merci { width: min(520px, 100%); background: var(--card, #fff); border: 1.5px solid var(--line, #D7DEEC); border-radius: var(--radius-lg, 16px); box-shadow: var(--shadow-lg, 0 18px 48px rgba(26,23,20,0.12)); padding: 34px 30px; text-align: center; font-family: var(--font-body, 'Hanken Grotesk', system-ui, sans-serif); color: var(--ink, #15224F); }
+  /* Fine barre or en tête de carte — l'or code un moment premium (achat abouti). */
+  .lc-merci { position: relative; width: min(520px, 100%); background: var(--card, #fff); border: 1.5px solid var(--line, #D7DEEC); border-radius: var(--radius-lg, 16px); box-shadow: var(--shadow-lg, 0 18px 48px rgba(26,23,20,0.12)); padding: 38px 30px 34px; text-align: center; font-family: var(--font-body, 'Hanken Grotesk', system-ui, sans-serif); color: var(--ink, #15224F); overflow: hidden; }
+  .lc-merci::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--yellow-deep, #E0AE00), var(--yellow, #FFCB05), var(--yellow-deep, #E0AE00)); }
+  /* Monogramme Pokéball en tête — SVG inline, aucune dépendance React. */
+  .lc-mono { width: 46px; height: 46px; margin: 0 auto 16px; display: block; }
   .lc-ic { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 18px; }
-  .lc-ic.ok { background: var(--green-soft, #E2F3E8); color: var(--green, #1F9D57); }
+  .lc-ic.ok { background: var(--green-soft, #E2F3E8); color: var(--green, #1F9D57); box-shadow: 0 0 0 6px var(--green-soft, #E2F3E8), 0 0 0 7px rgba(31,157,87,0.18); }
   .lc-ic.wait { background: var(--teal-soft, #FFF0B8); color: var(--yellow-deep, #E0AE00); }
   .lc-ic.err { background: var(--red-soft, #FBE2E1); color: var(--red, #D8232A); }
+  /* Apparition du ✓ : scale+fade local (fallback si storefront2.css absent).
+     .lc-pop de storefront2.css prend le relais quand la feuille est chargée. */
+  @keyframes lcMerciPop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.14); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+  @media (prefers-reduced-motion: no-preference) { .lc-ic.ok { animation: lcMerciPop 0.5s cubic-bezier(0.34,1.56,0.64,1) both; } }
   .lc-merci h1 { font-family: var(--font-display, 'Bricolage Grotesque', inherit); font-size: 22px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 8px; }
   .lc-merci p { font-size: 15px; color: var(--ink-2, #586089); line-height: 1.55; margin: 0 0 6px; }
   .lc-box { text-align: left; background: var(--paper-2, #E3E8F3); border-radius: var(--radius, 10px); padding: 16px; margin: 18px 0; }
   .lc-row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 6px; }
   .lc-row .k { color: var(--ink-2, #586089); }
   .lc-row .v { font-weight: 600; font-family: var(--font-mono, ui-monospace, monospace); }
-  .lc-btn { display: inline-block; margin-top: 8px; padding: 12px 26px; border-radius: var(--radius, 10px); border: none; background: var(--accent, #EE1515); color: var(--on-accent, #fff); font-weight: 600; font-size: 15px; cursor: pointer; text-decoration: none; }
-  .lc-btn.ghost { background: transparent; border: 1.5px solid var(--line-strong, #BFC8DD); color: var(--ink, #15224F); margin-left: 8px; }
+  .lc-btn { display: inline-block; margin-top: 8px; padding: 12px 26px; border-radius: var(--radius, 10px); border: 1.5px solid transparent; background: var(--accent, #EE1515); color: var(--on-accent, #fff); font-weight: 600; font-size: 15px; cursor: pointer; text-decoration: none; transition: background var(--dur-fast, 150ms) var(--ease-out, ease), box-shadow var(--dur-fast, 150ms) var(--ease-out, ease), transform var(--dur-fast, 150ms) var(--ease-out, ease); }
+  .lc-btn:hover { background: var(--accent-deep, #C70D0D); box-shadow: var(--shadow-accent, 0 8px 20px rgba(224,57,43,0.30)); transform: translateY(-1px); }
+  .lc-btn.ghost { background: transparent; border: 1.5px solid var(--line-strong, #BFC8DD); color: var(--ink, #15224F); margin-left: 8px; box-shadow: none; }
+  .lc-btn.ghost:hover { background: var(--ink, #15224F); color: var(--on-ink, #fff); border-color: var(--ink, #15224F); box-shadow: none; }
+  @media (prefers-reduced-motion: reduce) { .lc-btn:hover { transform: none; } }
   .lc-muted { font-size: 12.5px; color: var(--muted, #626A88); margin-top: 12px; }
   .lc-spin { width: 34px; height: 34px; border: 3px solid var(--line, #D7DEEC); border-top-color: var(--accent, #EE1515); border-radius: 50%; animation: lcspin 0.8s linear infinite; margin: 0 auto 16px; }
   @keyframes lcspin { to { transform: rotate(360deg); } }
@@ -46,6 +57,7 @@
 </head>
 <body>
 <div class="lc-merci" id="lc-merci">
+  <svg class="lc-mono" viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="lcmc"><circle cx="50" cy="50" r="46"/></clipPath></defs><g clip-path="url(#lcmc)"><rect width="100" height="50" fill="#EE1515"/><rect y="50" width="100" height="50" fill="#fff"/><rect y="44" width="100" height="12" fill="#1a1a1a"/></g><circle cx="50" cy="50" r="46" fill="none" stroke="#1a1a1a" stroke-width="6"/><circle cx="50" cy="50" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="6"/></svg>
   <div class="lc-spin"></div>
   <h1>Validation du paiement…</h1>
   <p>Un instant, nous confirmons votre commande.</p>
@@ -60,7 +72,10 @@
   var params = new URLSearchParams(location.search);
   var sid = params.get('session_id');
 
-  function render(html) { root.innerHTML = html; }
+  // Monogramme Pokéball repris en tête de chaque état (render() écrase le DOM).
+  var MONO = '<svg class="lc-mono" viewBox="0 0 100 100" aria-hidden="true"><defs><clipPath id="lcmc2"><circle cx="50" cy="50" r="46"/></clipPath></defs><g clip-path="url(#lcmc2)"><rect width="100" height="50" fill="#EE1515"/><rect y="50" width="100" height="50" fill="#fff"/><rect y="44" width="100" height="12" fill="#1a1a1a"/></g><circle cx="50" cy="50" r="46" fill="none" stroke="#1a1a1a" stroke-width="6"/><circle cx="50" cy="50" r="14" fill="#fff" stroke="#1a1a1a" stroke-width="6"/></svg>';
+
+  function render(html) { root.innerHTML = MONO + html; }
 
   function methodLabel(key) {
     try { var m = LC.Orders.methods()[key]; return m ? m.label : 'Livraison'; }
@@ -69,7 +84,7 @@
 
   function showPaid(order) {
     render(
-      '<div class="lc-ic ok">✓</div>' +
+      '<div class="lc-ic ok"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></div>' +
       '<h1>Merci ' + (order.name ? esc(order.name) : '') + ' !</h1>' +
       '<p>Votre paiement a bien été reçu et votre commande est confirmée.</p>' +
       '<div class="lc-box">' +
@@ -78,7 +93,7 @@
         (order.method ? '<div class="lc-row"><span class="k">Livraison</span><span class="v" style="font-family:inherit;font-weight:600">' + esc(methodLabel(order.method)) + '</span></div>' : '') +
       '</div>' +
       '<p class="lc-muted">Un reçu vous a été envoyé par e-mail' + (order.email ? ' à ' + esc(order.email) : '') + '.</p>' +
-      '<div style="margin-top:16px"><a class="lc-btn" href="boutique.html">Continuer mes achats</a>' +
+      '<div style="margin-top:16px"><a class="lc-btn lc-press" href="boutique.html">Continuer mes achats</a>' +
       '<a class="lc-btn ghost" href="index.html">Accueil</a></div>'
     );
   }
@@ -88,7 +103,7 @@
       '<div class="lc-ic wait">⏳</div>' +
       '<h1>Paiement en cours de validation</h1>' +
       '<p>Votre paiement n\'est pas encore confirmé. Si vous avez bien réglé, il sera validé sous peu — vous recevrez un e-mail. Aucun double prélèvement n\'aura lieu.</p>' +
-      '<div style="margin-top:16px"><a class="lc-btn" href="panier.html">Revenir au panier</a></div>'
+      '<div style="margin-top:16px"><a class="lc-btn lc-press" href="panier.html">Revenir au panier</a></div>'
     );
   }
 
@@ -97,7 +112,7 @@
       '<div class="lc-ic err">!</div>' +
       '<h1>Confirmation indisponible</h1>' +
       '<p>' + esc(msg || 'Impossible de vérifier le paiement pour le moment.') + '</p>' +
-      '<div style="margin-top:16px"><a class="lc-btn" href="panier.html">Revenir au panier</a>' +
+      '<div style="margin-top:16px"><a class="lc-btn lc-press" href="panier.html">Revenir au panier</a>' +
       '<a class="lc-btn ghost" href="index.html">Accueil</a></div>'
     );
   }
