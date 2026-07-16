@@ -151,40 +151,20 @@ function Pokeball({ size = 16, style, float = false }) {
   );
 }
 
-/* Lockup CLUB 151 — utilisé UNIQUEMENT sur fond navy (header + footer), d'où le
-   texte blanc. (a) marque ronde bleu marque + « 151 » or ; (b) wordmark
-   CLUB (blanc) + 151 (or) surmontant une baseline mono « CARTES · VIENNE ». */
+/* Lockup horizontal OFFICIEL CLUB 151 (assets/brand/logo-club151-horizontal.svg) :
+   marque ronde bleu vif + wordmark « CLUB » bleu / « 151 » or liseré navy.
+   viewBox 1820×640 (~2.844:1). Lisible tel quel sur le header/footer navy — le
+   bleu vif (#0AA3EB) tient ~5:1 et l'or ~10:1 sur --header-bg ; le navy ne sert
+   que de liseré sous l'or, jamais d'aplat de texte. Dimensionné par la hauteur. */
 function Logo({ onClick, size = 22 }) {
-  const BLUE = '#3363A9';
-  const GOLD = '#FACA07';
-  const diam = Math.round(size * 1.75);
+  const h = Math.round(size * 1.9);
   return (
     <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }}
       aria-label="CLUB 151 — cartes à collectionner, Vienne"
-      style={{ display: 'inline-flex', alignItems: 'center', gap: 10, lineHeight: 0, textDecoration: 'none' }}>
-      {/* (a) marque ronde — anneau clair extérieur (détache le disque du header
-          navy, WCAG 1.4.11) + « 151 » or CERCLÉ de navy comme le vrai logo
-          (l'or seul sur le bleu n'atteint que 3.86:1 ; le contour navy le rend net). */}
-      <span aria-hidden="true"
-        style={{ width: diam, height: diam, flexShrink: 0, borderRadius: '50%', background: BLUE,
-          boxShadow: '0 0 0 1px rgba(255,255,255,0.32), inset 0 0 0 1.5px rgba(255,255,255,0.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        <svg width={diam} height={diam} viewBox="0 0 100 100">
-          <text x="50" y="52" textAnchor="middle" dominantBaseline="central"
-            fontFamily="var(--font-display)" fontWeight="800" fontStyle="italic" fontSize="54"
-            letterSpacing="-3" fill={GOLD} stroke="#1E3265" strokeWidth="5" paintOrder="stroke"
-            strokeLinejoin="round">151</text>
-        </svg>
-      </span>
-      {/* (b) wordmark + baseline */}
-      <span style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: Math.round(size * 0.9), lineHeight: 1, whiteSpace: 'nowrap' }}>
-          <span style={{ color: '#fff' }}>CLUB</span>
-          <span style={{ color: GOLD, marginLeft: '0.16em' }}>151</span>
-        </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: Math.round(size * 0.42), letterSpacing: '0.18em',
-          textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginTop: 3, whiteSpace: 'nowrap' }}>CARTES · VIENNE</span>
-      </span>
+      style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 0, textDecoration: 'none' }}>
+      <img src="assets/brand/logo-club151-horizontal.svg" alt="CLUB 151"
+        width={Math.round(h * 2.844)} height={h}
+        style={{ display: 'block', height: h, width: 'auto' }} />
     </a>
   );
 }
