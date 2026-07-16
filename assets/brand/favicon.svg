@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="CLUB 151">
+  <circle cx="50" cy="50" r="48" fill="#3363A9"/>
+  <text x="50" y="53" text-anchor="middle" dominant-baseline="central"
+        font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+        font-weight="800" font-size="48" fill="#FACA07" stroke="#1E3265" stroke-width="4"
+        paint-order="stroke" stroke-linejoin="round">151</text>
+</svg>

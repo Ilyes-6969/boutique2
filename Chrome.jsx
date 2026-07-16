@@ -89,7 +89,7 @@ function lcFlyToCart(fromEl) {
     const ball = document.createElement('div');
     ball.setAttribute('aria-hidden', 'true');
     ball.style.cssText = 'position:fixed;left:' + (startX - 16) + 'px;top:' + (startY - 16) + 'px;width:32px;height:32px;z-index:9998;pointer-events:none;will-change:transform,opacity;transition:transform 0.62s cubic-bezier(0.5,-0.25,0.3,1),opacity 0.62s ease;filter:drop-shadow(0 6px 10px rgba(0,0,0,0.3));';
-    ball.innerHTML = '<svg width="32" height="32" viewBox="0 0 100 100"><defs><clipPath id="flyclip"><circle cx="50" cy="50" r="47"/></clipPath></defs><g clip-path="url(#flyclip)"><rect x="0" y="0" width="100" height="50" fill="#EE1515"/><rect x="0" y="50" width="100" height="50" fill="#fff"/><rect x="0" y="44" width="100" height="12" fill="#1a1a1a"/></g><circle cx="50" cy="50" r="47" fill="none" stroke="#1a1a1a" stroke-width="5"/><circle cx="50" cy="50" r="15" fill="#fff" stroke="#1a1a1a" stroke-width="5"/></svg>';
+    ball.innerHTML = '<svg width="32" height="32" viewBox="0 0 100 100"><circle cx="50" cy="50" r="47" fill="#3363A9"/><circle cx="50" cy="50" r="47" fill="none" stroke="#1E3265" stroke-width="4"/><text x="50" y="50" text-anchor="middle" dominant-baseline="central" fill="#FACA07" style="font-family:var(--font-display);font-weight:800;font-style:italic;font-size:42px;letter-spacing:-1px">151</text></svg>';
     document.body.appendChild(ball);
     requestAnimationFrame(() => {
       ball.style.transform = 'translate(' + (endX - startX) + 'px,' + (endY - startY) + 'px) scale(0.3) rotate(540deg)';
@@ -151,28 +151,40 @@ function Pokeball({ size = 16, style, float = false }) {
   );
 }
 
+/* Lockup CLUB 151 — utilisé UNIQUEMENT sur fond navy (header + footer), d'où le
+   texte blanc. (a) marque ronde bleu marque + « 151 » or ; (b) wordmark
+   CLUB (blanc) + 151 (or) surmontant une baseline mono « CARTES · VIENNE ». */
 function Logo({ onClick, size = 22 }) {
-  const h = Math.round(size * 1.7);
-  const w = Math.round(h * 1.86);
-  const fill = 'var(--logo-fill)';
-  const edge = 'var(--logo-edge)';
+  const BLUE = '#3363A9';
+  const GOLD = '#FACA07';
+  const diam = Math.round(size * 1.75);
   return (
-    <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }} aria-label="leclub151 — C151"
-      style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 0 }}>
-      <svg className="lc-logo-mark" width={w} height={h} viewBox="0 0 171 92" style={{ overflow: 'visible', display: 'block' }}>
-        {/* C en Pokéball (ouverture à droite), légèrement incliné comme les chiffres */}
-        <g transform="skewX(-7)">
-          <path d="M 58 27 A 23 23 0 1 0 58 65" fill="none" stroke={edge} strokeWidth="20" strokeLinecap="round" />
-          <path d="M 58 27 A 23 23 0 1 0 58 65" fill="none" stroke={fill} strokeWidth="13" strokeLinecap="round" />
-          {/* barre équatoriale + bouton central */}
-          <rect x="19" y="40.5" width="25" height="11" rx="5.5" fill={fill} stroke={edge} strokeWidth="2" />
-          <circle cx="44" cy="46" r="8.5" fill="var(--logo-btn)" stroke={edge} strokeWidth="4" />
-        </g>
-        {/* 151 collé au C, pour lire « C151 » d'un bloc */}
-        <text x="62" y="69" fontFamily="var(--font-display)" fontWeight="900" fontStyle="italic" fontSize="58"
-          fill={fill} stroke={edge} strokeWidth="2.4" paintOrder="stroke" strokeLinejoin="round"
-          style={{ letterSpacing: '-1.5px' }}>151</text>
-      </svg>
+    <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }}
+      aria-label="CLUB 151 — cartes à collectionner, Vienne"
+      style={{ display: 'inline-flex', alignItems: 'center', gap: 10, lineHeight: 0, textDecoration: 'none' }}>
+      {/* (a) marque ronde — anneau clair extérieur (détache le disque du header
+          navy, WCAG 1.4.11) + « 151 » or CERCLÉ de navy comme le vrai logo
+          (l'or seul sur le bleu n'atteint que 3.86:1 ; le contour navy le rend net). */}
+      <span aria-hidden="true"
+        style={{ width: diam, height: diam, flexShrink: 0, borderRadius: '50%', background: BLUE,
+          boxShadow: '0 0 0 1px rgba(255,255,255,0.32), inset 0 0 0 1.5px rgba(255,255,255,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        <svg width={diam} height={diam} viewBox="0 0 100 100">
+          <text x="50" y="52" textAnchor="middle" dominantBaseline="central"
+            fontFamily="var(--font-display)" fontWeight="800" fontStyle="italic" fontSize="54"
+            letterSpacing="-3" fill={GOLD} stroke="#1E3265" strokeWidth="5" paintOrder="stroke"
+            strokeLinejoin="round">151</text>
+        </svg>
+      </span>
+      {/* (b) wordmark + baseline */}
+      <span style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: Math.round(size * 0.9), lineHeight: 1, whiteSpace: 'nowrap' }}>
+          <span style={{ color: '#fff' }}>CLUB</span>
+          <span style={{ color: GOLD, marginLeft: '0.16em' }}>151</span>
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: Math.round(size * 0.42), letterSpacing: '0.18em',
+          textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)', marginTop: 3, whiteSpace: 'nowrap' }}>CARTES · VIENNE</span>
+      </span>
     </a>
   );
 }
@@ -199,7 +211,7 @@ function Announcement() {
           ))}
         </div>
         <div style={{ flex: 1, textAlign: 'center', textTransform: 'uppercase', color: 'rgba(234,239,251,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <Pokeball size={13} /> {t('ann_free')}
+          <span aria-hidden="true" style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#3363A9', boxShadow: '0 0 0 1.5px #FACA07', flexShrink: 0 }}></span> {t('ann_free')}
         </div>
         <div className="lc-ann-side" style={{ display: 'flex', gap: 16 }}>
           <a href="#" className="lc-util" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'rgba(234,239,251,0.6)', textTransform: 'uppercase' }}>{t('ann_contact')}</a>
@@ -224,7 +236,7 @@ function playThemeFx(nextTheme, onSwap) {
       '<svg width="96" height="96" viewBox="0 0 100 100" aria-hidden="true">' +
         '<defs><clipPath id="lcb"><circle cx="50" cy="50" r="46"/></clipPath></defs>' +
         '<g clip-path="url(#lcb)">' +
-          '<rect x="0" y="0" width="100" height="50" fill="#EE1515"/>' +
+          '<rect x="0" y="0" width="100" height="50" fill="#3363A9"/>' +
           '<rect x="0" y="50" width="100" height="50" fill="#fff"/>' +
           '<rect x="0" y="44" width="100" height="12" fill="#161616"/>' +
         '</g>' +

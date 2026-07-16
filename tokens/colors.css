@@ -1,25 +1,25 @@
 /* ============================================
    leclub151 — Color tokens
-   PALETTE inspired by a classic Pokémon TCG store:
-   deep navy blue · Pokéball red · gold/yellow · white.
-   Red = primary CTAs · Navy = headers/text/dark surfaces ·
-   Gold = highlights/accents · Blue = secondary.
+   PALETTE from the real CLUB 151 logo:
+   deep navy blue · CLUB 151 blue · gold/yellow · white.
+   Blue = primary CTAs · Navy = headers/text/dark surfaces ·
+   Gold = highlights + rarity (graded slabs, 1/1 seal) · secondary blue for links.
 ============================================ */
 
 :root {
-  /* ---- ACCENT — Pokéball red (primary CTAs) ---- */
-  --accent: #EE1515;
-  --accent-deep: #C70D0D;
-  --accent-soft: #FBD6D6;
-  --accent-wash: #FDEDED;
+  /* ---- ACCENT — bleu CLUB 151 (primary CTAs) ---- */
+  --accent: #3363A9;
+  --accent-deep: #274E86;
+  --accent-soft: #CAD8EC;
+  --accent-wash: #EBF1F9;
 
-  /* ---- GOLD — highlights, "new", hero underline, footer headings ---- */
-  --yellow: #FFCB05;
-  --yellow-deep: #E0AE00;
+  /* ---- GOLD — highlights, "new", hero underline, footer headings, rarity ---- */
+  --yellow: #FACA07;
+  --yellow-deep: #D9A800;
   --on-yellow: #15224F;
   /* legacy alias used around the site for the secondary accent → gold */
-  --teal: #FFCB05;
-  --teal-deep: #E0AE00;
+  --teal: #FACA07;
+  --teal-deep: #D9A800;
   --teal-soft: #FFF0B8;
   --teal-wash: #FFF8DD;
 
@@ -49,8 +49,8 @@
 
   /* ---- FEATURE GRADIENTS (navy hero/collection cards) ---- */
   --grad-green: linear-gradient(165deg, #1b357f 0%, #0c1640 100%); /* @kind color */
-  --grad-red: linear-gradient(165deg, #b1250b 0%, #5e1305 100%); /* @kind color */
-  --live: #EE1515;            /* LIVE / hot pill */
+  --grad-red: linear-gradient(165deg, #3363A9 0%, #1E3265 100%); /* @kind color */
+  --live: #3363A9;            /* LIVE / hot pill */
 
   /* ---- SEMANTIC ALIASES ---- */
   --text-body: var(--ink);
@@ -59,7 +59,7 @@
   --surface-band: var(--paper-2);
   --surface-card: var(--card);
   --border-default: var(--line);
-  --action-primary: var(--accent);   /* red primary buttons */
+  --action-primary: var(--accent);   /* blue primary buttons */
   --action-accent: var(--accent);
 
   /* navy header & footer */
@@ -69,7 +69,7 @@
   --footer-text: #FFFFFF;
 
   /* Text colour that reads on the fills */
-  --on-accent: #FFFFFF;       /* white on red */
+  --on-accent: #FFFFFF;       /* white on blue */
   --on-ink: #FFFFFF;          /* white on navy */
 }
 
@@ -77,18 +77,18 @@
    DARK MODE — "Pokémon night" deep navy
 ============================================ */
 [data-theme="dark"] {
-  --accent: #FF3B3B;
-  --accent-deep: #EE1515;
-  --accent-soft: rgba(255, 59, 59, 0.20);
-  --accent-wash: rgba(255, 59, 59, 0.10);
+  --accent: #3E6BC0;          /* lightened for white-text AA (5.16:1) on dark */
+  --accent-deep: #3363A9;
+  --accent-soft: rgba(62, 107, 192, 0.20);
+  --accent-wash: rgba(62, 107, 192, 0.12);
 
-  --yellow: #FFD633;
-  --yellow-deep: #FFCB05;
+  --yellow: #FFD84D;
+  --yellow-deep: #FACA07;
   --on-yellow: #0A1230;
-  --teal: #FFD633;
-  --teal-deep: #FFCB05;
-  --teal-soft: rgba(255, 214, 51, 0.20);
-  --teal-wash: rgba(255, 214, 51, 0.08);
+  --teal: #FFD84D;
+  --teal-deep: #FACA07;
+  --teal-soft: rgba(255, 216, 77, 0.20);
+  --teal-wash: rgba(255, 216, 77, 0.08);
 
   --blue: #5C82E0;
   --blue-deep: #3B62C4;
@@ -111,8 +111,8 @@
   --red-soft: rgba(216, 35, 42, 0.22);
 
   --grad-green: linear-gradient(165deg, #1b357f 0%, #0a1233 100%); /* @kind color */
-  --grad-red: linear-gradient(165deg, #b1250b 0%, #4a0f03 100%); /* @kind color */
-  --live: #FF3B3B;
+  --grad-red: linear-gradient(165deg, #274E86 0%, #101C40 100%); /* @kind color */
+  --live: #3E6BC0;
 
   --header-bg: #0C1538;
   --header-2: #070E2A;
