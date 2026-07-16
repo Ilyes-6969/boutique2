@@ -21,12 +21,18 @@ const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit } =
 // api/create-payment-intent.js — garder les deux copies synchronisées.)
 const META_CHUNK = 490;
 const META_MAX_KEYS = 10;
+// Plafond de lignes distinctes par panier. Au-delà, les métadonnées Stripe
+// seraient tronquées et la commande WooCommerce OMETTRAIT des articles pourtant
+// payés. notify-order.js plafonne à 30 ; on reste large (100) tout en fermant
+// cette faille avant de créer la session.
+const MAX_CART_LINES = 100;
 function splitItemsMeta(str) {
-  let s = String(str || '');
+  const s = String(str || '');
+  // DOUBLE SÉCURITÉ : plutôt que tronquer SILENCIEUSEMENT (articles payés mais
+  // absents de la commande Woo), on ÉCHOUE. En pratique le plafond
+  // MAX_CART_LINES rejette le panier bien avant d'atteindre cette limite.
   if (s.length > META_CHUNK * META_MAX_KEYS) {
-    s = s.slice(0, META_CHUNK * META_MAX_KEYS);
-    const cut = s.lastIndexOf(',');
-    if (cut > 0) s = s.slice(0, cut);
+    throw new Error('Métadonnées panier trop volumineuses — troncature évitée');
   }
   const out = { items: s.slice(0, META_CHUNK) };
   for (let i = META_CHUNK, n = 2; i < s.length; i += META_CHUNK, n++) {
@@ -65,6 +71,11 @@ module.exports = async function handler(req, res) {
 
     // Prix fixés par le serveur à partir des seuls { id, qty }.
     const { lines, subtotalCents } = await priceItems(body.items);
+    // Panier démesuré → métadonnées Stripe tronquées → articles perdus dans la
+    // commande Woo. On refuse AVANT de créer la session (rien n'est débité).
+    if (lines.length > MAX_CART_LINES) {
+      return res.status(400).json({ error: 'Panier trop volumineux, contactez-nous.' });
+    }
     const line_items = lines.map(function (l) {
       return {
         quantity: l.qty,

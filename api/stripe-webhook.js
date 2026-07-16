@@ -25,6 +25,16 @@
 // répond 500 → Stripe re-livrera l'événement (nouvel essai automatique quand
 // WordPress revient).
 //
+// SURVEILLANCE (pas d'infra dédiée) : si WooCommerce est injoignable, la
+// commande payée n'est PAS enregistrée et ce webhook renvoie 500 → Stripe
+// re-livrera l'événement pendant ~3 jours (vrai filet). Deux points de contrôle
+// humains : (1) les logs Vercel, préfixe « [lc151][ALERTE] » ; (2) l'onglet des
+// webhooks « en échec » du dashboard Stripe. La notification e-mail propriétaire
+// reste best-effort (Web3Forms) : au-delà de la fenêtre de retry Stripe, une
+// commande pourrait être perdue sans alerte. RECOMMANDATION (à ajouter plus
+// tard) : un 2e canal d'alerte indépendant (SMS/Slack/webhook de secours)
+// déclenché sur cet échec. Ne pas fabriquer de fausse infra ici.
+//
 // IMPORTANT : ce endpoint a besoin du corps BRUT de la requête pour vérifier la
 // signature → on désactive le body parser de Vercel ci-dessous.
 // ---------------------------------------------------------------------------
@@ -32,6 +42,7 @@
 const Stripe = require('stripe');
 
 const WC_TIMEOUT_MS = 8000;
+const WC_LOOKUP_PAGES = 3;               // recherche anti-doublon : 3 × 100 = 300 commandes récentes balayées
 const METHOD_LABELS = {
   standard: 'Livraison standard',
   relais: 'Point relais',
@@ -93,6 +104,14 @@ module.exports = async function handler(req, res) {
     return res.status(400).send('Signature invalide : ' + String((err && err.message) || err));
   }
 
+  // BRANCHE DORMANTE — mode redirection (page Stripe Checkout hébergée). Elle se
+  // contente de PRÉVENIR le propriétaire : elle ne crée AUCUNE commande
+  // WooCommerce et ne décrémente donc aucun stock. La création Woo est faite
+  // UNIQUEMENT par 'payment_intent.succeeded' ci-dessous, qui se déclenche pour
+  // les DEUX modes (intégré ET redirection, via le PaymentIntent sous-jacent qui
+  // porte les mêmes métadonnées). ⚠️ Réactiver la redirection comme chemin
+  // principal exigerait d'ajouter ICI l'appel à createWooOrder (avec la même
+  // idempotence), sans quoi ces paiements ne seraient jamais enregistrés.
   if (event.type === 'checkout.session.completed') {
     const s = event.data.object;
     try {
@@ -137,7 +156,14 @@ module.exports = async function handler(req, res) {
 
     // 3) Échec de création alors que WooCommerce est configuré → 500 : Stripe
     //    re-livrera l'événement (l'idempotence ci-dessus protège du doublon).
+    //    ALERTE : ce log est le SEUL filet automatique si la notification
+    //    propriétaire (best-effort) a elle aussi échoué. Surveillance : logs
+    //    Vercel (préfixe ci-dessous) + webhooks « en échec » du dashboard Stripe.
     if (woo.attempted && !woo.ok) {
+      const montant = ((pi.amount_received || pi.amount || 0) / 100).toFixed(2);
+      console.error('[lc151][ALERTE] commande payée SANS enregistrement Woo — PaymentIntent ' +
+        pi.id + ' — ' + montant + ' EUR — ' + (pi.receipt_email || '(e-mail inconnu)') +
+        ' — détail : ' + (woo.error || 'inconnu'));
       return res.status(500).json({ received: true, woocommerce: 'echec-nouvel-essai-demande' });
     }
   }
@@ -167,19 +193,22 @@ async function createWooOrder(stripe, pi) {
 
   // IDEMPOTENCE : on relit le PaymentIntent chez Stripe — un événement
   // re-livré transporte les métadonnées d'ORIGINE, pas celles ajoutées après
-  // la première création (wc_order_id).
+  // la première création (wc_order_id). C'est le 1er garde-fou anti-doublon.
+  let retrieveFailed = false;
   try {
     const fresh = await stripe.paymentIntents.retrieve(pi.id);
     if (fresh && fresh.metadata && fresh.metadata.wc_order_id) {
       return { attempted: false, ok: true, duplicate: true, orderId: fresh.metadata.wc_order_id, error: null };
     }
   } catch (err) {
+    retrieveFailed = true;                           // 1er garde-fou HS (Stripe injoignable)
     console.error('stripe-webhook: relecture du PaymentIntent impossible:', String((err && err.message) || err));
     if (meta.wc_order_id) {
       return { attempted: false, ok: true, duplicate: true, orderId: meta.wc_order_id, error: null };
     }
-    // Sinon on tente la création : au pire l'e-mail propriétaire permettra de
-    // repérer un éventuel doublon (cas doublement dégradé, très improbable).
+    // Sinon : le garde-fou Stripe est indisponible. On s'appuie alors sur le
+    // 2e garde-fou (findExistingWooOrder) ci-dessous — SAUF s'il est lui aussi
+    // injoignable, auquel cas on ne PEUT PAS savoir (voir BUG #6 plus bas).
   }
 
   // Auth Basic en clair dans l'en-tête → HTTPS non négociable.
@@ -187,18 +216,30 @@ async function createWooOrder(stripe, pi) {
     throw new Error('WC_STORE_URL doit être en HTTPS (auth Basic WooCommerce)');
   }
 
-  // Filet anti-doublon : si une tentative précédente a créé la commande mais que
-  // la réponse s'est perdue (timeout), wc_order_id n'a jamais été écrit — on
-  // balaie les commandes récentes à la recherche de notre transaction_id avant
-  // d'en créer une nouvelle.
-  const existingId = await findExistingWooOrder(base, ck, cs, pi.id);
-  if (existingId) {
+  // Filet anti-doublon (2e garde-fou) : si une tentative précédente a créé la
+  // commande mais que la réponse s'est perdue (timeout), wc_order_id n'a jamais
+  // été écrit — on balaie les commandes récentes à la recherche de notre
+  // transaction_id avant d'en créer une nouvelle. `available` distingue
+  // « vérifié, rien trouvé » de « recherche injoignable » (crucial pour BUG #6).
+  const existing = await findExistingWooOrder(base, ck, cs, pi.id);
+  if (existing.orderId) {
     try {
-      await stripe.paymentIntents.update(pi.id, { metadata: { wc_order_id: String(existingId) } });
+      await stripe.paymentIntents.update(pi.id, { metadata: { wc_order_id: String(existing.orderId) } });
     } catch (err) {
-      console.error('stripe-webhook: wc_order_id non écrit sur ' + pi.id + ' (commande retrouvée n° ' + existingId + '):', String((err && err.message) || err));
+      console.error('stripe-webhook: wc_order_id non écrit sur ' + pi.id + ' (commande retrouvée n° ' + existing.orderId + '):', String((err && err.message) || err));
     }
-    return { attempted: false, ok: true, duplicate: true, orderId: existingId, error: null };
+    return { attempted: false, ok: true, duplicate: true, orderId: existing.orderId, error: null };
+  }
+
+  // BUG #6 — les DEUX garde-fous anti-doublon sont hors service (relecture
+  // Stripe en échec ET recherche WooCommerce injoignable) : impossible de savoir
+  // si cette commande a déjà été créée. Créer maintenant risquerait un DOUBLON
+  // (stock décrémenté deux fois, e-mail sans mention de doublon). On préfère
+  // DIFFÉRER : on lève une erreur → l'appelant renvoie 500 → Stripe re-livrera
+  // l'événement plus tard, quand au moins un service sera revenu et que
+  // l'idempotence refonctionnera. (Choix : ne jamais créer à l'aveugle.)
+  if (retrieveFailed && !existing.available) {
+    throw new Error('Vérification anti-doublon indisponible (Stripe + WooCommerce injoignables) — création différée, nouvel essai attendu');
   }
 
   const ship = pi.shipping || {};
@@ -275,27 +316,40 @@ async function createWooOrder(stripe, pi) {
 
 // Cherche une commande WooCommerce récente portant ce PaymentIntent en
 // transaction_id (cas : commande créée mais réponse perdue → wc_order_id jamais
-// écrit sur le PaymentIntent). Balaye la dernière page de commandes — fiable
-// (champ exact, pas de recherche floue) et suffisant pour le volume visé.
-// Best-effort : null si injoignable, la création tentera sa chance.
+// écrit sur le PaymentIntent). L'API WC ne filtre pas sur transaction_id
+// (?search est flou et peu fiable) → on balaie jusqu'à WC_LOOKUP_PAGES pages
+// récentes et on compare le champ EXACT. Un doublon « réponse perdue » est
+// toujours très récent, donc en première page ; les pages suivantes ne servent
+// qu'à élargir un peu le filet. Renvoie { available, orderId } :
+//   - available:false               → 1re page injoignable : on NE SAIT PAS
+//   - available:true, orderId:null  → balayé, aucune commande correspondante
+//   - available:true, orderId:<id>  → commande existante retrouvée
 async function findExistingWooOrder(base, ck, cs, piId) {
-  const controller = new AbortController();
-  const timer = setTimeout(function () { controller.abort(); }, WC_TIMEOUT_MS);
-  try {
-    const resp = await fetch(base + '/wp-json/wc/v3/orders?per_page=100&orderby=date&order=desc', {
-      headers: { Authorization: 'Basic ' + Buffer.from(ck + ':' + cs).toString('base64') },
-      signal: controller.signal,
-    });
-    if (!resp.ok) return null;
-    const orders = await resp.json();
-    if (!Array.isArray(orders)) return null;
+  const auth = 'Basic ' + Buffer.from(ck + ':' + cs).toString('base64');
+  let reachedAny = false;
+  for (let page = 1; page <= WC_LOOKUP_PAGES; page++) {
+    const controller = new AbortController();
+    const timer = setTimeout(function () { controller.abort(); }, WC_TIMEOUT_MS);
+    let orders = null;
+    try {
+      const resp = await fetch(base + '/wp-json/wc/v3/orders?per_page=100&page=' + page + '&orderby=date&order=desc', {
+        headers: { Authorization: auth },
+        signal: controller.signal,
+      });
+      if (!resp.ok) break;                           // page refusée/injoignable → on s'arrête
+      orders = await resp.json();
+    } catch (err) {
+      break;                                         // timeout/réseau → on s'arrête
+    } finally {
+      clearTimeout(timer);
+    }
+    if (!Array.isArray(orders)) break;
+    reachedAny = true;                               // au moins une page balayée avec succès
     const hit = orders.find(function (o) { return o && o.transaction_id === piId; });
-    return hit ? hit.id : null;
-  } catch (err) {
-    return null;
-  } finally {
-    clearTimeout(timer);
+    if (hit) return { available: true, orderId: hit.id };
+    if (orders.length < 100) break;                  // dernière page atteinte (rien au-delà)
   }
+  return { available: reachedAny, orderId: null };
 }
 
 // ---------------------------------------------------------------------------

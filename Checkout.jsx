@@ -112,8 +112,16 @@ function CheckoutModal({ onClose }) {
     .map((l) => { const p = window.LC151.get(l.id); return p ? { id: l.id, qty: l.qty } : null; })
     .filter(Boolean);
 
-  // Monte (ou remonte) le formulaire de carte Stripe dès qu'on entre à l'étape
-  // paiement, et le reconstruit si le total change (changement de livraison).
+  // Monte le formulaire de carte Stripe à l'ENTRÉE de l'étape paiement.
+  // Deps volontairement réduites à [step, stripeEmbedded] : le montant du
+  // PaymentIntent est FIGÉ à sa création (le serveur l'a calculé via priceItems
+  // à ce moment-là). Inclure `total`/`ship.method` remonterait l'Element si le
+  // prix changeait pendant la saisie (ex. réconciliation cross-onglet) et FERAIT
+  // PERDRE la carte au client. Changer de mode de livraison ramène à l'étape
+  // livraison ; le retour au paiement (changement de `step`) re-crée donc un PI
+  // au bon montant. Cas limite accepté : si le panier change dans un autre onglet
+  // pendant la saisie, l'affichage se met à jour mais le PI reste au montant figé
+  // — mieux vaut ça que perdre la carte ; le total faisant foi reste celui de Stripe.
   React.useEffect(() => {
     if (step !== 'paiement' || !stripeEmbedded) return;
     let cancelled = false;
@@ -144,7 +152,8 @@ function CheckoutModal({ onClose }) {
       }
     })();
     return () => { cancelled = true; try { if (el) el.unmount(); } catch (e) {} };
-  }, [step, stripeEmbedded, total, ship.method]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- deps figées à dessein (cf. commentaire ci-dessus : ne pas remonter l'Element sur variation de prix).
+  }, [step, stripeEmbedded]);
 
   const validatePay = () => {
     if (ship.method === 'pickup') return true; // pay in store
@@ -163,6 +172,9 @@ function CheckoutModal({ onClose }) {
   };
 
   const [paying, setPaying] = React.useState(false);
+  // Retrait en boutique : passe à true si la notification serveur a échoué, pour
+  // afficher un bandeau honnête sur l'écran de confirmation (voir finalize()).
+  const [pickupNotifyFailed, setPickupNotifyFailed] = React.useState(false);
   const panelRef = React.useRef(null);
   // Aucune fermeture (Échap, scrim, ×) pendant la confirmation du paiement
   // (perte du contexte Stripe) — le hook relit cette closure à chaque rendu.
@@ -193,18 +205,28 @@ function CheckoutModal({ onClose }) {
         paid: ship.method !== 'pickup' ? !!(result && result.paid) : false,
         payRef: result ? result.ref : null,
       });
-      // Retrait en boutique : pas de Stripe, donc pas de webhook → notification
-      // serveur fiable, en best-effort (un échec n'empêche jamais la
-      // confirmation ; les paiements carte sont couverts par le webhook).
-      if (ship.method === 'pickup' && window.LCPay && window.LCPay.notifyPickupOrder) {
-        window.LCPay.notifyPickupOrder({
-          ref: o.number,
-          customer: { name: ship.name, email: ship.email, phone: ship.phone },
-          items: currentLines(),
-        });
-      }
-      try { localStorage.removeItem('lc151_pending_order'); } catch (e) {}
+      // Snapshot des lignes AVANT cart.clear() (currentLines lit le panier courant).
+      const notifyLines = ship.method === 'pickup' ? currentLines() : null;
+      try { localStorage.removeItem('lc151_pending_order'); } catch (e) { console.warn('[lc151] pending_order non nettoyé', e); }
+      // La confirmation s'affiche TOUJOURS et immédiatement : un souci de
+      // notification ne doit jamais la bloquer.
       setOrder(o); cart.clear(); setPaying(false); setStep('confirme');
+      // Retrait en boutique : pas de Stripe, donc pas de webhook → on notifie le
+      // commerçant côté serveur et on EXPLOITE le booléen renvoyé. En cas d'échec
+      // (429, réseau, ok:false…), la commande reste confirmée mais on lève un
+      // bandeau honnête invitant le client à confirmer par téléphone/e-mail. Les
+      // paiements carte, eux, sont couverts par le webhook Stripe.
+      if (notifyLines && window.LCPay && window.LCPay.notifyPickupOrder) {
+        try {
+          Promise.resolve(window.LCPay.notifyPickupOrder({
+            ref: o.number,
+            customer: { name: ship.name, email: ship.email, phone: ship.phone },
+            items: notifyLines,
+          }))
+            .then((ok) => { if (!ok) setPickupNotifyFailed(true); })
+            .catch(() => setPickupNotifyFailed(true));
+        } catch (e) { setPickupNotifyFailed(true); }
+      }
     };
 
     // --- 1) Paiement carte INTÉGRÉ (Stripe Payment Element) ---
@@ -216,7 +238,11 @@ function CheckoutModal({ onClose }) {
       setPaying(true);
       // Mémorise la commande au cas où une authentification 3-D Secure imposerait
       // un aller-retour (carte qui le demande) → finalisée au retour (merci.html).
-      try { localStorage.setItem('lc151_pending_order', JSON.stringify({ ts: Date.now(), order: orderData })); } catch (e) {}
+      // Non fatal (les coordonnées voyagent déjà vers Stripe via `customer`),
+      // mais on loggue : sinon un échec d'écriture ici (quota, navigation privée)
+      // laisserait merci.html reconstruire une commande sans nom/adresse en silence.
+      try { localStorage.setItem('lc151_pending_order', JSON.stringify({ ts: Date.now(), order: orderData })); }
+      catch (e) { console.warn('[lc151] pending_order non sauvegardé', e); }
       try {
         const result = await stripeRef.current.confirmPayment({
           elements: elementsRef.current,
@@ -279,12 +305,12 @@ function CheckoutModal({ onClose }) {
     </div>
   );
 
-  // Total économisé sur les articles en promotion (somme des remises oldPrice→price).
-  const savings = items.reduce((s, l) => {
-    const p = window.LC151.get(l.id);
-    if (p && p.oldPrice && p.oldPrice > p.price) return s + (p.oldPrice - p.price) * l.qty;
-    return s;
-  }, 0);
+  // Total économisé sur les articles en promotion. Fourni par le CONTRAT
+  // window.LC151.cartSavings(items) (source unique) — repli défensif à 0 si la
+  // couche data.js n'est pas encore chargée. On ne recalcule pas ici.
+  const savings = (window.LC151 && typeof window.LC151.cartSavings === 'function')
+    ? window.LC151.cartSavings(items)
+    : 0;
   // Barre « livraison offerte » (même logique que le drawer panier).
   const freeShipRemaining = Math.max(0, FREE_SHIP - subtotal);
   const freeShipPct = Math.min(100, (subtotal / FREE_SHIP) * 100);
@@ -393,6 +419,14 @@ function CheckoutModal({ onClose }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Livraison</span><span>{Orders.methods()[order.method].label}</span></div>
               <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 8 }}>{order.paid ? 'Paiement reçu.' : 'À régler au retrait en boutique.'} Un e-mail de confirmation a été envoyé à {order.email}.</div>
             </div>
+            {/* Retrait en boutique : la notification serveur a échoué → l'échec doit
+                rester VISIBLE (la commande est bien enregistrée pour autant). */}
+            {pickupNotifyFailed && (
+              <div role="alert" style={{ maxWidth: 420, margin: '0 auto 18px', textAlign: 'left', display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--red-soft)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--radius-sm)', padding: '12px 14px' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.5 }}>Votre commande est bien enregistrée, mais nous n’avons pas pu nous notifier automatiquement — merci de contacter la boutique pour confirmer votre retrait.</div>
+              </div>
+            )}
             {DS.Button
               ? <DS.Button className="lc-press" variant="accent" size="lg" onClick={onClose}>Continuer mes achats</DS.Button>
               : <button onClick={onClose} style={{ padding: '12px 28px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer mes achats</button>}

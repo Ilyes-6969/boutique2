@@ -169,11 +169,12 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   );
 }
 /* ChipShell — enveloppe pilulée qui porte la micro-ombre du chip ACTIF, pour le
-   détacher des inactifs sans réécrire le style interne de DS.Tag. Passthrough
-   transparent quand inactif (aucune boîte, aucune ombre). */
+   détacher des inactifs sans réécrire le style interne de DS.Tag. On rend
+   TOUJOURS le même wrapper span (type d'élément stable) : basculer entre
+   `children` brut et un span remonterait DS.Tag (qui garde un useState de hover),
+   cassant sa transition. Seule l'ombre varie selon l'état actif. */
 function ChipShell({ active, children }) {
-  if (!active) return children;
-  return <span style={{ display: 'inline-flex', borderRadius: 'var(--radius-pill)', boxShadow: 'var(--shadow-xs)' }}>{children}</span>;
+  return <span style={{ display: 'inline-flex', borderRadius: 'var(--radius-pill)', boxShadow: active ? 'var(--shadow-xs)' : 'none' }}>{children}</span>;
 }
 
 /* SortSelect — <select> de tri habillé : chevron OS masqué (appearance:none) et

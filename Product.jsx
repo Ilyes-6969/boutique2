@@ -49,6 +49,10 @@ function Product({ navigate, productId, onCart }) {
   // FAVORIS — appelé inconditionnellement (règles des hooks), AVANT l'early
   // return : null si le store Favorites est absent → cœur masqué.
   const favs = useFavorites();
+  // Compteur d'AJOUTS aux favoris (jamais au retrait) → key du ruban : rejoue
+  // lc-fav-pop uniquement à l'ajout, comme StoreCard (Chrome.jsx). Hook déclaré
+  // avant l'early return (règles des hooks).
+  const [favPops, setFavPops] = React.useState(0);
   const lockedUnique = product ? (cart.isUnique(product.id) && cart.items().some((l) => l.id === product.id)) : false;
 
   // Préférences visiteur — le zoom loupe est désactivé si l'utilisateur demande
@@ -190,16 +194,21 @@ function Product({ navigate, productId, onCart }) {
     setTimeout(() => setAdded(false), 1800);
   };
 
-  // FAVORI — même cœur que StoreCard (Chrome.jsx), toujours visible ici
+  // FAVORI — même ruban que StoreCard (Chrome.jsx), toujours visible ici
   // (pas d'opacity au survol) ; bouton rendu uniquement si le store existe.
   const liked = !!(favs && favs.has(product.id));
+  const toggleFav = () => {
+    const wasLiked = liked;
+    favs.toggle(product.id);
+    if (!wasLiked) setFavPops((n) => n + 1);   // pop uniquement quand on AJOUTE
+  };
   const favBtn = (size) => favs && (
     <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Ajouter à ma collection'} title={liked ? 'Dans ma collection' : 'Ajouter à ma collection'}
-      onClick={() => favs.toggle(product.id)}
+      onClick={toggleFav}
       style={{ width: size, height: size, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', cursor: 'pointer', transition: 'border-color 0.2s ease' }}>
-      {/* Micro-pop à l'« ajout » : la key liée à `liked` remonte le span →
-          rejoue .lc-fav-pop (n'anime que sous no-preference). */}
-      <span key={liked ? 'on' : 'off'} className={liked ? 'lc-fav-pop' : undefined} style={{ display: 'flex' }}><FavRibbon caught={liked} size={size >= 36 ? 18 : 15} /></span>
+      {/* Micro-pop uniquement à l'AJOUT : la key = compteur d'ajouts remonte le
+          span → rejoue .lc-fav-pop (jamais au retrait ; n'anime que sous no-preference). */}
+      <span key={favPops} className={favPops > 0 ? 'lc-fav-pop' : undefined} style={{ display: 'flex' }}><FavRibbon caught={liked} size={size >= 36 ? 18 : 15} /></span>
     </button>
   );
 
@@ -255,25 +264,37 @@ function Product({ navigate, productId, onCart }) {
       ];
   const specs = rawSpecs.filter(function (row) { var v = row[1]; return v && String(v).trim() && v !== '—'; });
 
-  // CERTIFICATION « SLAB » (product.type === 'graded') — on met en scène la
-  // gradation à partir des seuls champs présents (badge / rarity / set), SANS
-  // fabriquer de faux numéro de certification affiché comme réel.
-  //   organisme + grade  ← badge.label (« PSA 10 »), repli « PSA » / rarity.
-  //   millésime          ← 1er groupe de 4 chiffres trouvé dans `set` (« … · 1999 »).
-  //   mention            ← rarity (« Gem Mint ») sinon « Certifiée ».
+  // CERTIFICATION « SLAB » (product.type === 'graded') — grade ROBUSTE. On déduit
+  // l'organisme + la note dans l'ordre : product.grade (champ serveur dédié) →
+  // parse du nom (PSA/BGS/CGC/SGC + note) → badge.label → sinon null. On ne
+  // fabrique JAMAIS de fausse note : sans grade fiable, le slab bascule sur une
+  // version générique digne (« Carte certifiée · sous coque scellée »).
+  //   millésime ← 1er groupe de 4 chiffres réel trouvé dans `set` (affiché si présent).
+  //   mention   ← rareté réelle (« Gem Mint ») si connue, sinon neutre.
   const isGraded = product.type === 'graded';
+  const deriveGrade = (p) => {
+    const GRADE_RE = /\b(PSA|BGS|CGC|SGC)\s?(10|9\.5|9|8\.5|8|7|6|5)\b/i;
+    const sources = [p.grade, p.name, (p.badge && p.badge.label)];
+    for (let i = 0; i < sources.length; i++) {
+      const m = String(sources[i] || '').match(GRADE_RE);
+      if (m) return { org: m[1].toUpperCase(), grade: m[2] };
+    }
+    return null;
+  };
   let cert = null;
   if (isGraded) {
-    const badgeLabel = String((product.badge && product.badge.label) || '').trim();
-    const gm = badgeLabel.match(/([A-Za-z]{2,4})\s*([0-9]{1,2}(?:\.5)?)/); // « PSA 10 »
-    const org = (gm && gm[1]) ? gm[1].toUpperCase() : 'PSA';
-    const grade = (gm && gm[2]) ? gm[2] : '';
-    const ym = String(product.set || '').match(/\b(19|20)\d{2}\b/);      // millésime
+    const g = deriveGrade(product);
+    const ym = String(product.set || '').match(/\b(19|20)\d{2}\b/);      // millésime réel si présent
     const year = ym ? ym[0] : '';
     const rarityLabel = String(product.rarity || '').trim();
-    // Mention d'organisme sobre : « Gem Mint · certifiée » quand la rareté existe.
-    const seal = rarityLabel ? (rarityLabel + ' · certifiée') : 'Certifiée · sous coque';
-    cert = { org, grade, year, seal };
+    if (g) {
+      // Grade fiable → organisme + note. Mention sobre : rareté réelle si connue.
+      const seal = rarityLabel ? (rarityLabel + ' · certifiée') : 'Certifiée · sous coque';
+      cert = { generic: false, org: g.org, grade: g.grade, year, seal };
+    } else {
+      // Aucun grade fiable → slab générique digne, SANS faux organisme ni fausse note.
+      cert = { generic: true, org: '', grade: '', year, seal: '' };
+    }
   }
 
   return (
@@ -374,15 +395,16 @@ function Product({ navigate, productId, onCart }) {
           {isGraded && cert && (
             <div className="lc-graded lc-stage-lux" style={{ position: 'relative', marginTop: 32, background: 'var(--footer-bg)', borderRadius: 'var(--radius)', padding: '22px 24px', overflow: 'hidden' }}>
               <div className="lc-line-in" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                {/* GRADE — chiffre en display, cadre or fin façon coque */}
+                {/* Emblème — note chiffrée si grade fiable, sinon sceau « certifié »
+                    générique (jamais de « — » ni de fausse note fabriquée). */}
                 <div style={{ flexShrink: 0, minWidth: 78, textAlign: 'center', padding: '10px 14px', border: '1.5px solid var(--yellow-deep)', borderRadius: 'var(--radius-sm)', background: 'rgba(255,203,5,0.06)' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--yellow)', marginBottom: 2 }}>Grade</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 42, lineHeight: 1, color: '#FFFFFF' }}>{cert.grade || '—'}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--yellow)', marginBottom: 2 }}>{cert.generic ? 'Certifié' : 'Grade'}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: cert.generic ? 30 : 42, lineHeight: 1, color: '#FFFFFF' }}>{cert.generic ? '✓' : cert.grade}</div>
                 </div>
-                {/* ORGANISME + MENTION */}
+                {/* ORGANISME + NOTE (grade fiable) ou titre générique digne */}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, lineHeight: 1.05, color: '#FFFFFF' }}>{cert.org}</div>
-                  <div style={{ marginTop: 4, fontSize: 13.5, fontWeight: 600, color: 'var(--yellow)', textTransform: 'capitalize' }}>{cert.seal}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, lineHeight: 1.05, color: '#FFFFFF' }}>{cert.generic ? 'Carte certifiée' : cert.org}</div>
+                  <div style={{ marginTop: 4, fontSize: 13.5, fontWeight: 600, color: 'var(--yellow)', textTransform: cert.generic ? 'none' : 'capitalize' }}>{cert.generic ? 'Sous coque scellée' : cert.seal}</div>
                   <div style={{ marginTop: 6, height: 2, width: 34, background: 'var(--yellow-deep)', borderRadius: 2 }} aria-hidden="true"></div>
                 </div>
               </div>

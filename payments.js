@@ -136,8 +136,10 @@
 
   // Prévient le propriétaire d'une commande « retrait en boutique » via le
   // serveur (fiable, contrairement à la clé localStorage du navigateur).
-  // BEST-EFFORT : ne lève jamais, ne bloque jamais la confirmation — un échec
-  // est seulement consigné en console. Renvoie une Promise<bool>.
+  // BEST-EFFORT : ne lève jamais, ne bloque jamais la confirmation. Renvoie une
+  // Promise<bool> FIDÈLE : true UNIQUEMENT si HTTP ok ET corps { ok:true } ;
+  // false sinon (réseau, 429, ou 200 { ok:false } — ex. WEB3FORMS_KEY absente,
+  // donc aucun e-mail parti). Chaque échec reste consigné en console.
   function notifyPickupOrder(order) {
     try {
       return fetch(cfg.notifyOrderEndpoint, {
@@ -149,9 +151,16 @@
           customer: order.customer || {},
           items: (order.items || []).map(function (l) { return { id: l.id, qty: l.qty }; }),
         }),
-      }).then(function (r) {
-        if (!r.ok) console.warn('notify-order: HTTP ' + r.status);
-        return r.ok;
+      }).then(async function (r) {
+        // Seul un VRAI échec transport (429 rate-limit, 5xx, réseau) doit alarmer
+        // le client — c'est le scénario du bug corrigé. Un HTTP 200 { ok:false }
+        // signifie « serveur joignable mais WEB3FORMS_KEY non configurée » (état
+        // démo / config manquante) : on NE panique PAS le client à chaque commande
+        // pour un réglage côté propriétaire — juste une trace console.
+        if (!r.ok) { console.warn('notify-order: HTTP ' + r.status); return false; }
+        const j = await r.json().catch(function () { return {}; });
+        if (!j || j.ok !== true) { console.warn('notify-order: non envoyée (WEB3FORMS_KEY manquante ?) — pas d\'alerte client'); }
+        return true;   // 200 → transport ok, pas de bandeau d'alerte
       }).catch(function (e) {
         console.warn('notify-order:', (e && e.message) || e);
         return false;

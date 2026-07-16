@@ -763,6 +763,20 @@ function lcBadgeStyle(tone) {
   return { display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 'var(--radius-xs)', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1.4, whiteSpace: 'nowrap', ...(map[tone] || map.new) };
 }
 
+/* Grade gradé robuste (BUG #5) : WooCommerce ne peuple pas toujours badge.label
+   pour une carte gradée. On déduit alors l'organisme + la note dans l'ordre
+   product.grade → nom → badge.label (même regex que le slab de Product.jsx).
+   Renvoie « PSA 10 » ou null — aucune note fabriquée. */
+function lcDeriveGrade(product) {
+  const GRADE_RE = /\b(PSA|BGS|CGC|SGC)\s?(10|9\.5|9|8\.5|8|7|6|5)\b/i;
+  const sources = [product.grade, product.name, (product.badge && product.badge.label)];
+  for (let i = 0; i < sources.length; i++) {
+    const m = String(sources[i] || '').match(GRADE_RE);
+    if (m) return m[1].toUpperCase() + ' ' + m[2];
+  }
+  return null;
+}
+
 function StoreCard({ product, navigate }) {
   const cart = useCart();
   const favs = useFavorites();   // null si le store Favorites est absent → bouton masqué
@@ -789,6 +803,9 @@ function StoreCard({ product, navigate }) {
   // Slab gradée : liseré + ombre dorés sur toute la carte, halo doré sous l'image.
   // Le badge grade (« PSA 10 ») est réintégré : pastille navy à texte or, mono.
   const isGraded = product.type === 'graded';
+  // Carte gradée sans badge serveur → on déduit la note (organisme + grade) pour
+  // afficher la pastille quand même ; null si indéterminable (aucune pastille).
+  const gradeBadge = (isGraded && !product.badge) ? lcDeriveGrade(product) : null;
 
   return (
     <a href="#" className={'lc-card' + (isGraded ? ' lc-graded' : '')} onClick={(e) => { e.preventDefault(); open(); }}
@@ -797,7 +814,9 @@ function StoreCard({ product, navigate }) {
       <div style={{ position: 'relative' }}>
         <span style={{ position: 'absolute', top: 12, left: 12, zIndex: 2, display: 'flex', gap: 6 }}>
           {pct > 0 && <span style={lcBadgeStyle('sale')}>−{pct}%</span>}
-          {product.badge && <span style={lcBadgeStyle(product.badge.tone)}>{product.badge.label}</span>}
+          {product.badge
+            ? <span style={lcBadgeStyle(product.badge.tone)}>{product.badge.label}</span>
+            : (gradeBadge && <span style={lcBadgeStyle('graded')}>{gradeBadge}</span>)}
         </span>
         {!product.inStock && <span style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}><span style={lcBadgeStyle('oos')}>Rupture</span></span>}
         {favs && product.inStock && (
@@ -910,6 +929,11 @@ function useFocusTrap(panelRef, onClose) {
 
 const lcField = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--paper)', fontSize: 14.5, color: 'var(--ink)', outline: 'none', marginBottom: 12, boxSizing: 'border-box' };
 
+/* Repli <button> natif si le design system (DS.Button) n'est pas encore chargé —
+   même garde défensive que Checkout.jsx (const DS = ... || {} ; DS.Button ? ...).
+   Style « accent bloc » commun aux modales. */
+const lcModalBtnFallback = { width: '100%', height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' };
+
 function ModalShell({ title, children, onClose }) {
   const panelRef = React.useRef(null);
   useFocusTrap(panelRef, onClose);
@@ -928,18 +952,20 @@ function ModalShell({ title, children, onClose }) {
 }
 
 function LcSuccess({ message, onClose }) {
-  const DS = window.ADITCGDesignSystem_df75b7;
+  const DS = window.ADITCGDesignSystem_df75b7 || {};
   return (
     <div style={{ textAlign: 'center', padding: '12px 0 6px' }}>
       <div style={{ width: 54, height: 54, borderRadius: '50%', background: 'var(--accent)', color: 'var(--on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26, margin: '0 auto 16px' }}>✓</div>
       <p style={{ fontSize: 15.5, color: 'var(--ink-2)', marginBottom: 20, lineHeight: 1.55 }}>{message}</p>
-      <DS.Button variant="accent" size="lg" block className="lc-press" onClick={onClose}>Fermer</DS.Button>
+      {DS.Button
+        ? <DS.Button variant="accent" size="lg" block className="lc-press" onClick={onClose}>Fermer</DS.Button>
+        : <button className="lc-press" onClick={onClose} style={lcModalBtnFallback}>Fermer</button>}
     </div>
   );
 }
 
 function FormModal({ title, fields, cta, success, onClose }) {
-  const DS = window.ADITCGDesignSystem_df75b7;
+  const DS = window.ADITCGDesignSystem_df75b7 || {};
   const [sent, setSent] = React.useState(false);
   const submit = (e) => {
     e.preventDefault();
@@ -958,7 +984,9 @@ function FormModal({ title, fields, cta, success, onClose }) {
           {fields.map((f) => f.type === 'textarea'
             ? <textarea key={f.ph} name={f.ph} required placeholder={f.ph} rows={4} style={{ ...lcField, resize: 'vertical' }} />
             : <input key={f.ph} name={f.ph} type={f.type || 'text'} required placeholder={f.ph} style={lcField} />)}
-          <DS.Button type="submit" variant="accent" size="lg" block className="lc-press">{cta}</DS.Button>
+          {DS.Button
+            ? <DS.Button type="submit" variant="accent" size="lg" block className="lc-press">{cta}</DS.Button>
+            : <button type="submit" className="lc-press" style={lcModalBtnFallback}>{cta}</button>}
         </form>
       )}
     </ModalShell>
@@ -966,7 +994,7 @@ function FormModal({ title, fields, cta, success, onClose }) {
 }
 
 function AccountModal({ onClose }) {
-  const DS = window.ADITCGDesignSystem_df75b7;
+  const DS = window.ADITCGDesignSystem_df75b7 || {};
   const auth = useAuth();
   const [tab, setTab] = React.useState('login');
   const [sent, setSent] = React.useState(false);
@@ -994,7 +1022,9 @@ function AccountModal({ onClose }) {
             </button>
           ))}
         </div>
-        <DS.Button variant="primary" size="lg" block className="lc-press" onClick={() => { auth.logout(); onClose(); }}>Se déconnecter</DS.Button>
+        {DS.Button
+          ? <DS.Button variant="primary" size="lg" block className="lc-press" onClick={() => { auth.logout(); onClose(); }}>Se déconnecter</DS.Button>
+          : <button className="lc-press" onClick={() => { auth.logout(); onClose(); }} style={lcModalBtnFallback}>Se déconnecter</button>}
       </ModalShell>
     );
   }
@@ -1020,7 +1050,9 @@ function AccountModal({ onClose }) {
             {tab === 'register' && <input required placeholder="Nom" value={name} onChange={(e) => setName(e.target.value)} style={lcField} />}
             <input required type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} style={lcField} />
             <input required type="password" placeholder="Mot de passe" style={lcField} />
-            <DS.Button type="submit" variant="accent" size="lg" block className="lc-press">{tab === 'login' ? 'Se connecter' : 'Créer mon compte'}</DS.Button>
+            {DS.Button
+              ? <DS.Button type="submit" variant="accent" size="lg" block className="lc-press">{tab === 'login' ? 'Se connecter' : 'Créer mon compte'}</DS.Button>
+              : <button type="submit" className="lc-press" style={lcModalBtnFallback}>{tab === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>}
           </form>
         </React.Fragment>
       )}
@@ -1080,7 +1112,7 @@ function AlertsModal({ onClose }) {
 }
 
 function OrdersModal({ onClose }) {
-  const DS = window.ADITCGDesignSystem_df75b7;
+  const DS = window.ADITCGDesignSystem_df75b7 || {};
   const auth = useAuth();
   const [, force] = React.useReducer((x) => x + 1, 0);
   React.useEffect(() => window.LC151.Orders.subscribe(force), []);
@@ -1092,7 +1124,9 @@ function OrdersModal({ onClose }) {
       {list.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
           <p style={{ fontSize: 14.5, color: 'var(--ink-2)', marginBottom: 18 }}>Vous n'avez pas encore passé de commande.</p>
-          <DS.Button variant="accent" size="lg" block className="lc-press" onClick={onClose}>Explorer la boutique</DS.Button>
+          {DS.Button
+            ? <DS.Button variant="accent" size="lg" block className="lc-press" onClick={onClose}>Explorer la boutique</DS.Button>
+            : <button className="lc-press" onClick={onClose} style={lcModalBtnFallback}>Explorer la boutique</button>}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1116,7 +1150,7 @@ function OrdersModal({ onClose }) {
 }
 
 function AddressesModal({ onClose }) {
-  const DS = window.ADITCGDesignSystem_df75b7;
+  const DS = window.ADITCGDesignSystem_df75b7 || {};
   const auth = useAuth();
   // Hooks TOUJOURS appelés avant tout return conditionnel (règles des hooks) :
   // se connecter pendant que la modale est ouverte ne doit pas faire varier leur nombre.
@@ -1162,7 +1196,9 @@ function AddressesModal({ onClose }) {
         <div><label style={lbl} htmlFor="lc-addr-phone">Téléphone (optionnel)</label><input id="lc-addr-phone" style={lcField} value={a.phone} onChange={(e) => set('phone', e.target.value)} /></div>
         {Object.keys(err).length > 0 && <div role="alert" style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>Veuillez vérifier les champs en rouge.</div>}
         {done && <div role="status" style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><span>✓</span> Adresse enregistrée.</div>}
-        <DS.Button variant="accent" size="lg" block className="lc-press" onClick={save}>{done ? 'Enregistré ✓' : 'Enregistrer l’adresse'}</DS.Button>
+        {DS.Button
+          ? <DS.Button variant="accent" size="lg" block className="lc-press" onClick={save}>{done ? 'Enregistré ✓' : 'Enregistrer l’adresse'}</DS.Button>
+          : <button className="lc-press" onClick={save} style={lcModalBtnFallback}>{done ? 'Enregistré ✓' : 'Enregistrer l’adresse'}</button>}
       </div>
     </ModalShell>
   );

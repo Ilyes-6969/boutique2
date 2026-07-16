@@ -456,6 +456,24 @@
   const K_CART = 'lc151_cart';
   let cart = load(K_CART, []);
   function emitCart() { save(K_CART, cart); cartListeners.forEach((fn) => fn()); }
+  // Clamp NON destructif des quantités : borne chaque ligne dont le produit
+  // existe encore à son plafond (pièce unique → 1, sinon stock/maxQty connus).
+  // Ne SUPPRIME jamais de ligne — un produit introuvable est laissé intact
+  // (anti-vidage-de-panier sur panne transitoire). Sûr même pendant le
+  // chargement du catalogue : le montant affiché colle au montant réellement
+  // débité au paiement (le serveur re-clampe de toute façon). Mute `cart` en
+  // place et renvoie `true` si au moins une quantité a été réduite ; n'émet pas
+  // (l'appelant décide).
+  function clampCartLines() {
+    let changed = false;
+    cart.forEach((l) => {
+      const p = Store.get(l.id);
+      if (!p) return;                            // produit absent → on ne touche pas
+      const cap = qtyCap(p);                     // pièce unique → 1, stock/maxQty sinon
+      if (l.qty > cap) { l.qty = cap; changed = true; }
+    });
+    return changed;
+  }
   const Cart = {
     items: () => cart,
     count: () => cart.reduce((s, l) => s + l.qty, 0),
@@ -489,32 +507,69 @@
     remove(id) { cart = cart.filter((l) => l.id !== id); emitCart(); },
     clear() { cart = []; emitCart(); },
     // Keep the cart consistent with the live catalogue (single source of truth):
-    // drop lines whose product vanished, clamp unique lines to qty 1. Returns the
-    // removed lines so the UI can notify the shopper.
+    // drop lines whose product vanished (PURGE destructif), then clamp surviving
+    // lines to their cap. Returns the removed lines so the UI can notify the
+    // shopper. À N'APPELER que catalogue confirmé chargé (la purge ne doit pas
+    // s'exécuter pendant un chargement / sur un catalogue absent).
     reconcile() {
       let changed = false; const removed = [];
       cart = cart.filter((l) => {
         if (!Store.get(l.id)) { removed.push(l); changed = true; return false; }
         return true;
       });
-      cart.forEach((l) => {
-        const cap = qtyCap(Store.get(l.id));       // pièce unique → 1, stock/maxQty sinon
-        if (l.qty > cap) { l.qty = cap; changed = true; }
-      });
+      if (clampCartLines()) changed = true;        // pièce unique → 1, stock/maxQty sinon
       if (changed) emitCart();
       return removed;
+    },
+    // Clamp SEUL (non destructif) — sans purge des lignes disparues. Utilisé
+    // pendant le chargement du catalogue pour borner les quantités (montant
+    // affiché = montant débité) sans vider le panier sur une panne transitoire.
+    clampQuantities() {
+      const changed = clampCartLines();
+      if (changed) emitCart();
+      return changed;
     },
     subscribe(fn) { cartListeners.add(fn); return () => cartListeners.delete(fn); },
   };
 
   // Cart self-heals whenever the catalogue changes (admin edit, WooCommerce
   // refresh, cross-tab delete) — a stale line can never reach render and crash.
-  // JAMAIS pendant un chargement ni sur un catalogue vide : une panne
-  // transitoire (Woo injoignable) ne doit pas purger le panier du client.
   Store.subscribe(function () {
-    if (wpStatus.state === 'loading' || PRODUCTS.length === 0) return;
+    // Catalogue vide (première charge, aucun produit connu) : rien à faire.
+    if (PRODUCTS.length === 0) return;
+    // Chargement en cours : clamp NON destructif uniquement. On borne les
+    // quantités (pièce unique / stock) pour que le montant affiché colle au
+    // montant réellement débité, MAIS on ne purge pas les lignes d'un produit
+    // momentanément absent — une panne transitoire (Woo injoignable) ne doit
+    // jamais vider le panier du client. La purge attend la confirmation du
+    // catalogue.
+    if (wpStatus.state === 'loading') { Cart.clampQuantities(); return; }
     Cart.reconcile();
   });
+
+  // CONTRAT inter-agents : window.LC151.cartSavings(items) — total économisé
+  // sur les lignes en promo, somme des (oldPrice - price) * qty. Même logique
+  // que cartSavings() de Cart.jsx : ne compte que les lignes dont le produit
+  // existe encore et dont oldPrice dépasse STRICTEMENT le prix courant. Gardes
+  // Number.isFinite (oldPrice / price / qty : oldPrice peut être null, absent,
+  // ou repassé sous le prix après une mise à jour catalogue). Arrondi au centime.
+  // Checkout.jsx et Cart.jsx la CONSOMMENT (fallback défensif) au lieu de recalculer.
+  function cartSavings(items) {
+    if (!Array.isArray(items)) return 0;
+    let total = 0;
+    items.forEach((line) => {
+      if (!line) return;
+      const p = Store.get(line.id);
+      if (!p) return;
+      const old = Number(p.oldPrice);
+      const now = Number(p.price);
+      const qty = Number(line.qty);
+      if (Number.isFinite(old) && Number.isFinite(now) && Number.isFinite(qty) && old > now) {
+        total += (old - now) * qty;
+      }
+    });
+    return Math.round(total * 100) / 100;
+  }
 
   // ---- Favoris (cœur sur cartes / fiches produit) ----
   // Même modèle que les autres stores : localStorage + Set de listeners + emit.
@@ -554,7 +609,22 @@
   };
 
   // Sync inter-onglets — même mécanique que la synchro admin → boutique plus haut.
+  // L'event `storage` ne se déclenche que dans les AUTRES onglets → pas de boucle.
   window.addEventListener('storage', (e) => {
+    // Panier : sans ça, l'onglet A ajoute un article, l'onglet B (panier mémoire
+    // périmé) sauvegarde par-dessus et écrase l'article de A (last-writer-wins,
+    // perte d'article). On recharge le panier, on notifie, puis on réconcilie
+    // « si pertinent » : mêmes gardes que Store.subscribe — clamp seul pendant un
+    // chargement, reconcile complet une fois le catalogue prêt, jamais de purge
+    // sur catalogue absent (anti-vidage de panier préservé).
+    if (e.key === K_CART) {
+      const next = load(K_CART, []);
+      cart = Array.isArray(next) ? next : [];
+      cartListeners.forEach((fn) => fn());
+      if (PRODUCTS.length > 0) {
+        if (wpStatus.state === 'loading') Cart.clampQuantities(); else Cart.reconcile();
+      }
+    }
     if (e.key === K_FAVS) { favs = toIdArray(load(K_FAVS, [])); favListeners.forEach((fn) => fn()); }
     if (e.key === K_RECENT) { recent = toIdArray(load(K_RECENT, [])).slice(0, RECENT_MAX); recentListeners.forEach((fn) => fn()); }
   });
@@ -706,6 +776,16 @@
     subscribe(fn) { orderListeners.add(fn); return () => orderListeners.delete(fn); },
   };
 
+  // Sync inter-onglets du compte client et des commandes — même mécanique que le
+  // panier / les favoris. L'event `storage` ne se déclenche que dans les AUTRES
+  // onglets → pas de boucle. Un onglet qui se connecte, se déconnecte, met à jour
+  // son adresse (K_USER) ou passe commande (K_ORDERS) est reflété dans les onglets
+  // déjà ouverts, sans écrasement last-writer-wins.
+  window.addEventListener('storage', (e) => {
+    if (e.key === K_USER) { user = load(K_USER, null); authListeners.forEach((fn) => fn()); }
+    if (e.key === K_ORDERS) { const o = load(K_ORDERS, []); orders = Array.isArray(o) ? o : []; orderListeners.forEach((fn) => fn()); }
+  });
+
   // URL de la fiche produit. Les produits du catalogue par défaut (« d… »)
   // ont une page statique générée au build (référencée par Google) ; les
   // autres passent par la fiche dynamique. Doit rester synchrone avec la
@@ -728,6 +808,9 @@
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
     notify: notifyForm,   // formulaires contact / newsletter → même réception que les commandes
   };
+  // CONTRAT inter-agents : exposé en Object.assign (consommé par Checkout.jsx /
+  // Cart.jsx via fallback défensif, au lieu de recalculer les économies).
+  Object.assign(window.LC151, { cartSavings: cartSavings });
 
   // ---- Amorçage — impérativement APRÈS toutes les déclarations ci-dessus.
   // refreshFromWp() émet sur storeListeners : l'appeler plus haut (avant la

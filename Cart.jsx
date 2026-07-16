@@ -1,21 +1,10 @@
 /* leclub151 — Panier (slide-over drawer) */
 
-/* Somme des économies des lignes en promo : (oldPrice - price) * qty.
-   Ne compte que les lignes dont le produit existe encore et dont oldPrice
-   dépasse strictement le prix courant (garde défensive : oldPrice peut être
-   null, absent, ou passé sous le prix après une mise à jour catalogue). */
-function cartSavings(items) {
-  let total = 0;
-  for (const line of items) {
-    const p = window.LC151.get(line.id);
-    if (!p) continue;
-    const old = Number(p.oldPrice);
-    const now = Number(p.price);
-    if (Number.isFinite(old) && Number.isFinite(now) && old > now) {
-      total += (old - now) * line.qty;
-    }
-  }
-  return Math.round(total * 100) / 100;
+/* CONTRAT inter-agents : le total économisé sur les lignes en promo est fourni
+   par window.LC151.cartSavings(items) (data.js). On le CONSOMME avec un repli
+   défensif à 0 si la fonction n'est pas encore chargée (jamais de recalcul local). */
+function lcCartSavings(items) {
+  return (typeof window.LC151.cartSavings === 'function') ? window.LC151.cartSavings(items) : 0;
 }
 
 /* Anime doucement un montant vers sa nouvelle valeur (~250 ms, easeOut cubic)
@@ -57,7 +46,7 @@ function CartDrawer({ open, onClose, navigate }) {
   const remaining = Math.max(0, FREE_SHIP - subtotal);
   const pct = Math.min(100, (subtotal / FREE_SHIP) * 100);
   const freeShip = remaining === 0;                 // seuil livraison offerte atteint
-  const savings = cartSavings(items);               // total économisé sur les lignes en promo
+  const savings = lcCartSavings(items);             // total économisé (contrat window.LC151.cartSavings)
   const loggedIn = auth.isLoggedIn();
 
   // Gestion du focus à l'ouverture : le drawer reste monté en permanence (pour
@@ -84,6 +73,16 @@ function CartDrawer({ open, onClose, navigate }) {
       panel.removeEventListener('keydown', onKey);
       try { if (prev && prev.focus) prev.focus(); } catch (e) {}
     };
+  }, [open]);
+
+  // La liste ne se remonte (et ne rejoue l'entrée échelonnée) qu'à l'OUVERTURE
+  // réelle : incrémenter la key à la FERMETURE démonterait les lignes pendant la
+  // sortie (0.32s) → flash + perte du scroll. Compteur au seul front montant de `open`.
+  const [openCount, setOpenCount] = React.useState(0);
+  const prevOpenRef = React.useRef(open);
+  React.useEffect(() => {
+    if (open && !prevOpenRef.current) setOpenCount((n) => n + 1);
+    prevOpenRef.current = open;
   }, [open]);
 
   return (
@@ -118,9 +117,10 @@ function CartDrawer({ open, onClose, navigate }) {
               </div>
             </div>
 
-            {/* lines — key sur `open` : chaque ouverture remonte la liste et rejoue
-                l'entrée échelonnée .lc-line-in (inerte sous reduced-motion, géré CSS). */}
-            <div key={open ? 'open' : 'closed'} style={{ flex: 1, overflowY: 'auto', padding: '8px 22px' }}>
+            {/* lines — key = openCount : ne change qu'à l'OUVERTURE réelle, donc la
+                liste rejoue l'entrée échelonnée .lc-line-in sans se démonter à la
+                fermeture (inerte sous reduced-motion, géré CSS). */}
+            <div key={openCount} style={{ flex: 1, overflowY: 'auto', padding: '8px 22px' }}>
               {items.map((line, i) => {
                 const p = window.LC151.get(line.id);
                 if (!p) return null;   // stale line — Cart.reconcile() prunes it; never crash
@@ -193,7 +193,7 @@ function CartPage({ navigate }) {
   const remaining = Math.max(0, FREE_SHIP - subtotal);
   const pct = Math.min(100, (subtotal / FREE_SHIP) * 100);
   const freeShip = remaining === 0;                 // seuil livraison offerte atteint
-  const savings = cartSavings(items);               // total économisé sur les lignes en promo
+  const savings = lcCartSavings(items);             // total économisé (contrat window.LC151.cartSavings)
   const loggedIn = auth.isLoggedIn();
 
   return (
