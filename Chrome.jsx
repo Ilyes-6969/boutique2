@@ -80,6 +80,10 @@ function lcPlayPop() {
 function lcFlyToCart(fromEl) {
   lcPlayPop();
   try {
+    // Respecte prefers-reduced-motion, comme lcBump / lc-reveal / theme-fx : on
+    // saute la Pokéball volante (grand déplacement à l'écran) pour qui a demandé
+    // moins d'animations. L'ajout au panier reste effectif ; seul l'effet tombe.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const cartBtn = document.querySelector('[data-cart-btn]');
     if (!cartBtn || !fromEl) return;
     const a = fromEl.getBoundingClientRect();
@@ -817,10 +821,15 @@ function StoreCard({ product, navigate }) {
   // afficher la pastille quand même ; null si indéterminable (aucune pastille).
   const gradeBadge = (isGraded && !product.badge) ? lcDeriveGrade(product) : null;
 
+  // Conteneur en <div> et non <a> : un <a> ne peut pas contenir de <button>
+  // (favori + ajout panier) — interactif-dans-interactif, HTML invalide qui fait
+  // double-annoncer la carte aux lecteurs d'écran. Le vrai lien focusable est
+  // désormais le TITRE ; le onClick du conteneur reste un confort souris (clic
+  // n'importe où), doublé par le lien clavier — aucune régression.
   return (
-    <a href="#" className={'lc-card' + (isGraded ? ' lc-graded' : '')} onClick={(e) => { e.preventDefault(); open(); }}
+    <div className={'lc-card' + (isGraded ? ' lc-graded' : '')} onClick={() => open()}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ display: 'flex', flexDirection: 'column', background: 'var(--card)', border: '1.5px solid', borderColor: isGraded ? 'var(--yellow-deep)' : (hover ? 'var(--line-strong)' : 'var(--line)'), borderRadius: 'var(--radius)', overflow: 'hidden', transition: 'all 0.2s ease', transform: hover ? 'translateY(-4px)' : 'none', boxShadow: isGraded ? undefined : (hover ? 'var(--shadow-lg)' : 'var(--shadow-xs)'), color: 'var(--ink)' }}>
+      style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', background: 'var(--card)', border: '1.5px solid', borderColor: isGraded ? 'var(--yellow-deep)' : (hover ? 'var(--line-strong)' : 'var(--line)'), borderRadius: 'var(--radius)', overflow: 'hidden', transition: 'all 0.2s ease', transform: hover ? 'translateY(-4px)' : 'none', boxShadow: isGraded ? undefined : (hover ? 'var(--shadow-lg)' : 'var(--shadow-xs)'), color: 'var(--ink)' }}>
       <div style={{ position: 'relative' }}>
         <span style={{ position: 'absolute', top: 12, left: 12, zIndex: 2, display: 'flex', gap: 6 }}>
           {pct > 0 && <span style={lcBadgeStyle('sale')}>−{pct}%</span>}
@@ -843,7 +852,8 @@ function StoreCard({ product, navigate }) {
       </div>
       <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
         <div style={{ fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, color: 'var(--muted)' }}>{product.cat}</div>
-        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16.5, lineHeight: 1.22, letterSpacing: '-0.01em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 40 }}>{product.name}</div>
+        <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); open(); }}
+          style={{ textDecoration: 'none', color: 'inherit', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16.5, lineHeight: 1.22, letterSpacing: '-0.01em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 40 }}>{product.name}</a>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
           {product.oldPrice > product.price && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>{fmt(product.oldPrice)}&nbsp;€</span>}
           <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 18, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>{fmt(product.price)}&nbsp;€</span>
@@ -853,13 +863,16 @@ function StoreCard({ product, navigate }) {
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: product.inStock ? (low ? 'var(--accent)' : 'var(--green)') : 'var(--line-strong)' }}></span>
           {product.inStock ? (product.preorder ? 'Précommande · à la sortie' : low ? `Plus que ${product.stockLeft} en stock` : 'En stock · expédié sous 48 h') : 'Bientôt de retour'}
         </div>
-        <button type="button" className="lc-press" disabled={!product.inStock || lockedUnique} aria-label="Ajouter au panier"
+        <button type="button" className="lc-press" disabled={!product.inStock || lockedUnique}
+          aria-label={!product.inStock ? (product.name + ' — indisponible')
+            : lockedUnique ? (product.name + ' — déjà dans le panier')
+            : ((product.preorder ? 'Précommander' : 'Ajouter au panier') + ' — ' + product.name)}
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (product.inStock && !lockedUnique) { cart.add(product.id); lcFlyToCart(e.currentTarget); } }}
           style={{ marginTop: 12, width: '100%', height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: (product.inStock && !lockedUnique) ? 'pointer' : 'not-allowed', transition: 'all 0.18s ease', border: '1.5px solid', borderColor: lockedUnique ? 'var(--green)' : (product.inStock ? 'var(--ink)' : 'var(--line)'), background: lockedUnique ? 'var(--green-soft)' : (!product.inStock ? 'transparent' : hover ? 'var(--accent)' : 'var(--ink)'), color: lockedUnique ? 'var(--green)' : (!product.inStock ? 'var(--muted)' : (hover ? 'var(--on-accent)' : 'var(--on-ink)')), boxShadow: product.inStock && hover && !lockedUnique ? 'var(--shadow-accent)' : 'none' }}>
-          {lockedUnique ? <React.Fragment><span style={{ fontSize: 15 }}>✓</span> Dans le panier (1/1)</React.Fragment> : (product.inStock ? <React.Fragment><span style={{ fontSize: 16 }}>＋</span> {product.preorder ? 'Précommander' : 'Ajouter au panier'}</React.Fragment> : 'Indisponible')}
+          {lockedUnique ? <React.Fragment><span aria-hidden="true" style={{ fontSize: 15 }}>✓</span> Dans le panier (1/1)</React.Fragment> : (product.inStock ? <React.Fragment><span aria-hidden="true" style={{ fontSize: 16 }}>＋</span> {product.preorder ? 'Précommander' : 'Ajouter au panier'}</React.Fragment> : 'Indisponible')}
         </button>
       </div>
-    </a>
+    </div>
   );
 }
 
@@ -1001,9 +1014,11 @@ function FormModal({ title, fields, cta, success, onClose }) {
     <ModalShell title={title} onClose={onClose}>
       {sent ? <LcSuccess message={success} onClose={onClose} /> : (
         <form onSubmit={submit}>
+          {/* aria-label : le placeholder seul n'est pas un nom accessible fiable
+              (il disparaît dès la saisie et certains lecteurs d'écran l'ignorent). */}
           {fields.map((f) => f.type === 'textarea'
-            ? <textarea key={f.ph} name={f.ph} required placeholder={f.ph} rows={4} style={{ ...lcField, resize: 'vertical' }} />
-            : <input key={f.ph} name={f.ph} type={f.type || 'text'} required placeholder={f.ph} style={lcField} />)}
+            ? <textarea key={f.ph} name={f.ph} required aria-label={f.ph} placeholder={f.ph} rows={4} style={{ ...lcField, resize: 'vertical' }} />
+            : <input key={f.ph} name={f.ph} type={f.type || 'text'} required aria-label={f.ph} placeholder={f.ph} style={lcField} />)}
           {failed && (
             <p role="alert" style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(179,38,30,0.08)', color: 'var(--red, #b3261e)', fontSize: 13.5, lineHeight: 1.5 }}>
               L’envoi n’a pas abouti. Écrivez-nous directement à{' '}

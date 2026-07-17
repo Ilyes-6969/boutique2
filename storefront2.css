@@ -68,7 +68,12 @@
 .lc-util:hover { color: var(--yellow) !important; }
 
 /* ---- Accessibility & polish ---- */
-:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+/* Anneau de focus à DEUX composantes pour rester visible sur TOUS les fonds :
+   le bleu accent tient sur les surfaces claires (#3363A9 sur blanc = 4.5:1) mais
+   s'efface sur le header/footer navy (~1.6:1, sous les 3:1 requis) ; le halo clair
+   prend alors le relais (~5:1 sur navy, et sur le contenu foncé du thème sombre).
+   Sur une surface claire le halo est invisible mais inoffensif. */
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; box-shadow: 0 0 0 5px rgba(255,255,255,0.55); }
 :focus:not(:focus-visible) { outline: none; }
 a, button { -webkit-tap-highlight-color: transparent; }
 img { -webkit-user-drag: none; user-select: none; }
