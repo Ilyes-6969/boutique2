@@ -137,7 +137,39 @@ function extractCatalog() {
   vm.runInNewContext(code, sandbox, { filename: 'data.js' });
   const products = w.LC151.Store.all();
   if (!products || !products.length) throw new Error('Catalogue vide — data.js a changé ?');
+  assertShopContactUsable(w.LC151.SHOP);
   return products;
+}
+
+// Garde anti-données bouche-trou. Les coordonnées vivent dans data.js (LC151.SHOP)
+// et sont VIDES par défaut — vide = bloc masqué, donc rien de faux ne s'affiche.
+// Le risque restant est qu'un placeholder soit saisi puis oublié : un numéro en
+// « 00 00 00 » ou un lien social pointant sur l'accueil d'une plateforme est le
+// signal « site template » le plus net qui soit. Sur le DOMAINE DE PRODUCTION on
+// refuse alors de publier ; ailleurs (preview, localhost) on se contente d'alerter.
+function assertShopContactUsable(shop) {
+  const bad = [];
+  const digits = String((shop && shop.phone) || '').replace(/\D/g, '');
+  if (digits && /0{6,}/.test(digits)) bad.push('téléphone bouche-trou : « ' + shop.phone + ' »');
+  ((shop && shop.socials) || []).forEach(([label, url]) => {
+    try {
+      const u = new URL(url);
+      if (u.pathname.replace(/\/+$/, '') === '') {
+        bad.push('lien social sans compte (accueil de plateforme) : ' + label + ' → ' + url);
+      }
+    } catch (e) {
+      bad.push('lien social invalide : ' + label + ' → ' + url);
+    }
+  });
+  if (!bad.length) return;
+  const onProd = !demoOnSite;
+  const head = (onProd ? '✖ Build interrompu' : '⚠ Attention') + ' : coordonnées bouche-trou dans data.js (LC151.SHOP)';
+  (onProd ? console.error : console.warn)(head);
+  bad.forEach((b) => (onProd ? console.error : console.warn)('  - ' + b));
+  if (onProd) {
+    console.error('  Renseigne de vraies valeurs, ou laisse le champ VIDE (le bloc sera masqué).');
+    process.exit(1);
+  }
 }
 
 function slugify(name) {

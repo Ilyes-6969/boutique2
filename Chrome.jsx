@@ -99,18 +99,28 @@ function lcFlyToCart(fromEl) {
   } catch (e) {}
 }
 
-function Pokeball({ size = 16, style, float = false }) {
+// tone='brand' → coque BLEUE (accent d'interface, aligné sur la DA CLUB 151) ;
+// défaut → coque rouge, réservée au grand motif Pokéball de l'accueil. C'est le
+// partage décidé pour la DA : on garde le clin d'œil Pokémon en grand format,
+// mais les petites Pokéballs qui servent de puces d'interface suivent la marque
+// au lieu de rappeler l'ancien rouge #EE1515.
+const PB_SHELL = {
+  red: ['#ff9d9d', '#ee1515', '#990b0b'],
+  brand: ['#7FA8DC', '#3363A9', '#1E3265'],
+};
+function Pokeball({ size = 16, style, float = false, tone }) {
   const idRef = React.useRef(null);
   if (idRef.current === null) idRef.current = (window.__pbSeq = (window.__pbSeq || 0) + 1);
   const u = 'pb' + idRef.current;
+  const shell = PB_SHELL[tone === 'brand' ? 'brand' : 'red'];
   return (
     <span className={'lc-pb' + (float ? ' lc-pb-float' : '')} style={{ display: 'inline-flex', flexShrink: 0, lineHeight: 0, ...style }}>
       <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" style={{ display: 'block', overflow: 'visible' }}>
         <defs>
           <radialGradient id={u + 'r'} cx="36%" cy="27%" r="80%">
-            <stop offset="0%" stopColor="#ff9d9d" />
-            <stop offset="34%" stopColor="#ee1515" />
-            <stop offset="100%" stopColor="#990b0b" />
+            <stop offset="0%" stopColor={shell[0]} />
+            <stop offset="34%" stopColor={shell[1]} />
+            <stop offset="100%" stopColor={shell[2]} />
           </radialGradient>
           <radialGradient id={u + 'w'} cx="36%" cy="80%" r="76%">
             <stop offset="0%" stopColor="#ffffff" />
@@ -181,13 +191,15 @@ function useLang() {
 
 function Announcement() {
   const t = useLang();
-  const socials = [['Facebook', 'https://facebook.com'], ['Instagram', 'https://instagram.com'], ['YouTube', 'https://youtube.com'], ['Discord', 'https://discord.com']];
+  // Même source unique que le footer (LC151.SHOP.socials) : ces liens pointaient
+  // vers l'ACCUEIL des plateformes (https://facebook.com…), pas vers des comptes.
+  const socials = ((((window.LC151 || {}).SHOP || {}).socials) || []).filter(([name, url]) => name && url);
   return (
     <div style={{ background: 'var(--header-2)', color: 'rgba(234,239,251,0.9)', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
       <div className="container-wide lc-ann" style={{ display: 'flex', alignItems: 'center', gap: 16, minHeight: 38, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.06em' }}>
         <div className="lc-ann-side" style={{ display: 'flex', gap: 14 }}>
           {socials.map(([s, url]) => (
-            <a key={s} className="lc-util" href={url} target="_blank" rel="noreferrer" style={{ color: 'rgba(234,239,251,0.6)', textTransform: 'uppercase' }}>{s}</a>
+            <a key={s} className="lc-util" href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(234,239,251,0.6)', textTransform: 'uppercase' }}>{s}</a>
           ))}
         </div>
         <div style={{ flex: 1, textAlign: 'center', textTransform: 'uppercase', color: 'rgba(234,239,251,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -611,14 +623,19 @@ function Footer({ navigate }) {
       </div>
     </div>
   );
-  const socials = [
-    ['Instagram', 'M12 2.2c3.2 0 3.6 0 4.9.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58 0-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2m0 5.4A4.4 4.4 0 1 0 16.4 12 4.4 4.4 0 0 0 12 7.6m0 7.27A2.87 2.87 0 1 1 14.87 12 2.87 2.87 0 0 1 12 14.87m4.6-8.43a1.03 1.03 0 1 0 1.03 1.03 1.03 1.03 0 0 0-1.03-1.03'],
-    ['Facebook', 'M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12'],
-    ['TikTok', 'M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.1v12.4a2.59 2.59 0 1 1-2.59-2.59c.27 0 .53.05.78.12v-3.2a5.7 5.7 0 0 0-.78-.05A5.69 5.69 0 1 0 15.54 15.5V9.4a7.34 7.34 0 0 0 4.3 1.38V7.68a4.28 4.28 0 0 1-3.24-1.86'],
-    ['YouTube', 'M21.6 7.2s-.2-1.37-.8-1.97c-.76-.8-1.6-.8-2-.85C16 4.1 12 4.1 12 4.1h-.02s-4 0-6.8.28c-.4.05-1.24.05-2 .85-.6.6-.8 1.97-.8 1.97S2.16 8.8 2.16 10.4v1.5c0 1.6.2 3.2.2 3.2s.2 1.37.8 1.97c.76.8 1.76.77 2.2.86 1.6.15 6.64.2 6.64.2s4 0 6.8-.29c.4-.05 1.24-.05 2-.85.6-.6.8-1.97.8-1.97s.2-1.6.2-3.2v-1.5c0-1.6-.2-3.2-.2-3.2M9.84 14.6V8.93l5.15 2.85z'],
-    ['Google', 'M21.35 11.1H12v2.93h5.35c-.23 1.4-1.66 4.1-5.35 4.1a5.86 5.86 0 0 1 0-11.72 5.2 5.2 0 0 1 3.68 1.44l2-1.93A8.46 8.46 0 0 0 12 3.5a8.5 8.5 0 1 0 0 17 7.96 7.96 0 0 0 8.15-8.36c0-.7-.07-1.4-.16-2.04z'],
-    ['Apple', 'M16.36 12.78c-.02-2.2 1.8-3.26 1.88-3.31-1.02-1.5-2.62-1.71-3.18-1.73-1.36-.14-2.65.8-3.34.8-.68 0-1.75-.78-2.88-.76-1.48.02-2.85.86-3.6 2.18-1.54 2.67-.4 6.62 1.1 8.79.73 1.06 1.6 2.25 2.74 2.2 1.1-.04 1.52-.71 2.85-.71 1.33 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.14a9.3 9.3 0 0 0 1.2-2.45c-.03-.01-2.3-.88-2.32-3.49M14.18 6.1c.6-.74 1.01-1.75.9-2.77-.87.04-1.93.58-2.56 1.3-.56.64-1.05 1.68-.92 2.67.97.08 1.97-.49 2.58-1.2'],
-  ];
+  // Tracés d'icônes DISPONIBLES ; la liste réellement affichée vient de
+  // LC151.SHOP.socials (source unique). Avant, six icônes en href="#" +
+  // preventDefault() annonçaient une présence sociale inexistante — et
+  // « Google »/« Apple », qui ne sont pas des réseaux, trahissaient le
+  // remplissage de template. Sans compte réel renseigné : on n'affiche rien.
+  const SOCIAL_ICONS = {
+    Instagram: 'M12 2.2c3.2 0 3.6 0 4.9.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s0 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58 0-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.21 15.58 2.2 15.2 2.2 12s0-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.21 8.8 2.2 12 2.2m0 5.4A4.4 4.4 0 1 0 16.4 12 4.4 4.4 0 0 0 12 7.6m0 7.27A2.87 2.87 0 1 1 14.87 12 2.87 2.87 0 0 1 12 14.87m4.6-8.43a1.03 1.03 0 1 0 1.03 1.03 1.03 1.03 0 0 0-1.03-1.03',
+    Facebook: 'M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12',
+    TikTok: 'M16.6 5.82A4.28 4.28 0 0 1 15.54 3h-3.1v12.4a2.59 2.59 0 1 1-2.59-2.59c.27 0 .53.05.78.12v-3.2a5.7 5.7 0 0 0-.78-.05A5.69 5.69 0 1 0 15.54 15.5V9.4a7.34 7.34 0 0 0 4.3 1.38V7.68a4.28 4.28 0 0 1-3.24-1.86',
+    YouTube: 'M21.6 7.2s-.2-1.37-.8-1.97c-.76-.8-1.6-.8-2-.85C16 4.1 12 4.1 12 4.1h-.02s-4 0-6.8.28c-.4.05-1.24.05-2 .85-.6.6-.8 1.97-.8 1.97S2.16 8.8 2.16 10.4v1.5c0 1.6.2 3.2.2 3.2s.2 1.37.8 1.97c.76.8 1.76.77 2.2.86 1.6.15 6.64.2 6.64.2s4 0 6.8-.29c.4-.05 1.24-.05 2-.85.6-.6.8-1.97.8-1.97s.2-1.6.2-3.2v-1.5c0-1.6-.2-3.2-.2-3.2M9.84 14.6V8.93l5.15 2.85z',
+  };
+  const socials = ((((window.LC151 || {}).SHOP || {}).socials) || [])
+    .filter(([name, url]) => SOCIAL_ICONS[name] && url);
   const appBadge = null;
   // Icônes SVG du bandeau de réassurance (mêmes tracés que ReassureIcon de Home.jsx,
   // dupliqués ici car Home.jsx n'est chargé que sur l'accueil).
@@ -698,9 +715,9 @@ function Footer({ navigate }) {
         {/* socials + legal links */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', gap: 14 }}>
-            {socials.map(([name, d]) => (
-              <a key={name} href="#" onClick={(e) => e.preventDefault()} aria-label={name} title={name} className="lc-social">
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={d} /></svg>
+            {socials.map(([name, url]) => (
+              <a key={name} href={url} target="_blank" rel="noopener noreferrer" aria-label={name + ' (nouvel onglet)'} title={name} className="lc-social">
+                <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d={SOCIAL_ICONS[name]} /></svg>
               </a>
             ))}
           </div>

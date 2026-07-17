@@ -181,14 +181,22 @@ function Home({ navigate }) {
       <section className="container-wide lc-reveal" style={{ padding: '8px 24px 16px' }}>
         <div className="lc-shop-grid lc-tile" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1.5px solid var(--line)', background: 'var(--card)' }}>
           <div style={{ padding: '36px 36px 38px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 12 }}><Pokeball size={14} />Boutique physique</div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 12 }}><Pokeball size={14} tone="brand" />Boutique physique</div>
             <div className="lc-gold-rule" style={{ marginBottom: 14 }}></div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(28px, 3vw, 34px)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 12 }}>Retrouvez-nous à Vienne</h2>
             <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 440, marginBottom: 22 }}>
               Poussez la porte de la boutique pour voir les pièces en vrai, faire estimer vos cartes ou retirer une commande. On adore parler collection.
             </p>
             <div className="lc-addr-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 24 }}>
-              {[['Adresse', 'Rue de la Juiverie\n38200 Vienne'], ['Horaires', 'Mar–Sam · 10h–19h\nDimanche · 14h–18h'], ['Téléphone', '04 74 00 00 00'], ['Services', 'Estimation · Retrait\nAchat de collections']].map(([k, v]) => (
+              {/* Le téléphone vient de LC151.SHOP (source unique) et n'apparaît que
+                  s'il est renseigné : mieux vaut aucun numéro qu'un faux numéro. */}
+              {[
+                ['Adresse', 'Rue de la Juiverie\n38200 Vienne'],
+                ['Horaires', 'Mar–Sam · 10h–19h\nDimanche · 14h–18h'],
+                ...((((window.LC151 || {}).SHOP || {}).phone || '').trim()
+                  ? [['Téléphone', window.LC151.SHOP.phone]] : []),
+                ['Services', 'Estimation · Retrait\nAchat de collections'],
+              ].map(([k, v]) => (
                 <div key={k}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 5 }}>{k}</div>
                   <div style={{ fontSize: 14.5, fontWeight: 500, lineHeight: 1.45, whiteSpace: 'pre-line' }}>{v}</div>
@@ -213,7 +221,7 @@ function Home({ navigate }) {
             ></iframe>
             {/* Cartouche adresse en surimpression */}
             <div style={{ position: 'absolute', left: 16, bottom: 16, background: 'var(--card)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', boxShadow: 'var(--shadow-lg)', display: 'flex', alignItems: 'center', gap: 9, maxWidth: 'calc(100% - 32px)' }}>
-              <Pokeball size={20} />
+              <Pokeball size={20} tone="brand" />
               <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontStyle: 'italic', fontSize: 16 }}>leclub<span style={{ color: 'var(--accent)' }}>151</span></span>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Vienne · 38</span>
             </div>

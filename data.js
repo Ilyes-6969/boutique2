@@ -116,6 +116,23 @@
   const K_WP = 'lc151_wp_url';       // WordPress / WooCommerce site URL
   const EDITABLE = ['price', 'oldPrice', 'inStock', 'badge'];
 
+  // ---- Coordonnées de la boutique — SOURCE UNIQUE ----
+  // Lues par Home.jsx (bloc « Retrouvez-nous à Vienne ») et Chrome.jsx (footer).
+  // Une valeur VIDE masque proprement le bloc concerné : on préfère ne rien
+  // afficher plutôt qu'un faux numéro ou un lien social retombant sur l'accueil
+  // de la plateforme — c'est la signature d'un site « template », et ça coûte
+  // plus de crédibilité que ça n'en apporte.
+  // build.mjs REFUSE de publier sur le domaine de production si une valeur
+  // bouche-trou réapparaît ici (numéro en 00 00 00, lien social sans compte).
+  const SHOP = {
+    // Le vrai numéro, ex. '04 74 12 34 56'. Vide tant que la ligne n'existe pas.
+    phone: '',
+    // UNIQUEMENT de vrais comptes, ex. :
+    //   [['Instagram', 'https://instagram.com/club151'], ['Facebook', 'https://facebook.com/club151']]
+    // Une URL sans chemin (= accueil de plateforme) est rejetée au build.
+    socials: [],
+  };
+
   // Un JSON VALIDE mais du mauvais TYPE (ex. lc151_cart = {"a":1} au lieu d'un
   // tableau) traversait ce try/catch sans bruit — JSON.parse ne lève pas — puis
   // faisait planter toute la boutique au premier cart.filter(...), sans error
@@ -845,6 +862,7 @@
     productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
     notify: notifyForm,   // formulaires contact / newsletter → même réception que les commandes
+    SHOP,                 // coordonnées boutique (téléphone, réseaux) — source unique, cf. plus haut
   };
   // CONTRAT inter-agents : exposé en Object.assign (consommé par Checkout.jsx /
   // Cart.jsx via fallback défensif, au lieu de recalculer les économies).
@@ -879,11 +897,11 @@
     bar.innerHTML =
       '<div style="flex:1;min-width:220px;font-size:13.5px;line-height:1.5">' +
         'Nous utilisons des cookies pour le bon fonctionnement du site (panier, session), ainsi qu’une mesure d’audience anonyme et sans cookie. ' +
-        '<a href="confidentialite.html" style="color:var(--accent,#ee1515);font-weight:600">En savoir plus</a>.' +
+        '<a href="confidentialite.html" style="color:var(--accent,#3363A9);font-weight:600">En savoir plus</a>.' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-shrink:0">' +
         '<button data-lc-cookie="refuse" style="height:38px;padding:0 14px;border-radius:8px;border:1.5px solid var(--line-strong,#ccc);background:transparent;color:var(--ink,#1a1a1a);font-weight:600;font-size:13.5px;cursor:pointer">Refuser</button>' +
-        '<button data-lc-cookie="accept" style="height:38px;padding:0 16px;border-radius:8px;border:none;background:var(--accent,#ee1515);color:var(--on-accent,#fff);font-weight:600;font-size:13.5px;cursor:pointer">Accepter</button>' +
+        '<button data-lc-cookie="accept" style="height:38px;padding:0 16px;border-radius:8px;border:none;background:var(--accent,#3363A9);color:var(--on-accent,#fff);font-weight:600;font-size:13.5px;cursor:pointer">Accepter</button>' +
       '</div>';
     function choose(v) { try { localStorage.setItem(K, v); } catch (e) {} bar.remove(); }
     bar.addEventListener('click', function (e) {
