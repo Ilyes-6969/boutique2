@@ -1,0 +1,4 @@
+- generic [active] [ref=f2e1]:
+  - heading "control" [level=1] [ref=f2e2]
+  - link "Itineraire w/ rel=opener" [ref=f2e3] [cursor=pointer]:
+    - /url: tabnab.html

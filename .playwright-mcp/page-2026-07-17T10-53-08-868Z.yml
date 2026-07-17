@@ -1,0 +1,541 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Aller au contenu principal" [ref=e3] [cursor=pointer]:
+      - /url: "#lc-main"
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - link "Facebook" [ref=e7] [cursor=pointer]:
+          - /url: https://facebook.com
+        - link "Instagram" [ref=e8] [cursor=pointer]:
+          - /url: https://instagram.com
+        - link "YouTube" [ref=e9] [cursor=pointer]:
+          - /url: https://youtube.com
+        - link "Discord" [ref=e10] [cursor=pointer]:
+          - /url: https://discord.com
+      - generic [ref=e11]: Livraison offerte dès 100 € · Authentification garantie
+      - generic [ref=e13]:
+        - link "Nous contacter" [ref=e14] [cursor=pointer]:
+          - /url: "#"
+        - link "Connexion" [ref=e15] [cursor=pointer]:
+          - /url: "#"
+    - banner [ref=e16]:
+      - generic [ref=e17]:
+        - link "CLUB 151 — cartes à collectionner, Vienne" [ref=e18] [cursor=pointer]:
+          - /url: "#"
+          - img "CLUB 151" [ref=e19]
+        - generic [ref=e22]:
+          - combobox "Rechercher une carte, une série, un coffret…" [ref=e27]
+          - button "OK" [ref=e28] [cursor=pointer]
+        - generic [ref=e29]:
+          - button "Basculer le thème" [ref=e30] [cursor=pointer]
+          - link "Mon compte" [ref=e33] [cursor=pointer]:
+            - /url: "#"
+          - button "Panier" [ref=e37] [cursor=pointer]:
+            - text: Panier
+            - generic [ref=e38]: "0"
+      - navigation [ref=e39]:
+        - generic [ref=e40]:
+          - link "Accueil" [ref=e41] [cursor=pointer]:
+            - /url: "#"
+          - link "Cartes à l'unité ▾" [ref=e42] [cursor=pointer]:
+            - /url: "#"
+            - text: Cartes à l'unité
+            - generic [ref=e43]: ▾
+          - link "Cartes gradées ▾" [ref=e44] [cursor=pointer]:
+            - /url: "#"
+            - text: Cartes gradées
+            - generic [ref=e45]: ▾
+          - link "Scellé ▾" [ref=e46] [cursor=pointer]:
+            - /url: "#"
+            - text: Scellé
+            - generic [ref=e47]: ▾
+          - link "Accessoires ▾" [ref=e48] [cursor=pointer]:
+            - /url: "#"
+            - text: Accessoires
+            - generic [ref=e49]: ▾
+          - link "Précommande" [ref=e50] [cursor=pointer]:
+            - /url: "#"
+          - link "Autres jeux ▾" [ref=e51] [cursor=pointer]:
+            - /url: "#"
+            - text: Autres jeux
+            - generic [ref=e52]: ▾
+          - link "Toute la boutique" [ref=e53] [cursor=pointer]:
+            - /url: "#"
+    - main [ref=e54]:
+      - generic [ref=e55]:
+        - generic [ref=e58]:
+          - heading "Votre boutique Pokémon, à Vienne." [level=1] [ref=e59]: Votre boutiquePokémon, à Vienne.
+          - paragraph [ref=e60]: On déniche, on authentifie et on conseille — du Set de Base aux dernières sorties. Cartes à l'unité, pièces gradées, scellé et accessoires, à retirer en magasin ou livrés chez vous.
+          - generic [ref=e61]:
+            - link "Explorer la boutique" [ref=e62] [cursor=pointer]:
+              - /url: boutique.html
+            - link "Cartes gradées" [ref=e63] [cursor=pointer]:
+              - /url: boutique.html?cat=graded
+          - generic [ref=e64]:
+            - generic [ref=e65]: Authentifié
+            - generic [ref=e70]: Expédié sous 48 h
+            - generic [ref=e78]: Retours 14 jours
+        - generic [ref=e85]:
+          - generic [ref=e90]:
+            - generic [ref=e91]: Authentifié
+            - generic [ref=e92]: Chaque pièce vérifiée
+          - generic [ref=e100]:
+            - generic [ref=e101]: Livraison offerte
+            - generic [ref=e102]: Dès 100 € d’achat
+          - generic [ref=e107]:
+            - generic [ref=e108]: Paiement sécurisé
+            - generic [ref=e109]: CB · PayPal · Apple Pay
+        - generic [ref=e110]:
+          - generic [ref=e111]:
+            - generic [ref=e112]: Nos univers
+            - heading "Tous vos jeux de cartes" [level=2] [ref=e114]
+          - generic [ref=e115]:
+            - link "Pokémon Le cœur de la boutique Explorer →" [ref=e116] [cursor=pointer]:
+              - /url: boutique.html
+              - generic: P
+              - generic [ref=e118]: Pokémon
+              - generic [ref=e119]: Le cœur de la boutique
+              - generic [ref=e120]: Explorer →
+            - link "Disney Lorcana Singles & chapitres Bientôt disponible" [ref=e121] [cursor=pointer]:
+              - /url: lorcana.html
+              - generic: L
+              - generic [ref=e123]: Disney Lorcana
+              - generic [ref=e124]: Singles & chapitres
+              - generic [ref=e125]: Bientôt disponible
+            - link "One Piece Romance Dawn & + Bientôt disponible" [ref=e126] [cursor=pointer]:
+              - /url: one-piece.html
+              - generic: O
+              - generic [ref=e128]: One Piece
+              - generic [ref=e129]: Romance Dawn & +
+              - generic [ref=e130]: Bientôt disponible
+            - link "Magic The Gathering Bientôt disponible" [ref=e131] [cursor=pointer]:
+              - /url: magic.html
+              - generic: M
+              - generic [ref=e133]: Magic
+              - generic [ref=e134]: The Gathering
+              - generic [ref=e135]: Bientôt disponible
+            - link "Yu-Gi-Oh! Cartes & coffrets Bientôt disponible" [ref=e136] [cursor=pointer]:
+              - /url: yugioh.html
+              - generic: "Y"
+              - generic [ref=e138]: Yu-Gi-Oh!
+              - generic [ref=e139]: Cartes & coffrets
+              - generic [ref=e140]: Bientôt disponible
+        - generic [ref=e141]:
+          - generic [ref=e142]:
+            - generic [ref=e143]: Par rayon
+            - heading "Trouvez ce que vous cherchez" [level=2] [ref=e145]
+          - generic [ref=e146]:
+            - link "Cartes à l'unité Du Set de Base à aujourd’hui Découvrir →" [ref=e147] [cursor=pointer]:
+              - /url: boutique.html?cat=single
+              - generic [ref=e149]: Cartes à l'unité
+              - generic [ref=e150]: Du Set de Base à aujourd’hui
+              - generic [ref=e151]: Découvrir →
+            - link "Cartes gradées PSA · BGS authentifiées Découvrir →" [ref=e152] [cursor=pointer]:
+              - /url: boutique.html?cat=graded
+              - generic [ref=e154]: Cartes gradées
+              - generic [ref=e155]: PSA · BGS authentifiées
+              - generic [ref=e156]: Découvrir →
+            - link "Scellé Displays · ETB · coffrets Découvrir →" [ref=e157] [cursor=pointer]:
+              - /url: boutique.html?cat=sealed
+              - generic [ref=e159]: Scellé
+              - generic [ref=e160]: Displays · ETB · coffrets
+              - generic [ref=e161]: Découvrir →
+            - link "Accessoires Sleeves · classeurs · tapis Découvrir →" [ref=e162] [cursor=pointer]:
+              - /url: boutique.html?cat=accessory
+              - generic [ref=e164]: Accessoires
+              - generic [ref=e165]: Sleeves · classeurs · tapis
+              - generic [ref=e166]: Découvrir →
+        - generic [ref=e167]:
+          - generic [ref=e168]:
+            - generic [ref=e169]:
+              - heading "Nouveautés" [level=2] [ref=e171]
+              - generic [ref=e172]:
+                - link "Tout voir →" [ref=e173] [cursor=pointer]:
+                  - /url: "#"
+                - generic [ref=e174]:
+                  - button "Précédent" [ref=e175] [cursor=pointer]: ‹
+                  - button "Suivant" [ref=e176] [cursor=pointer]: ›
+            - generic [ref=e177]:
+              - link "Nouveau Ajouter à ma collection Pikachu — Joues Rouges Carte à l'unité Pikachu — Joues Rouges 54,90 € En stock · expédié sous 48 h Ajouter au panier" [ref=e179] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e180]:
+                  - generic [ref=e181]: Nouveau
+                  - button "Ajouter à ma collection" [ref=e183]
+                  - img "Pikachu — Joues Rouges" [ref=e188]
+                - generic [ref=e189]:
+                  - generic [ref=e190]: Carte à l'unité
+                  - generic [ref=e191]: Pikachu — Joues Rouges
+                  - generic [ref=e192]: 54,90 €
+                  - generic [ref=e194]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e196]:
+                    - generic [ref=e197]: ＋
+                    - text: Ajouter au panier
+              - link "Nouveau Ajouter à ma collection ETB — Pokémon 151 Coffret Dresseur d'Élite ETB — Pokémon 151 64,90 € En stock · expédié sous 48 h Ajouter au panier" [ref=e199] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e200]:
+                  - generic [ref=e201]: Nouveau
+                  - button "Ajouter à ma collection" [ref=e203]
+                  - img "ETB — Pokémon 151" [ref=e208]
+                - generic [ref=e209]:
+                  - generic [ref=e210]: Coffret Dresseur d'Élite
+                  - generic [ref=e211]: ETB — Pokémon 151
+                  - generic [ref=e212]: 64,90 €
+                  - generic [ref=e214]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e216]:
+                    - generic [ref=e217]: ＋
+                    - text: Ajouter au panier
+              - link "Ajouter à ma collection Display — Étincelles Déferlantes Boîte de boosters Display — Étincelles Déferlantes 209,90 € En stock · expédié sous 48 h Ajouter au panier" [ref=e219] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e220]:
+                  - button "Ajouter à ma collection" [ref=e221]
+                  - img "Display — Étincelles Déferlantes" [ref=e226]
+                - generic [ref=e227]:
+                  - generic [ref=e228]: Boîte de boosters
+                  - generic [ref=e229]: Display — Étincelles Déferlantes
+                  - generic [ref=e230]: 209,90 €
+                  - generic [ref=e232]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e234]:
+                    - generic [ref=e235]: ＋
+                    - text: Ajouter au panier
+              - link "Ajouter à ma collection Coffret — Évolutions Prismatiques Coffret Coffret — Évolutions Prismatiques 39,90 € En stock · expédié sous 48 h Ajouter au panier" [ref=e237] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e238]:
+                  - button "Ajouter à ma collection" [ref=e239]
+                  - img "Coffret — Évolutions Prismatiques" [ref=e244]
+                - generic [ref=e245]:
+                  - generic [ref=e246]: Coffret
+                  - generic [ref=e247]: Coffret — Évolutions Prismatiques
+                  - generic [ref=e248]: 39,90 €
+                  - generic [ref=e250]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e252]:
+                    - generic [ref=e253]: ＋
+                    - text: Ajouter au panier
+              - link "Rupture Booster — Flammes Obsidiennes Booster Booster — Flammes Obsidiennes 5,50 € Bientôt de retour Ajouter au panier" [ref=e255] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e256]:
+                  - generic [ref=e257]: Rupture
+                  - img "Booster — Flammes Obsidiennes" [ref=e260]
+                - generic [ref=e261]:
+                  - generic [ref=e262]: Booster
+                  - generic [ref=e263]: Booster — Flammes Obsidiennes
+                  - generic [ref=e264]: 5,50 €
+                  - generic [ref=e266]: Bientôt de retour
+                  - button "Ajouter au panier" [disabled] [ref=e268]: Indisponible
+              - link "Précommande Ajouter à ma collection Display — Couronne Stellaire Boîte de boosters Display — Couronne Stellaire 219,90 € Précommande · à la sortie Ajouter au panier" [ref=e270] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e271]:
+                  - generic [ref=e272]: Précommande
+                  - button "Ajouter à ma collection" [ref=e274]
+                  - img "Display — Couronne Stellaire" [ref=e279]
+                - generic [ref=e280]:
+                  - generic [ref=e281]: Boîte de boosters
+                  - generic [ref=e282]: Display — Couronne Stellaire
+                  - generic [ref=e283]: 219,90 €
+                  - generic [ref=e285]: Précommande · à la sortie
+                  - button "Ajouter au panier" [ref=e287]:
+                    - generic [ref=e288]: ＋
+                    - text: Précommander
+              - link "Précommande Ajouter à ma collection ETB — Mascarade Crépusculaire Coffret Dresseur d'Élite ETB — Mascarade Crépusculaire 54,90 € Précommande · à la sortie Ajouter au panier" [ref=e290] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e291]:
+                  - generic [ref=e292]: Précommande
+                  - button "Ajouter à ma collection" [ref=e294]
+                  - generic [ref=e298]:
+                    - img "ETB — Mascarade Crépusculaire"
+                - generic [ref=e299]:
+                  - generic [ref=e300]: Coffret Dresseur d'Élite
+                  - generic [ref=e301]: ETB — Mascarade Crépusculaire
+                  - generic [ref=e302]: 54,90 €
+                  - generic [ref=e304]: Précommande · à la sortie
+                  - button "Ajouter au panier" [ref=e306]:
+                    - generic [ref=e307]: ＋
+                    - text: Précommander
+              - link "Ajouter à ma collection ETB — Couronne Stellaire Coffret Dresseur d'Élite ETB — Couronne Stellaire 49,90 € En stock · expédié sous 48 h Ajouter au panier" [ref=e309] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e310]:
+                  - button "Ajouter à ma collection" [ref=e311]
+                  - img "ETB — Couronne Stellaire" [ref=e316]
+                - generic [ref=e317]:
+                  - generic [ref=e318]: Coffret Dresseur d'Élite
+                  - generic [ref=e319]: ETB — Couronne Stellaire
+                  - generic [ref=e320]: 49,90 €
+                  - generic [ref=e322]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e324]:
+                    - generic [ref=e325]: ＋
+                    - text: Ajouter au panier
+          - generic [ref=e326]:
+            - generic [ref=e327]:
+              - heading "Précommandes" [level=2] [ref=e329]
+              - generic [ref=e330]:
+                - link "Tout voir →" [ref=e331] [cursor=pointer]:
+                  - /url: "#"
+                - generic [ref=e332]:
+                  - button "Précédent" [ref=e333] [cursor=pointer]: ‹
+                  - button "Suivant" [ref=e334] [cursor=pointer]: ›
+            - generic [ref=e335]:
+              - link "Précommande Ajouter à ma collection Display — Couronne Stellaire Boîte de boosters Display — Couronne Stellaire 219,90 € Précommande · à la sortie Ajouter au panier" [ref=e337] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e338]:
+                  - generic [ref=e339]: Précommande
+                  - button "Ajouter à ma collection" [ref=e341]
+                  - img "Display — Couronne Stellaire" [ref=e346]
+                - generic [ref=e347]:
+                  - generic [ref=e348]: Boîte de boosters
+                  - generic [ref=e349]: Display — Couronne Stellaire
+                  - generic [ref=e350]: 219,90 €
+                  - generic [ref=e352]: Précommande · à la sortie
+                  - button "Ajouter au panier" [ref=e354]:
+                    - generic [ref=e355]: ＋
+                    - text: Précommander
+              - link "Précommande Ajouter à ma collection ETB — Mascarade Crépusculaire Coffret Dresseur d'Élite ETB — Mascarade Crépusculaire 54,90 € Précommande · à la sortie Ajouter au panier" [ref=e357] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e358]:
+                  - generic [ref=e359]: Précommande
+                  - button "Ajouter à ma collection" [ref=e361]
+                  - generic [ref=e365]:
+                    - img "ETB — Mascarade Crépusculaire"
+                - generic [ref=e366]:
+                  - generic [ref=e367]: Coffret Dresseur d'Élite
+                  - generic [ref=e368]: ETB — Mascarade Crépusculaire
+                  - generic [ref=e369]: 54,90 €
+                  - generic [ref=e371]: Précommande · à la sortie
+                  - button "Ajouter au panier" [ref=e373]:
+                    - generic [ref=e374]: ＋
+                    - text: Précommander
+          - generic [ref=e375]:
+            - generic [ref=e376]:
+              - heading "Meilleures ventes" [level=2] [ref=e378]
+              - generic [ref=e379]:
+                - link "Tout voir →" [ref=e380] [cursor=pointer]:
+                  - /url: "#"
+                - generic [ref=e381]:
+                  - button "Précédent" [ref=e382] [cursor=pointer]: ‹
+                  - button "Suivant" [ref=e383] [cursor=pointer]: ›
+            - generic [ref=e384]:
+              - link "Ajouter à ma collection Dracaufeu — Set de Base Carte à l'unité Dracaufeu — Set de Base 1 890,00 € En stock · expédié sous 48 h Ajouter au panier" [ref=e386] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e387]:
+                  - button "Ajouter à ma collection" [ref=e388]
+                  - generic [ref=e392]:
+                    - img "Dracaufeu — Set de Base"
+                - generic [ref=e393]:
+                  - generic [ref=e394]: Carte à l'unité
+                  - generic [ref=e395]: Dracaufeu — Set de Base
+                  - generic [ref=e396]: 1 890,00 €
+                  - generic [ref=e398]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e400]:
+                    - generic [ref=e401]: ＋
+                    - text: Ajouter au panier
+              - link "PSA 10 Ajouter à ma collection Dracaufeu — Gradée PSA 10 Carte gradée Dracaufeu — Gradée PSA 10 8 900,00 € En stock · expédié sous 48 h Ajouter au panier" [ref=e403] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e404]:
+                  - generic [ref=e405]: PSA 10
+                  - button "Ajouter à ma collection" [ref=e407]
+                  - generic [ref=e411]:
+                    - img "Dracaufeu — Gradée PSA 10"
+                - generic [ref=e412]:
+                  - generic [ref=e413]: Carte gradée
+                  - generic [ref=e414]: Dracaufeu — Gradée PSA 10
+                  - generic [ref=e415]: 8 900,00 €
+                  - generic [ref=e417]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e419]:
+                    - generic [ref=e420]: ＋
+                    - text: Ajouter au panier
+              - link "PSA 9 Ajouter à ma collection Mewtwo Holo — Gradée PSA 9 Carte gradée Mewtwo Holo — Gradée PSA 9 460,00 € En stock · expédié sous 48 h Ajouter au panier" [ref=e422] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e423]:
+                  - generic [ref=e424]: PSA 9
+                  - button "Ajouter à ma collection" [ref=e426]
+                  - generic [ref=e430]:
+                    - img "Mewtwo Holo — Gradée PSA 9"
+                - generic [ref=e431]:
+                  - generic [ref=e432]: Carte gradée
+                  - generic [ref=e433]: Mewtwo Holo — Gradée PSA 9
+                  - generic [ref=e434]: 460,00 €
+                  - generic [ref=e436]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e438]:
+                    - generic [ref=e439]: ＋
+                    - text: Ajouter au panier
+              - link "Nouveau Ajouter à ma collection Pikachu — Joues Rouges Carte à l'unité Pikachu — Joues Rouges 54,90 € En stock · expédié sous 48 h Ajouter au panier" [ref=e441] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e442]:
+                  - generic [ref=e443]: Nouveau
+                  - button "Ajouter à ma collection" [ref=e445]
+                  - img "Pikachu — Joues Rouges" [ref=e450]
+                - generic [ref=e451]:
+                  - generic [ref=e452]: Carte à l'unité
+                  - generic [ref=e453]: Pikachu — Joues Rouges
+                  - generic [ref=e454]: 54,90 €
+                  - generic [ref=e456]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e458]:
+                    - generic [ref=e459]: ＋
+                    - text: Ajouter au panier
+              - link "Nouveau Ajouter à ma collection ETB — Pokémon 151 Coffret Dresseur d'Élite ETB — Pokémon 151 64,90 € En stock · expédié sous 48 h Ajouter au panier" [ref=e461] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e462]:
+                  - generic [ref=e463]: Nouveau
+                  - button "Ajouter à ma collection" [ref=e465]
+                  - img "ETB — Pokémon 151" [ref=e470]
+                - generic [ref=e471]:
+                  - generic [ref=e472]: Coffret Dresseur d'Élite
+                  - generic [ref=e473]: ETB — Pokémon 151
+                  - generic [ref=e474]: 64,90 €
+                  - generic [ref=e476]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e478]:
+                    - generic [ref=e479]: ＋
+                    - text: Ajouter au panier
+              - link "Ajouter à ma collection Coffret — Évolutions Prismatiques Coffret Coffret — Évolutions Prismatiques 39,90 € En stock · expédié sous 48 h Ajouter au panier" [ref=e481] [cursor=pointer]:
+                - /url: "#"
+                - generic [ref=e482]:
+                  - button "Ajouter à ma collection" [ref=e483]
+                  - img "Coffret — Évolutions Prismatiques" [ref=e488]
+                - generic [ref=e489]:
+                  - generic [ref=e490]: Coffret
+                  - generic [ref=e491]: Coffret — Évolutions Prismatiques
+                  - generic [ref=e492]: 39,90 €
+                  - generic [ref=e494]: En stock · expédié sous 48 h
+                  - button "Ajouter au panier" [ref=e496]:
+                    - generic [ref=e497]: ＋
+                    - text: Ajouter au panier
+        - generic [ref=e499]:
+          - generic [ref=e500]:
+            - generic [ref=e501]: Boutique physique
+            - heading "Retrouvez-nous à Vienne" [level=2] [ref=e515]
+            - paragraph [ref=e516]: Poussez la porte de la boutique pour voir les pièces en vrai, faire estimer vos cartes ou retirer une commande. On adore parler collection.
+            - generic [ref=e517]:
+              - generic [ref=e518]:
+                - generic [ref=e519]: Adresse
+                - generic [ref=e520]: Rue de la Juiverie 38200 Vienne
+              - generic [ref=e521]:
+                - generic [ref=e522]: Horaires
+                - generic [ref=e523]: Mar–Sam · 10h–19h Dimanche · 14h–18h
+              - generic [ref=e524]:
+                - generic [ref=e525]: Téléphone
+                - generic [ref=e526]: 04 74 00 00 00
+              - generic [ref=e527]:
+                - generic [ref=e528]: Services
+                - generic [ref=e529]: Estimation · Retrait Achat de collections
+            - generic [ref=e530]:
+              - button "Nous contacter" [ref=e531] [cursor=pointer]
+              - link "Itinéraire →" [ref=e532] [cursor=pointer]:
+                - /url: https://maps.google.com/?q=Rue+de+la+Juiverie+Vienne
+          - generic [ref=e533]:
+            - iframe [ref=e534]
+            - generic [ref=e535]:
+              - generic [ref=e548]: leclub151
+              - generic [ref=e549]: Vienne · 38
+        - generic [ref=e551]:
+          - generic [ref=e552]:
+            - generic [ref=e553]: Rue de la Juiverie · Vienne
+            - generic [ref=e555]: Passez nous voir — on adore parler cartes
+            - paragraph [ref=e556]: "Un doute sur une carte, une collection à faire estimer, ou juste l'envie de fouiner : la porte est ouverte du mardi au samedi."
+          - button "Nous trouver" [ref=e557] [cursor=pointer]
+    - contentinfo [ref=e558]:
+      - generic [ref=e560]:
+        - generic [ref=e565]:
+          - generic [ref=e566]: Authentification garantie
+          - generic [ref=e567]: Chaque pièce vérifiée
+        - generic [ref=e575]:
+          - generic [ref=e576]: Livraison offerte
+          - generic [ref=e577]: Dès 100 € d’achat
+        - generic [ref=e582]:
+          - generic [ref=e583]: Paiement sécurisé
+          - generic [ref=e584]: CB · PayPal · Apple Pay
+      - generic [ref=e585]:
+        - generic [ref=e586]:
+          - generic [ref=e587]:
+            - link "CLUB 151 — cartes à collectionner, Vienne" [ref=e589] [cursor=pointer]:
+              - /url: "#"
+              - img "CLUB 151" [ref=e590]
+            - generic [ref=e591]:
+              - generic "Visa" [ref=e592]:
+                - img "Visa" [ref=e593]
+              - generic "Mastercard" [ref=e594]:
+                - img "Mastercard" [ref=e595]
+              - generic "Maestro" [ref=e596]:
+                - img "Maestro" [ref=e597]
+              - generic "American Express" [ref=e598]:
+                - img "American Express" [ref=e599]
+              - generic "PayPal" [ref=e600]:
+                - img "PayPal" [ref=e601]
+            - paragraph [ref=e602]: La boutique des collectionneurs Pokémon, à Vienne. On déniche, on authentifie et on conseille.
+          - generic [ref=e603]:
+            - generic [ref=e605]: Acheter
+            - generic [ref=e606]:
+              - link "Accueil" [ref=e607] [cursor=pointer]:
+                - /url: index.html
+              - link "Cartes à l'unité" [ref=e608] [cursor=pointer]:
+                - /url: "#"
+              - link "Cartes gradées" [ref=e609] [cursor=pointer]:
+                - /url: "#"
+              - link "Displays scellés" [ref=e610] [cursor=pointer]:
+                - /url: "#"
+              - link "Accessoires" [ref=e611] [cursor=pointer]:
+                - /url: "#"
+              - link "Précommandes" [ref=e612] [cursor=pointer]:
+                - /url: "#"
+          - generic [ref=e613]:
+            - generic [ref=e615]: La maison
+            - generic [ref=e616]:
+              - link "La boutique" [ref=e617] [cursor=pointer]:
+                - /url: "#"
+              - link "À propos" [ref=e618] [cursor=pointer]:
+                - /url: apropos.html
+              - link "FAQ" [ref=e619] [cursor=pointer]:
+                - /url: faq.html
+              - link "Authentification" [ref=e620] [cursor=pointer]:
+                - /url: "#"
+              - link "Actualités (Disponible prochainement)":
+                - /url: "#"
+          - generic [ref=e621]:
+            - generic [ref=e623]: Compte
+            - generic [ref=e624]:
+              - link "Mon compte" [ref=e625] [cursor=pointer]:
+                - /url: "#"
+              - link "Mes commandes" [ref=e626] [cursor=pointer]:
+                - /url: "#"
+              - link "Mes adresses" [ref=e627] [cursor=pointer]:
+                - /url: "#"
+              - link "Mes alertes" [ref=e628] [cursor=pointer]:
+                - /url: "#"
+              - link "Panier" [ref=e629] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e630]:
+          - generic [ref=e631]: © 2026 CLUB 151. Tous droits réservés.
+          - button "🇫🇷 Français ▾" [ref=e633] [cursor=pointer]:
+            - generic [ref=e634]: 🇫🇷
+            - text: Français
+            - generic [ref=e635]: ▾
+        - generic [ref=e636]:
+          - generic [ref=e637]:
+            - link "Instagram" [ref=e638] [cursor=pointer]:
+              - /url: "#"
+            - link "Facebook" [ref=e641] [cursor=pointer]:
+              - /url: "#"
+            - link "TikTok" [ref=e644] [cursor=pointer]:
+              - /url: "#"
+            - link "YouTube" [ref=e647] [cursor=pointer]:
+              - /url: "#"
+            - link "Google" [ref=e650] [cursor=pointer]:
+              - /url: "#"
+            - link "Apple" [ref=e653] [cursor=pointer]:
+              - /url: "#"
+          - generic [ref=e656]:
+            - link "Utilisation des cookies" [ref=e657] [cursor=pointer]:
+              - /url: confidentialite.html
+            - generic [ref=e658]: "|"
+            - link "Conditions d'utilisation" [ref=e659] [cursor=pointer]:
+              - /url: cgv.html
+            - generic [ref=e660]: "|"
+            - link "Politique de confidentialité" [ref=e661] [cursor=pointer]:
+              - /url: confidentialite.html
+        - generic [ref=e662]: Pokémon™ Nintendo / Game Freak — produits authentifiés · CLUB 151 n'est pas affilié à The Pokémon Company.
+  - dialog "Gestion des cookies" [ref=e663]:
+    - generic [ref=e664]:
+      - text: Nous utilisons des cookies pour le bon fonctionnement du site (panier, session), ainsi qu’une mesure d’audience anonyme et sans cookie.
+      - link "En savoir plus" [ref=e665] [cursor=pointer]:
+        - /url: confidentialite.html
+      - text: .
+    - generic [ref=e666]:
+      - button "Refuser" [ref=e667] [cursor=pointer]
+      - button "Accepter" [ref=e668] [cursor=pointer]

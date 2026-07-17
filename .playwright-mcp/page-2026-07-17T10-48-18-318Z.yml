@@ -1,0 +1,4 @@
+- generic [ref=e1]:
+  - heading "opener" [level=1] [ref=e2]
+  - link "Itineraire" [active] [ref=e3] [cursor=pointer]:
+    - /url: tabnab.html
