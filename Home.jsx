@@ -82,14 +82,10 @@ function Home({ navigate }) {
               <DS.Button variant="accent" size="lg" as="a" href="boutique.html" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'all'); }}>Explorer la boutique</DS.Button>
               <DS.Button variant="outline" size="lg" as="a" href="boutique.html?cat=graded" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'graded'); }}>Cartes gradées</DS.Button>
             </div>
-            <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', fontSize: 13.5, color: 'var(--ink-2)' }}>
-              {[['check', 'Authentifié'], ['truck', 'Expédié sous 48 h'], ['retour', 'Retours 14 jours']].map(([ic, t]) => (
-                <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
-                  <span aria-hidden="true" style={{ width: 26, height: 26, borderRadius: '50%', border: '1.5px solid var(--yellow)', color: 'var(--yellow)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 }}><ReassureIcon name={ic} size={14} /></span>
-                  <span style={{ fontWeight: 500 }}>{t}</span>
-                </span>
-              ))}
-            </div>
+            {/* Le trio de gages du hero a été retiré : il doublonnait la section
+                dédiée plus bas et le bandeau du haut (« Livraison offerte ·
+                Authentification garantie »). Un seul rappel fort vaut mieux que
+                trois — la répétition est un tic de template. */}
           </div>
         </div>
       </section>
