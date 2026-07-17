@@ -1,4 +1,4 @@
-// leclub151 — Build de production
+// CLUB 151 — Build de production
 // ---------------------------------------------------------------------------
 // Lancé par `npm run build` (localement OU automatiquement par Vercel à chaque
 // push). Il produit le dossier `dist/` qui est ce que les visiteurs reçoivent :
@@ -33,8 +33,12 @@ const SITE = (process.env.SITE_URL
 // - sinon produits de démo, mais PAS sur le domaine de production (même règle
 //   que data.js : pas de fausses cartes indexées par Google sur le vrai site).
 const PROD_HOSTS = ['leclub151.fr', 'www.leclub151.fr'];
-const demoOnSite = PROD_HOSTS.indexOf(new URL(SITE).hostname.toLowerCase()) === -1
-  || process.env.ALLOW_DEMO_CHECKOUT === '1';
+// L'hôte de production est le SEUL critère : ALLOW_DEMO_CHECKOUT n'a rien à
+// faire ici. Cette variable autorise l'ACHAT des produits de démo (cf.
+// AUDIT-CORRECTIFS.md) ; la combiner en `||` faisait qu'activer l'achat de démo
+// suffisait à faire générer — donc indexer par Google — de fausses cartes sur le
+// vrai domaine, exactement ce que le commentaire ci-dessus interdit.
+const demoOnSite = PROD_HOSTS.indexOf(new URL(SITE).hostname.toLowerCase()) === -1;
 
 // Vrai catalogue WooCommerce (Store API publique) au moment du build.
 // Pagination : ?page=N&per_page=100, arrêt dès qu'une page renvoie moins de
@@ -203,8 +207,8 @@ const absImage = (img) => /^https?:\/\//.test(String(img || '')) ? img : (img ? 
 
 function productPage(template, p) {
   const url = SITE + '/' + productPath(p);
-  const title = p.name + ' — leclub151';
-  const desc = (p.desc ? p.desc + ' ' : '') + 'En vente sur leclub151, boutique de cartes à Vienne — expédition sous 48 h ou retrait en boutique.';
+  const title = p.name + ' — CLUB 151';
+  const desc = (p.desc ? p.desc + ' ' : '') + 'En vente sur CLUB 151, boutique de cartes à Vienne — expédition sous 48 h ou retrait en boutique.';
   const image = absImage(p.image);
 
   let out = template;
@@ -236,7 +240,7 @@ function productPage(template, p) {
         priceCurrency: 'EUR',
         price: Number(p.price).toFixed(2),
         availability: 'https://schema.org/' + (p.inStock === false ? 'OutOfStock' : (p.preorder ? 'PreOrder' : 'InStock')),
-        seller: { '@type': 'Organization', name: 'leclub151' },
+        seller: { '@type': 'Organization', name: 'CLUB 151' },
       },
     }) + '</script>',
     '<script>window.__LC_PRODUCT_ID=' + JSON.stringify(p.id) + ';</script>',
@@ -248,7 +252,7 @@ function productPage(template, p) {
     + '<p><strong>' + Number(p.price).toFixed(2).replace('.', ',') + ' €</strong>'
     + (p.inStock === false ? ' — épuisé' : '') + '</p>'
     + '<p>' + esc(p.desc || '') + '</p>'
-    + '<p><a href="boutique.html">Voir toute la boutique leclub151</a> — cartes Pokémon à Vienne, expédition sous 48 h.</p>'
+    + '<p><a href="boutique.html">Voir toute la boutique CLUB 151</a> — cartes Pokémon à Vienne, expédition sous 48 h.</p>'
     + '</div>\n</noscript>';
   out = out.replace('<div id="root"></div>', '<div id="root"></div>\n' + noscript);
 
@@ -278,12 +282,12 @@ function sitemap(productPaths) {
     + base.concat(prods).join('\n') + '\n</urlset>\n';
 }
 
-const robots = () => '# leclub151 — robots.txt (généré par build.mjs)\nUser-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /panier.html\nDisallow: /merci.html\n\nSitemap: ' + SITE + '/sitemap.xml\n';
+const robots = () => '# CLUB 151 — robots.txt (généré par build.mjs)\nUser-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /panier.html\nDisallow: /merci.html\n\nSitemap: ' + SITE + '/sitemap.xml\n';
 
 // ---------------------------------------------------------------------------
 // GO
 // ---------------------------------------------------------------------------
-console.log('Build leclub151 → ' + SITE);
+console.log('Build CLUB 151 → ' + SITE);
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(join(DIST, 'produits'), { recursive: true });
 

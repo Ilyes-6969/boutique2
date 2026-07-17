@@ -1,4 +1,4 @@
-// leclub151 — Proxy catalogue public (le navigateur n'appelle JAMAIS WordPress)
+// CLUB 151 — Proxy catalogue public (le navigateur n'appelle JAMAIS WordPress)
 // ---------------------------------------------------------------------------
 // Le site charge son catalogue via GET /api/catalog : cette fonction relit le
 // catalogue WooCommerce côté serveur (lib/serverCatalog — pagination, cache,

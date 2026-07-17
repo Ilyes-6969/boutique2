@@ -1,4 +1,4 @@
-/* leclub151 — storefront data + cart + editable Store
+/* CLUB 151 — storefront data + cart + editable Store
    Catalogue is EMPTY by default. Real products are managed in WordPress /
    WooCommerce; nothing is hard-coded here. The owner can also add products
    from the back-office (admin.html), which persist to localStorage. */
@@ -705,25 +705,32 @@
   // Sans rien de configuré : ne fait rien (comportement d'avant, commande en local).
   // Envoi générique vers le webhook / la clé Web3Forms configuré(e).
   // Sert aux commandes ET aux formulaires (contact, newsletter).
-  function postWebhook(jsonPayload, web3Fields) {
+  // Renvoie une PROMESSE d'envoi RÉELLEMENT abouti — pas un « j'ai lancé un
+  // fetch ». L'ancienne version renvoyait true dès le fetch lancé (sans attendre
+  // ni regarder le statut) : contact et newsletter annonçaient donc « message
+  // envoyé » alors que rien n'était parti. Ne rejette jamais : les erreurs sont
+  // converties en `false` pour que l'appelant les traite explicitement.
+  async function postWebhook(jsonPayload, web3Fields) {
     const dest = (orderHook || '').trim();
-    if (!dest) return false;
+    if (!dest) return false;   // aucune réception configurée → le message n'irait nulle part
     try {
-      if (/^https?:\/\//i.test(dest)) {
-        fetch(dest, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload) }).catch(function (err) { console.warn('[lc151] webhook non délivré:', err && err.message); });
-      } else {
-        fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(Object.assign({ access_key: dest }, web3Fields)) }).catch(function (err) { console.warn('[lc151] webhook non délivré:', err && err.message); });
-      }
+      const r = /^https?:\/\//i.test(dest)
+        ? await fetch(dest, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload) })
+        : await fetch('https://api.web3forms.com/submit', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(Object.assign({ access_key: dest }, web3Fields)) });
+      if (!r.ok) { console.warn('[lc151] webhook non délivré: HTTP ' + r.status); return false; }
       return true;
-    } catch (e) { return false; }
+    } catch (err) {
+      console.warn('[lc151] webhook non délivré:', err && err.message);
+      return false;
+    }
   }
   function notifyOrderWebhook(order) {
     const lines = (order.items || []).map(function (i) { return '- ' + i.name + ' ×' + i.qty + ' : ' + i.price + ' €'; }).join('\n');
     postWebhook(
       { source: 'leclub151', type: 'new_order', order: order },
       {
-        subject: 'Nouvelle commande ' + order.number + ' — leclub151',
-        from_name: 'Boutique leclub151',
+        subject: 'Nouvelle commande ' + order.number + ' — CLUB 151',
+        from_name: 'Boutique CLUB 151',
         Commande: order.number,
         Client: (order.name || '') + ' <' + (order.email || '') + '>',
         Total: order.total + ' €',
@@ -739,7 +746,7 @@
     const f = fields || {};
     return postWebhook(
       Object.assign({ source: 'leclub151', type: 'form', subject: subject }, f),
-      Object.assign({ subject: subject + ' — leclub151', from_name: 'Site leclub151' }, f)
+      Object.assign({ subject: subject + ' — CLUB 151', from_name: 'Site CLUB 151' }, f)
     );
   }
   const SHIPPING = {

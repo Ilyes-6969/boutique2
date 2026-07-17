@@ -1,4 +1,4 @@
-/* leclub151 — Gestion via WordPress / WooCommerce (application externe au site)
+/* CLUB 151 — Gestion via WordPress / WooCommerce (application externe au site)
    Interface façon wp-admin : on édite prix, stock, promos et on ajoute des
    produits. Tout est enregistré et synchronisé avec la boutique (démo). */
 
@@ -135,7 +135,7 @@ function AdminApp() {
           </span>
         </span>
         <a href="index.html" style={{ color: '#c3c4c7', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}>⌂ Voir le site</a>
-        <span style={{ marginLeft: 'auto', color: '#a7aaad' }}>Bonjour, leclub151 ▾</span>
+        <span style={{ marginLeft: 'auto', color: '#a7aaad' }}>Bonjour, CLUB 151 ▾</span>
       </div>
 
       <div style={{ display: 'flex', flex: 1 }}>

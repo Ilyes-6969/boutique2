@@ -1,4 +1,4 @@
-// leclub151 — Crée un PaymentIntent Stripe (paiement intégré sur le site)
+// CLUB 151 — Crée un PaymentIntent Stripe (paiement intégré sur le site)
 // ---------------------------------------------------------------------------
 // Utilisé par le Payment Element (formulaire de carte affiché DANS la page).
 // SÉCURITÉ : le navigateur n'envoie QUE { id, qty }. Le montant est calculé ici

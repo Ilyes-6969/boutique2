@@ -1,4 +1,4 @@
-# leclub151 — Correctifs appliqués (audit du 30/06/2026)
+# CLUB 151 — Correctifs appliqués (audit du 30/06/2026)
 
 Récapitulatif des corrections apportées suite à l'audit, et de ce qu'il reste à faire **toi-même** (infos que je ne peux pas inventer).
 

@@ -1,4 +1,4 @@
-/* leclub151 — Pages légales
+/* CLUB 151 — Pages légales
    Mentions légales · CGV · Politique de confidentialité.
    ⚠️ Gabarit informatif, non contractuel : fais-le valider par un juriste.
 
@@ -7,7 +7,7 @@
       s'affiche surligné « à compléter » pour que rien ne soit oublié. */
 
 const COMPANY = {
-  name: '',                 // Raison sociale, ex. "leclub151 SAS"
+  name: '',                 // Raison sociale, ex. "CLUB 151 SAS"
   legalForm: '',            // EI / EURL / SASU…
   capital: '',              // Capital social, ex. "1 000 €"
   siret: '',                // ex. "000 000 000 00000"
@@ -40,7 +40,7 @@ function LegalPage({ navigate, kind }) {
     mentions: { title: 'Mentions légales', crumb: 'Mentions légales' },
     cgv: { title: 'Conditions générales de vente', crumb: 'CGV' },
     confidentialite: { title: 'Politique de confidentialité', crumb: 'Confidentialité' },
-    apropos: { title: 'À propos de leclub151', crumb: 'À propos' },
+    apropos: { title: 'À propos de CLUB 151', crumb: 'À propos' },
     faq: { title: 'Questions fréquentes', crumb: 'FAQ' },
   }[kind] || { title: 'Informations légales', crumb: 'Légal' };
   const isLegal = kind === 'mentions' || kind === 'cgv' || kind === 'confidentialite';
@@ -67,7 +67,7 @@ function LegalPage({ navigate, kind }) {
         {kind === 'mentions' && (
           <React.Fragment>
             <H>1. Éditeur du site</H>
-            <P>Le site <strong>leclub151</strong> est édité par :</P>
+            <P>Le site <strong>CLUB 151</strong> est édité par :</P>
             <UL>
               <LI>Raison sociale / nom : <V v={COMPANY.name} ph="Nom de l'entreprise" /></LI>
               <LI>Forme juridique : <V v={COMPANY.legalForm} ph="EI / EURL / SASU…" /> — Capital social : <V v={COMPANY.capital} ph="montant €" /></LI>
@@ -86,7 +86,7 @@ function LegalPage({ navigate, kind }) {
               <LI>Contact : <V v={COMPANY.host.contact} ph="Téléphone / site de l'hébergeur" /></LI>
             </UL>
             <H>4. Propriété intellectuelle</H>
-            <P>« Pokémon », les noms de personnages, séries et logos sont des marques déposées de Nintendo, Creatures Inc. et GAME FREAK inc. <strong>leclub151 n'est ni affilié, ni sponsorisé, ni approuvé par The Pokémon Company.</strong> Les produits proposés sont des articles authentiques revendus dans le cadre de l'épuisement des droits. Les visuels, textes et éléments graphiques propres au site sont la propriété de <V v={COMPANY.name} ph="Nom de l'entreprise" />.</P>
+            <P>« Pokémon », les noms de personnages, séries et logos sont des marques déposées de Nintendo, Creatures Inc. et GAME FREAK inc. <strong>CLUB 151 n'est ni affilié, ni sponsorisé, ni approuvé par The Pokémon Company.</strong> Les produits proposés sont des articles authentiques revendus dans le cadre de l'épuisement des droits. Les visuels, textes et éléments graphiques propres au site sont la propriété de <V v={COMPANY.name} ph="Nom de l'entreprise" />.</P>
             <H>5. Données personnelles & cookies</H>
             <P>Le traitement des données est décrit dans notre <a href="confidentialite.html" style={{ color: 'var(--accent)', fontWeight: 600 }}>politique de confidentialité</a>.</P>
           </React.Fragment>
@@ -95,7 +95,7 @@ function LegalPage({ navigate, kind }) {
         {kind === 'cgv' && (
           <React.Fragment>
             <H>Article 1 — Objet</H>
-            <P>Les présentes conditions générales de vente (CGV) régissent les ventes de cartes et produits Pokémon réalisées sur le site leclub151 entre <V v={COMPANY.name} ph="Nom de l'entreprise" /> (le vendeur) et tout acheteur particulier (le client).</P>
+            <P>Les présentes conditions générales de vente (CGV) régissent les ventes de cartes et produits Pokémon réalisées sur le site CLUB 151 entre <V v={COMPANY.name} ph="Nom de l'entreprise" /> (le vendeur) et tout acheteur particulier (le client).</P>
             <H>Article 2 — Produits</H>
             <P>Les produits sont des articles <strong>authentiques</strong> (cartes à l'unité, cartes gradées, produits scellés, accessoires). Les cartes à l'unité et gradées sont des <strong>pièces uniques</strong> : une fois vendues, elles ne sont plus disponibles. Les photographies sont les plus fidèles possibles ; de légères variations d'état peuvent exister et sont précisées dans la fiche produit.</P>
             <H>Article 3 — Prix</H>
@@ -146,7 +146,7 @@ function LegalPage({ navigate, kind }) {
 
         {kind === 'apropos' && (
           <React.Fragment>
-            <P style={{ marginTop: 24 }}>leclub151 est une boutique de cartes à collectionner installée à <strong>Vienne, en Isère</strong>. Pokémon est notre cœur de métier — du Set de Base de 1999 aux dernières sorties — avec une sélection de cartes à l'unité, de pièces gradées, de produits scellés et d'accessoires.</P>
+            <P style={{ marginTop: 24 }}>CLUB 151 est une boutique de cartes à collectionner installée à <strong>Vienne, en Isère</strong>. Pokémon est notre cœur de métier — du Set de Base de 1999 aux dernières sorties — avec une sélection de cartes à l'unité, de pièces gradées, de produits scellés et d'accessoires.</P>
             <H>Notre métier</H>
             <P>On déniche, on authentifie et on conseille. Chaque carte de valeur passe entre nos mains avant d'être proposée : état, centrage, authenticité. L'idée est simple — que vous achetiez une pièce de collection en confiance, comme si vous étiez au comptoir.</P>
             <H>Nos engagements</H>
@@ -158,7 +158,7 @@ function LegalPage({ navigate, kind }) {
             </UL>
             <H>Venez nous voir</H>
             <P>La boutique est ouverte <V v={COMPANY.hours} ph="Mar–Sam · 10h–19h" /> — <V v={COMPANY.address} ph="adresse à compléter, 38200 Vienne" />. Une question, une recherche précise, une collection à estimer ? <a href="index.html#contact" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'var(--accent)', fontWeight: 600 }}>Écrivez-nous</a> ou passez directement.</P>
-            <P style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 18 }}>« Pokémon » est une marque déposée de Nintendo, Creatures Inc. et GAME FREAK inc. leclub151 n'est ni affilié ni approuvé par The Pokémon Company.</P>
+            <P style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 18 }}>« Pokémon » est une marque déposée de Nintendo, Creatures Inc. et GAME FREAK inc. CLUB 151 n'est ni affilié ni approuvé par The Pokémon Company.</P>
           </React.Fragment>
         )}
 

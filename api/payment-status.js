@@ -1,4 +1,4 @@
-// leclub151 — Vérifie l'état d'un PaymentIntent (paiement intégré / Payment Element)
+// CLUB 151 — Vérifie l'état d'un PaymentIntent (paiement intégré / Payment Element)
 // ---------------------------------------------------------------------------
 // La page merci.html appelle cette fonction avec ?payment_intent=pi_... pour
 // CONFIRMER CÔTÉ SERVEUR qu'un paiement a réellement réussi, avant d'afficher la

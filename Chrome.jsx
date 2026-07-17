@@ -1,4 +1,4 @@
-/* leclub151 — shared chrome: Logo, Announcement, Header, Footer, ProductStage, useCart */
+/* CLUB 151 — shared chrome: Logo, Announcement, Header, Footer, ProductStage, useCart */
 
 /* Couleurs du logo selon le thème (clair = doré lisible sur fond blanc ;
    sombre = jaune néon + halo, comme l'enseigne). Injecté une seule fois. */
@@ -714,7 +714,7 @@ function Footer({ navigate }) {
         </div>
 
         <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.08)', fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.04em', color: 'rgba(255,255,255,0.4)' }}>
-          Pokémon™ Nintendo / Game Freak — produits authentifiés · leclub151 n'est pas affilié à The Pokémon Company.
+          Pokémon™ Nintendo / Game Freak — produits authentifiés · CLUB 151 n'est pas affilié à The Pokémon Company.
         </div>
       </div>
     </footer>
@@ -959,15 +959,25 @@ function LcSuccess({ message, onClose }) {
 function FormModal({ title, fields, cta, success, onClose }) {
   const DS = window.ADITCGDesignSystem_df75b7 || {};
   const [sent, setSent] = React.useState(false);
-  const submit = (e) => {
+  const [sending, setSending] = React.useState(false);
+  const [failed, setFailed] = React.useState(false);
+  // On n'annonce « message envoyé » QUE si l'envoi a vraiment abouti. Avant, le
+  // succès s'affichait quoi qu'il arrive : sans réception configurée (cas actuel)
+  // le message ne partait nulle part et le client attendait une réponse sous 24 h
+  // qui ne serait jamais venue.
+  const submit = async (e) => {
     e.preventDefault();
+    if (sending) return;
+    const fd = new FormData(e.currentTarget);
+    const obj = {};
+    fd.forEach((v, k) => { obj[k] = v; });
+    setSending(true); setFailed(false);
+    let ok = false;
     try {
-      const fd = new FormData(e.currentTarget);
-      const obj = {};
-      fd.forEach((v, k) => { obj[k] = v; });
-      if (window.LC151 && window.LC151.notify) window.LC151.notify(title, obj);   // envoi réel si configuré
-    } catch (err) {}
-    setSent(true);
+      ok = (window.LC151 && window.LC151.notify) ? await window.LC151.notify(title, obj) : false;
+    } catch (err) { ok = false; }
+    setSending(false);
+    if (ok) setSent(true); else setFailed(true);
   };
   return (
     <ModalShell title={title} onClose={onClose}>
@@ -976,9 +986,15 @@ function FormModal({ title, fields, cta, success, onClose }) {
           {fields.map((f) => f.type === 'textarea'
             ? <textarea key={f.ph} name={f.ph} required placeholder={f.ph} rows={4} style={{ ...lcField, resize: 'vertical' }} />
             : <input key={f.ph} name={f.ph} type={f.type || 'text'} required placeholder={f.ph} style={lcField} />)}
+          {failed && (
+            <p role="alert" style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(179,38,30,0.08)', color: 'var(--red, #b3261e)', fontSize: 13.5, lineHeight: 1.5 }}>
+              L’envoi n’a pas abouti. Écrivez-nous directement à{' '}
+              <a href="mailto:contact@leclub151.fr" style={{ color: 'inherit', fontWeight: 600 }}>contact@leclub151.fr</a>.
+            </p>
+          )}
           {DS.Button
-            ? <DS.Button type="submit" variant="accent" size="lg" block className="lc-press">{cta}</DS.Button>
-            : <button type="submit" className="lc-press" style={lcModalBtnFallback}>{cta}</button>}
+            ? <DS.Button type="submit" variant="accent" size="lg" block className="lc-press" disabled={sending}>{sending ? 'Envoi…' : cta}</DS.Button>
+            : <button type="submit" className="lc-press" style={lcModalBtnFallback} disabled={sending}>{sending ? 'Envoi…' : cta}</button>}
         </form>
       )}
     </ModalShell>

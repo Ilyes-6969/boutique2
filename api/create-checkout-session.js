@@ -1,4 +1,4 @@
-// leclub151 — Fonction serverless Vercel : crée une session Stripe Checkout
+// CLUB 151 — Fonction serverless Vercel : crée une session Stripe Checkout
 // ---------------------------------------------------------------------------
 // Mode redirection (page de paiement hébergée par Stripe), conservé en secours.
 // SÉCURITÉ : le navigateur n'envoie QUE { id, qty }. Les prix proviennent du

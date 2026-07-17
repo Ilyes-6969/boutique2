@@ -1,4 +1,4 @@
-/* leclub151 — Catalogue (boutique grid + filters) */
+/* CLUB 151 — Catalogue (boutique grid + filters) */
 
 /* Normalisation accents/casse — même logique que lcNormalize de Chrome.jsx
    (SearchBox) : les liens du méga-menu pré-remplissent q avec des libellés
@@ -76,7 +76,7 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
           <h1 className="display-2" style={{ marginBottom: 10 }}>{comingSoon ? GAMES[game] : 'La boutique'}</h1>
           <p style={{ fontSize: 16, color: 'var(--ink-2)', maxWidth: 560 }}>
             {comingSoon
-              ? 'Rayon ' + GAMES[game] + ' bientôt disponible chez leclub151 — singles, scellé et accessoires. Revenez vite ou activez une alerte.'
+              ? 'Rayon ' + GAMES[game] + ' bientôt disponible chez CLUB 151 — singles, scellé et accessoires. Revenez vite ou activez une alerte.'
               : "Cartes à l'unité, gradées, scellé et accessoires. Les rayons se remplissent — revenez très vite !"}
           </p>
         </div>

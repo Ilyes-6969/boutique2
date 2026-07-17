@@ -1,4 +1,4 @@
-// leclub151 — Test fumée du build : charge chaque page construite dans un
+// CLUB 151 — Test fumée du build : charge chaque page construite dans un
 // navigateur simulé (jsdom), exécute les scripts (React compris) et vérifie
 // que la page se rend sans erreur. Usage :
 //   npx --yes serve dist -l 5151   (dans un premier terminal)

@@ -1,4 +1,4 @@
-// leclub151 — Authentification de l'espace de gestion (/admin.html)
+// CLUB 151 — Authentification de l'espace de gestion (/admin.html)
 // ---------------------------------------------------------------------------
 // Vérifie un mot de passe CÔTÉ SERVEUR (jamais dans le code public). Le mot de
 // passe est stocké dans la variable d'environnement Vercel ADMIN_PASSWORD.

@@ -1,4 +1,4 @@
-/* leclub151 — Tunnel de paiement (checkout multi-étapes)
+/* CLUB 151 — Tunnel de paiement (checkout multi-étapes)
    Livraison → Paiement → Confirmation. Crée une commande, vide le panier.
    Paiement simulé (validation Luhn / date / CVC) — à brancher sur un vrai PSP
    (Stripe, WooCommerce Payments) en production. */
@@ -279,10 +279,21 @@ function CheckoutModal({ onClose }) {
     }
 
     // --- 2) Retrait en boutique / 3) mode démo (simulation) ---
+    // Une commande à encaisser ne doit JAMAIS être confirmée sans passerelle.
+    // Si payments.js n'est pas chargé (bloqueur, coupure réseau, déploiement
+    // incomplet), window.LCPay est absent : on bloque au lieu de déclarer la
+    // commande payée — sinon aucun euro ne bouge, aucun PaymentIntent n'existe,
+    // aucun webhook ne part, et le marchand n'a aucune trace de la vente.
+    // Le retrait en boutique reste autorisé : il n'encaisse rien ici (paid=false).
+    const hasGateway = !!(window.LCPay && window.LCPay.process);
+    if (ship.method !== 'pickup' && !hasGateway) {
+      setErrors({ pay: 'Paiement indisponible pour le moment — rechargez la page ou réessayez dans un instant.' });
+      return;
+    }
     const card = { method: ship.method, card: pay.card, exp: pay.exp, cvc: pay.cvc, holder: pay.holder, ship: ship };
-    const payFlow = (window.LCPay && window.LCPay.process)
+    const payFlow = hasGateway
       ? window.LCPay.process(orderData, card)
-      : Promise.resolve({ paid: ship.method !== 'pickup', ref: null });
+      : Promise.resolve({ paid: false, ref: null });
     setPaying(true);
     payFlow.then(finalize).catch(function (e) {
       setPaying(false);

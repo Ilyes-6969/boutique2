@@ -1,4 +1,4 @@
-// leclub151 — Webhook Stripe (commande WooCommerce + notification propriétaire)
+// CLUB 151 — Webhook Stripe (commande WooCommerce + notification propriétaire)
 // ---------------------------------------------------------------------------
 // Stripe appelle cette fonction à CHAQUE paiement réussi, même si le client
 // ferme l'onglet avant de revenir sur le site. Deux rôles :
@@ -272,7 +272,7 @@ async function createWooOrder(stripe, pi) {
       method_title: METHOD_LABELS[meta.method] || 'Livraison',
       total: (shipCents / 100).toFixed(2),
     }],
-    customer_note: 'Commande site leclub151 — réf ' + orderRef,
+    customer_note: 'Commande site CLUB 151 — réf ' + orderRef,
     meta_data: [{ key: '_stripe_payment_intent', value: pi.id }],
   };
 
@@ -366,8 +366,8 @@ async function notifyOwner(session) {
 
   const payload = {
     access_key: key,
-    subject: 'Nouvelle commande payée — leclub151',
-    from_name: 'Boutique leclub151',
+    subject: 'Nouvelle commande payée — CLUB 151',
+    from_name: 'Boutique CLUB 151',
     Commande: ref,
     Client: email,
     Total: total,
@@ -411,8 +411,8 @@ async function notifyOwnerIntent(pi, woo) {
 
   const payload = {
     access_key: key,
-    subject: 'Paiement reçu ' + (meta.orderRef || pi.id) + ' — leclub151',
-    from_name: 'Boutique leclub151',
+    subject: 'Paiement reçu ' + (meta.orderRef || pi.id) + ' — CLUB 151',
+    from_name: 'Boutique CLUB 151',
     Commande: meta.orderRef || '—',
     Client: ship.name || '—',
     'E-mail': pi.receipt_email || '—',

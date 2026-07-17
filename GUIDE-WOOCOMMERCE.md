@@ -2,7 +2,7 @@
 
 _Ce guide t'accompagne du « site de démo » au « vrai magasin en ligne » : tes produits, ton stock partagé entre le magasin et le site, les commandes qui décomptent le stock toutes seules. Aucune compétence technique requise — chaque étape est un écran à remplir. Compte une demi-journée pour tout faire tranquillement (hors création des fiches produits)._
 
-**Le principe en une phrase :** WordPress + WooCommerce devient ton « arrière-boutique » (produits, prix, stock), et le site leclub151 reste ta vitrine — il lit le catalogue tout seul.
+**Le principe en une phrase :** WordPress + WooCommerce devient ton « arrière-boutique » (produits, prix, stock), et le site CLUB 151 reste ta vitrine — il lit le catalogue tout seul.
 
 ---
 
@@ -17,10 +17,10 @@ WordPress a besoin d'un hébergement (un petit serveur loué au mois). Recommand
 | OVH | ~4–8 €/mois | Français, très répandu |
 
 1. Prends l'offre de base (largement suffisante pour quelques centaines de produits).
-2. Utilise l'installation **WordPress en 1 clic** proposée par l'hébergeur. Note bien l'adresse de ton WordPress (ex. `https://gestion.leclub151.fr` ou `https://leclub151-gestion.fr`) : c'est elle qu'on appellera **l'adresse WordPress** dans tout le guide.
+2. Utilise l'installation **WordPress en 1 clic** proposée par l'hébergeur. Note bien l'adresse de ton WordPress (ex. `https://gestion.leclub151.fr` ou `https://CLUB 151-gestion.fr`) : c'est elle qu'on appellera **l'adresse WordPress** dans tout le guide.
 3. Connecte-toi à **wp-admin** (l'adresse WordPress + `/wp-admin`).
 4. **Extensions → Ajouter → cherche « WooCommerce » → Installer → Activer.**
-5. Laisse-toi guider par l'assistant WooCommerce : adresse de la boutique, **euros**, **France**, TVA selon ta situation (à valider avec le comptable). Tu peux ignorer les propositions de thème/paiement WooCommerce : **le paiement reste sur le site leclub151 via Stripe**, WordPress ne sert qu'à gérer le catalogue.
+5. Laisse-toi guider par l'assistant WooCommerce : adresse de la boutique, **euros**, **France**, TVA selon ta situation (à valider avec le comptable). Tu peux ignorer les propositions de thème/paiement WooCommerce : **le paiement reste sur le site CLUB 151 via Stripe**, WordPress ne sert qu'à gérer le catalogue.
 
 ---
 
@@ -61,7 +61,7 @@ Dans la fiche produit, onglet **Inventaire** :
 Le site a besoin d'une « clé » pour écrire les commandes dans WooCommerce (et donc décrémenter ton stock automatiquement).
 
 1. wp-admin → **WooCommerce → Réglages → Avancé → API REST** → **Ajouter une clé**.
-2. Description : `site leclub151`. Utilisateur : toi. Autorisations : **Lecture/Écriture**.
+2. Description : `site CLUB 151`. Utilisateur : toi. Autorisations : **Lecture/Écriture**.
 3. Clique **Générer une clé API**. WooCommerce affiche une **Consumer key** (`ck_…`) et un **Consumer secret** (`cs_…`).
 4. **Copie-les tout de suite dans un endroit sûr** (le secret n'est montré qu'une seule fois). C'est tout — ne les colle jamais ailleurs que dans Vercel (étape 4).
 

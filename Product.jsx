@@ -1,4 +1,4 @@
-/* leclub151 — Fiche produit (product detail) */
+/* CLUB 151 — Fiche produit (product detail) */
 
 // Piège à focus partagé (défini dans Chrome.jsx, chargé avant ce fichier dans
 // toutes les pages) — garde défensive : no-op si absent, comme Checkout.jsx.
@@ -69,9 +69,9 @@ function Product({ navigate, productId, onCart }) {
   // ne ressort sur Google. On met aussi un canonical + un JSON-LD Product/Offer.
   React.useEffect(() => {
     if (!product) return;
-    const title = product.name + ' — leclub151';
+    const title = product.name + ' — CLUB 151';
     document.title = title;
-    const desc = String(product.desc || (product.name + ' — disponible chez leclub151, boutique de cartes Pokémon à Vienne.')).slice(0, 160);
+    const desc = String(product.desc || (product.name + ' — disponible chez CLUB 151, boutique de cartes Pokémon à Vienne.')).slice(0, 160);
     const url = location.origin + '/produit.html?id=' + encodeURIComponent(product.id);
     const setMeta = (sel, val) => {
       let el = document.head.querySelector(sel);

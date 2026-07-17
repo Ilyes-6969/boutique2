@@ -1,4 +1,4 @@
-# leclub151 — Améliorations apportées au site
+# CLUB 151 — Améliorations apportées au site
 
 _Mise à jour du 30 juin 2026._
 

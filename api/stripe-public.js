@@ -1,4 +1,4 @@
-// leclub151 — Renvoie la clé PUBLIABLE Stripe au site (pour le Payment Element)
+// CLUB 151 — Renvoie la clé PUBLIABLE Stripe au site (pour le Payment Element)
 // ---------------------------------------------------------------------------
 // La clé publiable (pk_...) est, par nature, publique : aucun risque à l'exposer.
 // On la sert depuis une variable d'environnement pour n'avoir AUCUNE clé en dur

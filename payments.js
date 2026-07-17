@@ -1,5 +1,5 @@
-/* leclub151 — v2 paiement intégré Stripe (Payment Element) — redeploy
-   leclub151 — Couche de paiement (préparation PSP / centralisation Qonto)
+/* CLUB 151 — v2 paiement intégré Stripe (Payment Element) — redeploy
+   CLUB 151 — Couche de paiement (préparation PSP / centralisation Qonto)
    ----------------------------------------------------------------------
    AUJOURD'HUI : mode 'simulation' (démo). Aucun argent réel n'est débité ;
    on valide seulement le format de la carte, exactement comme avant.

@@ -1,4 +1,4 @@
-// leclub151 — Notification de commande « retrait en boutique » (sans Stripe)
+// CLUB 151 — Notification de commande « retrait en boutique » (sans Stripe)
 // ---------------------------------------------------------------------------
 // Le retrait en boutique ne passe pas par Stripe : sans ce endpoint, le
 // propriétaire n'était prévenu que via une clé localStorage de SON navigateur
@@ -74,8 +74,8 @@ module.exports = async function handler(req, res) {
 
     const payload = {
       access_key: key,
-      subject: 'Commande retrait en boutique ' + (orderRef || '') + ' — leclub151',
-      from_name: 'Boutique leclub151',
+      subject: 'Commande retrait en boutique ' + (orderRef || '') + ' — CLUB 151',
+      from_name: 'Boutique CLUB 151',
       Commande: orderRef || '—',
       Client: name,
       'E-mail': email,

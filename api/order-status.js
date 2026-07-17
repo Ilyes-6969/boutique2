@@ -1,4 +1,4 @@
-// leclub151 — Vérifie l'état d'une session Stripe au retour du paiement
+// CLUB 151 — Vérifie l'état d'une session Stripe au retour du paiement
 // ---------------------------------------------------------------------------
 // Le site appelle cette fonction quand le client revient avec ?session_id=...
 // Elle confirme côté serveur que le paiement est bien « payé » AVANT de

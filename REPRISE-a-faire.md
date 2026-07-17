@@ -1,4 +1,4 @@
-# À reprendre — leclub151 (mémo pour la prochaine session)
+# À reprendre — CLUB 151 (mémo pour la prochaine session)
 
 _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment Element) est **fonctionnel et en ligne**, en mode **test**. L'argent ira sur Qonto une fois en réel._
 

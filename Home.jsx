@@ -1,4 +1,4 @@
-/* leclub151 — Accueil. Works with an EMPTY catalogue (no demo products).
+/* CLUB 151 — Accueil. Works with an EMPTY catalogue (no demo products).
    When products are added (via WordPress/WooCommerce or the back-office),
    the rayons appear automatically. */
 
@@ -205,7 +205,7 @@ function Home({ navigate }) {
                 ⚠️ Pour pointer l'adresse exacte de la boutique, ajuste les coordonnées
                 « marker » (lat,lon) et le « bbox » ci-dessous. */}
             <iframe
-              title="Carte — leclub151 à Vienne"
+              title="Carte — CLUB 151 à Vienne"
               src="https://www.openstreetmap.org/export/embed.html?bbox=4.855%2C45.512%2C4.895%2C45.540&layer=mapnik&marker=45.5256%2C4.8745"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"

@@ -1,4 +1,4 @@
-/* leclub151 — Panier (slide-over drawer) */
+/* CLUB 151 — Panier (slide-over drawer) */
 
 /* CONTRAT inter-agents : le total économisé sur les lignes en promo est fourni
    par window.LC151.cartSavings(items) (data.js). On le CONSOMME avec un repli
