@@ -170,14 +170,20 @@ function Pokeball({ size = 16, style, float = false, tone }) {
    viewBox 1820×640 (~2.844:1). Lisible tel quel sur le header/footer navy — le
    bleu vif (#0AA3EB) tient ~5:1 et l'or ~10:1 sur --header-bg ; le navy ne sert
    que de liseré sous l'or, jamais d'aplat de texte. Dimensionné par la hauteur. */
-function Logo({ onClick, size = 22 }) {
-  const h = Math.round(size * 1.9);
+function Logo({ onClick, size = 22, mark = false }) {
+  // mark=true → marque ronde SEULE (logo-club151-mark.svg, carré), sans le
+  // wordmark « CLUB 151 » : c'est la partie disque extraite du lockup horizontal,
+  // donc mêmes couleurs (bleu vif #0AA3EB + or) que ce qui était affiché avant.
+  // Le lockup complet (avec le nom) reste utilisé ailleurs, ex. le footer.
+  const src = mark ? 'assets/brand/logo-club151-mark.svg' : 'assets/brand/logo-club151-horizontal.svg';
+  const h = mark ? Math.round(size * 1.7) : Math.round(size * 1.9);
+  const w = mark ? h : Math.round(h * 2.844);
   return (
     <a href="#" onClick={(e) => { e.preventDefault(); onClick && onClick(); }}
       aria-label="CLUB 151 — cartes à collectionner, Vienne"
       style={{ display: 'inline-flex', alignItems: 'center', lineHeight: 0, textDecoration: 'none' }}>
-      <img src="assets/brand/logo-club151-horizontal.svg" alt="CLUB 151"
-        width={Math.round(h * 2.844)} height={h}
+      <img src={src} alt="CLUB 151"
+        width={w} height={h}
         style={{ display: 'block', height: h, width: 'auto' }} />
     </a>
   );
@@ -423,7 +429,7 @@ function Header({ navigate, active, onCart }) {
     <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--header-bg)', borderBottom: '3px solid var(--accent)' }}>
       {/* main row */}
       <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 24, height: 76 }}>
-        <Logo onClick={() => navigate('home')} size={26} />
+        <Logo onClick={() => navigate('home')} size={26} mark />
         <div className="lc-search" style={{ flex: 1, maxWidth: 540, marginLeft: 12 }}>
           <SearchBox />
         </div>
