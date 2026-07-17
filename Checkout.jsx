@@ -224,6 +224,7 @@ function CheckoutModal({ onClose }) {
       const o = Orders.add({
         ...orderData,
         paid: ship.method !== 'pickup' ? !!(result && result.paid) : false,
+        processing: !!(result && result.processing),
         payRef: result ? result.ref : null,
       });
       // Snapshot des lignes AVANT cart.clear() (currentLines lit le panier courant).
@@ -277,7 +278,10 @@ function CheckoutModal({ onClose }) {
         }
         const pi = result.paymentIntent;
         if (pi && (pi.status === 'succeeded' || pi.status === 'processing')) {
-          finalize({ paid: true, ref: pi.id });
+          // 'processing' ≠ 'succeeded' : certains moyens de paiement (prélèvement,
+          // notification différée) restent à valider. On enregistre la commande
+          // mais on ne prétend PAS « Paiement reçu » — le webhook confirmera.
+          finalize({ paid: pi.status === 'succeeded', processing: pi.status === 'processing', ref: pi.id });
           // Verrou d'idempotence (même format que finalizeOnce dans merci.html) :
           // marque ce PaymentIntent comme déjà finalisé pour qu'une visite de
           // merci.html?payment_intent=… ne recrée pas la commande en double.
@@ -449,7 +453,7 @@ function CheckoutModal({ onClose }) {
             <div style={{ maxWidth: 420, margin: '0 auto 22px', textAlign: 'left', background: 'var(--paper-2)', borderRadius: 'var(--radius)', padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Total</span><strong style={{ fontFamily: 'var(--font-mono)' }}>{fmt(order.total)}</strong></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Livraison</span><span>{Orders.methods()[order.method].label}</span></div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 8 }}>{order.paid ? 'Paiement reçu.' : 'À régler au retrait en boutique.'} Un e-mail de confirmation a été envoyé à {order.email}.</div>
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 8 }}>{order.paid ? 'Paiement reçu.' : order.processing ? 'Paiement en cours de validation — vous recevrez un e-mail dès qu’il est confirmé.' : 'À régler au retrait en boutique.'} Un e-mail de confirmation a été envoyé à {order.email}.</div>
             </div>
             {/* Retrait en boutique : la notification serveur a échoué → l'échec doit
                 rester VISIBLE (la commande est bien enregistrée pour autant). */}

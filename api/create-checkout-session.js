@@ -56,11 +56,16 @@ module.exports = async function handler(req, res) {
   }
 
   const stripe = Stripe(secret);
-  // Domaine déduit de la requête (toujours correct, même sur domaine personnalisé).
+  // URL de redirection Stripe (success_url / cancel_url). On PRÉFÈRE le domaine de
+  // confiance SITE_URL : les en-têtes de requête (Host, X-Forwarded-Host) sont
+  // manipulables, et bâtir la redirection dessus permettrait de renvoyer le client
+  // vers un domaine arbitraire après paiement. La déduction depuis la requête ne
+  // sert que de repli quand SITE_URL n'est pas configurée (preview / dev).
+  // → Penser à définir SITE_URL dans les variables d'environnement Vercel de prod.
   const proto = (req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
   const host = (req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
   const fromReq = host ? (proto + '://' + host) : '';
-  const siteUrl = (fromReq || process.env.SITE_URL || '').replace(/\/+$/, '');
+  const siteUrl = (process.env.SITE_URL || fromReq || '').replace(/\/+$/, '');
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
