@@ -71,6 +71,27 @@ function CheckoutModal({ onClose }) {
   // Props communes à câbler sur chaque champ pour animer le focus.
   const focusProps = (k) => ({ onFocus: () => setFocused(k), onBlur: () => setFocused((f) => (f === k ? null : f)) });
 
+  // Erreurs DÉCRITES EN TEXTE, et pas seulement par le liseré rouge : la couleur
+  // seule exclut les daltoniens (WCAG 1.4.1) et `aria-invalid` annonce « champ
+  // invalide » sans jamais dire POURQUOI (WCAG 3.3.1). Le message est relié au
+  // champ par aria-describedby pour être lu à la suite de son intitulé.
+  const ERR_MSG = {
+    name: 'Indiquez votre nom complet.',
+    email: 'Indiquez une adresse e-mail valide (ex. prenom@exemple.fr).',
+    addr: 'Indiquez votre adresse (numéro et rue).',
+    zip: 'Code postal invalide : 4 ou 5 chiffres.',
+    city: 'Indiquez votre ville.',
+    card: 'Numéro de carte invalide.',
+    exp: 'Date d’expiration invalide ou dépassée.',
+    cvc: 'Cryptogramme invalide : 3 ou 4 chiffres.',
+    holder: 'Indiquez le nom inscrit sur la carte.',
+  };
+  const errId = (k) => 'lc-co-err-' + k;
+  const errProps = (k) => ({ 'aria-invalid': !!errors[k], 'aria-describedby': errors[k] ? errId(k) : undefined });
+  const fieldErr = (k) => ((errors[k] && ERR_MSG[k])
+    ? <span id={errId(k)} style={{ display: 'block', marginTop: 5, fontSize: 12.5, lineHeight: 1.4, color: 'var(--red)' }}>{ERR_MSG[k]}</span>
+    : null);
+
   // Petites icônes SVG stroke (mêmes tracés que la réassurance de Chrome.jsx,
   // recopiées ici car ce fichier ne peut pas importer Chrome.jsx).
   const reIcon = (name) => {
@@ -450,13 +471,13 @@ function CheckoutModal({ onClose }) {
               {step === 'livraison' ? (
                 <React.Fragment>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                    <div><label style={lbl} htmlFor="lc-co-name">Nom complet</label><input id="lc-co-name" autoComplete="name" aria-invalid={!!errors.name} style={errStyle('name')} {...focusProps('name')} value={ship.name} onChange={(e) => setS('name', e.target.value)} /></div>
-                    <div><label style={lbl} htmlFor="lc-co-email">E-mail</label><input id="lc-co-email" type="email" required autoComplete="email" aria-invalid={!!errors.email} style={errStyle('email')} {...focusProps('email')} value={ship.email} onChange={(e) => setS('email', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-name">Nom complet</label><input id="lc-co-name" autoComplete="name" {...errProps('name')} style={errStyle('name')} {...focusProps('name')} value={ship.name} onChange={(e) => setS('name', e.target.value)} />{fieldErr('name')}</div>
+                    <div><label style={lbl} htmlFor="lc-co-email">E-mail</label><input id="lc-co-email" type="email" required autoComplete="email" {...errProps('email')} style={errStyle('email')} {...focusProps('email')} value={ship.email} onChange={(e) => setS('email', e.target.value)} />{fieldErr('email')}</div>
                   </div>
-                  <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-addr">Adresse</label><input id="lc-co-addr" autoComplete="street-address" aria-invalid={!!errors.addr} style={errStyle('addr')} {...focusProps('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" /></div>
+                  <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-addr">Adresse</label><input id="lc-co-addr" autoComplete="street-address" {...errProps('addr')} style={errStyle('addr')} {...focusProps('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" />{fieldErr('addr')}</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
-                    <div><label style={lbl} htmlFor="lc-co-zip">Code postal</label><input id="lc-co-zip" autoComplete="postal-code" aria-invalid={!!errors.zip} style={errStyle('zip')} {...focusProps('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} /></div>
-                    <div><label style={lbl} htmlFor="lc-co-city">Ville</label><input id="lc-co-city" autoComplete="address-level2" aria-invalid={!!errors.city} style={errStyle('city')} {...focusProps('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} /></div>
+                    <div><label style={lbl} htmlFor="lc-co-zip">Code postal</label><input id="lc-co-zip" autoComplete="postal-code" {...errProps('zip')} style={errStyle('zip')} {...focusProps('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} />{fieldErr('zip')}</div>
+                    <div><label style={lbl} htmlFor="lc-co-city">Ville</label><input id="lc-co-city" autoComplete="address-level2" {...errProps('city')} style={errStyle('city')} {...focusProps('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} />{fieldErr('city')}</div>
                   </div>
                   <div style={{ marginBottom: 16 }}><label style={lbl} htmlFor="lc-co-phone">Téléphone (optionnel)</label><input id="lc-co-phone" type="tel" autoComplete="tel" style={errStyle('phone')} {...focusProps('phone')} value={ship.phone} onChange={(e) => setS('phone', e.target.value)} /></div>
                   <label style={lbl}>Mode de livraison</label>
@@ -488,13 +509,15 @@ function CheckoutModal({ onClose }) {
                     </React.Fragment>
                   ) : (
                     <React.Fragment>
-                      <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-card">Numéro de carte</label><input id="lc-co-card" inputMode="numeric" aria-invalid={!!errors.card} aria-describedby={errors.card ? 'lc-co-card-err' : undefined} style={errStyle('card')} {...focusProps('card')} value={pay.card} onChange={(e) => setP('card', fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" /></div>
+                      <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-card">Numéro de carte</label><input id="lc-co-card" inputMode="numeric" {...errProps('card')} style={errStyle('card')} {...focusProps('card')} value={pay.card} onChange={(e) => setP('card', fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" />{fieldErr('card')}</div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                        <div><label style={lbl} htmlFor="lc-co-exp">Expiration</label><input id="lc-co-exp" inputMode="numeric" aria-invalid={!!errors.exp} aria-describedby={errors.exp ? 'lc-co-card-err' : undefined} style={errStyle('exp')} {...focusProps('exp')} value={pay.exp} onChange={(e) => setP('exp', fmtExp(e.target.value))} placeholder="MM/AA" /></div>
-                        <div><label style={lbl} htmlFor="lc-co-cvc">CVC</label><input id="lc-co-cvc" inputMode="numeric" aria-invalid={!!errors.cvc} aria-describedby={errors.cvc ? 'lc-co-card-err' : undefined} style={errStyle('cvc')} {...focusProps('cvc')} value={pay.cvc} onChange={(e) => setP('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" /></div>
+                        <div><label style={lbl} htmlFor="lc-co-exp">Expiration</label><input id="lc-co-exp" inputMode="numeric" {...errProps('exp')} style={errStyle('exp')} {...focusProps('exp')} value={pay.exp} onChange={(e) => setP('exp', fmtExp(e.target.value))} placeholder="MM/AA" />{fieldErr('exp')}</div>
+                        <div><label style={lbl} htmlFor="lc-co-cvc">CVC</label><input id="lc-co-cvc" inputMode="numeric" {...errProps('cvc')} style={errStyle('cvc')} {...focusProps('cvc')} value={pay.cvc} onChange={(e) => setP('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" />{fieldErr('cvc')}</div>
                       </div>
-                      <div style={{ marginBottom: 8 }}><label style={lbl} htmlFor="lc-co-holder">Titulaire de la carte</label><input id="lc-co-holder" autoComplete="cc-name" aria-invalid={!!errors.holder} aria-describedby={errors.holder ? 'lc-co-card-err' : undefined} style={errStyle('holder')} {...focusProps('holder')} value={pay.holder} onChange={(e) => setP('holder', e.target.value)} /></div>
-                      {(errors.card || errors.exp || errors.cvc || errors.holder) && <div id="lc-co-card-err" role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>Vérifiez les informations de paiement saisies.</div>}
+                      <div style={{ marginBottom: 8 }}><label style={lbl} htmlFor="lc-co-holder">Titulaire de la carte</label><input id="lc-co-holder" autoComplete="cc-name" {...errProps('holder')} style={errStyle('holder')} {...focusProps('holder')} value={pay.holder} onChange={(e) => setP('holder', e.target.value)} />{fieldErr('holder')}</div>
+                      {/* Résumé annoncé aux lecteurs d'écran à la soumission ; le détail
+                          exact vit sous chaque champ (fieldErr) via aria-describedby. */}
+                      {(errors.card || errors.exp || errors.cvc || errors.holder) && <div role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10 }}>Vérifiez les informations de paiement signalées ci-dessus.</div>}
                       {payReassure}
                     </React.Fragment>
                   )}

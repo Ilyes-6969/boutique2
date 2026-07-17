@@ -46,6 +46,10 @@
   --green-soft: #E2F3E8;
   --red: #D8232A;             /* rupture / error / price-drop */
   --red-soft: #FBE2E1;
+  /* Rouge de TEXTE posé sur --red-soft. --red (#D8232A) sur --red-soft (#FBE2E1)
+     ne donne que 4.18:1 et rate l'AA (4.5:1) : le badge « Rupture » était donc
+     sous la norme. --red-ink monte à ~6.2:1 sur le même fond. */
+  --red-ink: #A8161C;
 
   /* ---- FEATURE GRADIENTS (navy hero/collection cards) ---- */
   --grad-green: linear-gradient(165deg, #1b357f 0%, #0c1640 100%); /* @kind color */
@@ -109,6 +113,10 @@
   --green-soft: rgba(31, 157, 87, 0.20);
   --red: #FF5A5A;
   --red-soft: rgba(216, 35, 42, 0.22);
+  /* En thème sombre --red-soft est un translucide rouge sur fond foncé : il faut
+     un rouge PLUS CLAIR (et non plus foncé) pour tenir l'AA — d'où l'inversion
+     de sens par rapport au thème clair. */
+  --red-ink: #FF9B9B;
 
   --grad-green: linear-gradient(165deg, #1b357f 0%, #0a1233 100%); /* @kind color */
   --grad-red: linear-gradient(165deg, #274E86 0%, #101C40 100%); /* @kind color */

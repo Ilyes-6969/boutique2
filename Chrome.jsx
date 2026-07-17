@@ -750,7 +750,8 @@ function lcBadgeStyle(tone) {
     sale: { background: 'var(--ink)', color: 'var(--on-ink)', border: '1.5px solid var(--ink)' },
     new: { background: 'var(--accent)', color: 'var(--on-accent)', border: '1.5px solid var(--accent)' },
     graded: { background: 'var(--ink)', color: 'var(--yellow)', border: '1.5px solid var(--yellow-deep)' },
-    oos: { background: 'var(--red-soft)', color: 'var(--red)', border: '1.5px solid transparent' },
+    // --red-ink et non --red : le rouge vif ne tient que 4.18:1 sur --red-soft (AA rate).
+    oos: { background: 'var(--red-soft)', color: 'var(--red-ink)', border: '1.5px solid transparent' },
   };
   return { display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 'var(--radius-xs)', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1.4, whiteSpace: 'nowrap', ...(map[tone] || map.new) };
 }

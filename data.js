@@ -116,12 +116,34 @@
   const K_WP = 'lc151_wp_url';       // WordPress / WooCommerce site URL
   const EDITABLE = ['price', 'oldPrice', 'inStock', 'badge'];
 
+  // Un JSON VALIDE mais du mauvais TYPE (ex. lc151_cart = {"a":1} au lieu d'un
+  // tableau) traversait ce try/catch sans bruit — JSON.parse ne lève pas — puis
+  // faisait planter toute la boutique au premier cart.filter(...), sans error
+  // boundary pour rattraper. Les gestionnaires cross-onglet vérifiaient déjà
+  // Array.isArray ; le chargement initial, non. On aligne les deux : une valeur
+  // dont la forme ne correspond pas au fallback est traitée comme corrompue.
   function load(key, fallback) {
-    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; }
-    catch (e) { return fallback; }
+    try {
+      const v = localStorage.getItem(key);
+      if (!v) return fallback;
+      const parsed = JSON.parse(v);
+      const wantArray = Array.isArray(fallback);
+      const wantObject = !wantArray && fallback !== null && typeof fallback === 'object';
+      if (wantArray && !Array.isArray(parsed)) return fallback;
+      if (wantObject && (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed))) return fallback;
+      return parsed;
+    } catch (e) { return fallback; }
   }
+  // Renvoie false si l'écriture a échoué (quota dépassé, navigation privée,
+  // stockage bloqué). Avant, l'échec était avalé : l'état mémoire était à jour et
+  // l'UI affichait le panier comme enregistré alors que rien n'était persisté —
+  // au rechargement, tout avait disparu sans que personne n'ait rien vu.
   function save(key, val) {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
+    try { localStorage.setItem(key, JSON.stringify(val)); return true; }
+    catch (e) {
+      console.warn('[lc151] écriture localStorage impossible (' + key + ') — état NON persisté :', e && e.message);
+      return false;
+    }
   }
 
   // ---- WordPress / WooCommerce ----
@@ -763,7 +785,16 @@
       return m.price;
     },
     all: () => orders,
-    forUser(email) { return orders.filter((o) => o.email === email); },
+    // Comparaison NORMALISÉE (casse + espaces). En strict, une commande passée
+    // avec « Jean@Exemple.FR » n'apparaissait pas pour le compte « jean@exemple.fr » :
+    // le client lisait « aucune commande » juste après en avoir passé une. Un
+    // e-mail vide ne doit rien remonter (sinon il capturerait les commandes sans e-mail).
+    forUser(email) {
+      const norm = (s) => String(s || '').trim().toLowerCase();
+      const target = norm(email);
+      if (!target) return [];
+      return orders.filter((o) => norm(o.email) === target);
+    },
     add(order) {
       const num = 'LC151-' + Date.now().toString(36).toUpperCase().slice(-6);
       const full = { number: num, date: new Date().toISOString(), status: 'Confirmée', ...order };
