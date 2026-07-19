@@ -212,9 +212,7 @@ function Announcement() {
             <a key={s} className="lc-util" href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'rgba(234,239,251,0.6)', textTransform: 'uppercase' }}>{s}</a>
           ))}
         </div>
-        <div style={{ flex: 1, textAlign: 'center', textTransform: 'uppercase', color: 'rgba(234,239,251,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-          <span aria-hidden="true" style={{ display: 'inline-block', width: 10, height: 10, borderRadius: '50%', background: '#3363A9', boxShadow: '0 0 0 1.5px #FACA07', flexShrink: 0 }}></span> {t('ann_free')}
-        </div>
+        <div style={{ flex: 1 }}></div>
         <div className="lc-ann-side" style={{ display: 'flex', gap: 16 }}>
           <a href="#" className="lc-util" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'rgba(234,239,251,0.6)', textTransform: 'uppercase' }}>{t('ann_contact')}</a>
           <a href="#" onClick={(e) => { e.preventDefault(); openModal('account'); }} style={{ color: 'var(--yellow)', textTransform: 'uppercase', fontWeight: 600 }}>{t('ann_login')}</a>
@@ -665,7 +663,7 @@ function Footer({ navigate }) {
     <footer style={{ background: 'var(--footer-bg)', color: 'var(--footer-text)', marginTop: 0 }}>
       {/* reassurance strip */}
       <div style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
-        <div className="container-wide" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '26px 24px' }}>
+        <div className="container-wide lc-foot-reassure" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '26px 24px' }}>
           {[['check', t('r_auth_t'), t('r_auth_s')], ['truck', t('r_ship_t'), t('r_ship_s')], ['bouclier', t('r_pay_t'), t('r_pay_s')]].map(([ic, ti, s]) => (
             <div key={ti} className="lc-reassure" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
               <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>{footIcon(ic)}</span>

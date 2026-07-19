@@ -74,10 +74,10 @@
     return (
       <React.Fragment>
         <a href="#lc-main" className="lc-skip">Aller au contenu principal</a>
-        <Announcement />
         <Header navigate={nav} active="home" onCart={() => nav('cart')} />
         <main id="lc-main"><Home navigate={nav} /></main>
         <Footer navigate={nav} />
+        <Announcement />
         <ModalHost />
       </React.Fragment>
     );

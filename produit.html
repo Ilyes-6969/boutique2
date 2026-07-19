@@ -56,10 +56,10 @@
     return (
       <React.Fragment>
         <a href="#lc-main" className="lc-skip">Aller au contenu principal</a>
-        <Announcement />
         <Header navigate={nav} active="catalogue" onCart={() => nav('cart')} />
         <main id="lc-main"><Product navigate={nav} productId={id} onCart={() => nav('cart')} /></main>
         <Footer navigate={nav} />
+        <Announcement />
         <ModalHost />
       </React.Fragment>
     );

@@ -90,21 +90,6 @@ function Home({ navigate }) {
         </div>
       </section>
 
-      {/* REASSURANCE STRIP */}
-      <section className="lc-reveal" style={{ background: 'var(--card)', borderBottom: '1.5px solid var(--line)' }}>
-        <div className="container-wide" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '20px 24px' }}>
-          {[['check', 'Authentifié', 'Chaque pièce vérifiée'], ['truck', 'Livraison offerte', 'Dès 100 € d’achat'], ['bouclier', 'Paiement sécurisé', 'CB · PayPal · Apple Pay']].map(([ic, t, s]) => (
-            <div key={t} className="lc-reassure" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, color: 'var(--accent)' }}><ReassureIcon name={ic} size={17} /></span>
-              <div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5 }}>{t}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink-2)' }}>{s}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* NOS UNIVERS (jeux TCG) — tuiles éditoriales hautes : lettre-logo géante
           en filigrane, fond légèrement teinté de la couleur du jeu, respiration. */}
       <section className="container-wide lc-reveal" style={{ padding: '48px 24px 8px' }}>
@@ -244,6 +229,7 @@ function Home({ navigate }) {
           <DS.Button className="lc-press" variant="accent" size="lg" type="button" onClick={() => openModal('contact')}>Nous trouver</DS.Button>
         </div>
       </section>
+
     </div>
   );
 }
