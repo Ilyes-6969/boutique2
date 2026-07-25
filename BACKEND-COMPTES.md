@@ -109,9 +109,16 @@ changement.
 
 ## Ce qui reste à faire
 
-- **Brancher l'interface.** Les panneaux « Mon compte » et « Mes commandes » de
-  `Chrome.jsx` lisent encore le `localStorage` du navigateur. Le backend est
-  prêt et testé, mais l'écran ne l'appelle pas encore.
 - **Notifier « commande prête ».** `lib/mailer.js` sait déjà envoyer l'e-mail
   (`sendPickupReady`), mais rien ne le déclenche : il faudra un webhook
-  WooCommerce sur le changement de statut.
+  WooCommerce sur le changement de statut, ou l'extension « Order Status
+  Control ». Aujourd'hui le client voit le changement en consultant son compte,
+  mais n'est pas prévenu.
+- **Éprouver contre le vrai WordPress.** Tout est vérifié contre le simulateur,
+  ce qui couvre la logique mais pas les surprises d'une vraie installation
+  (préfixe des numéros de commande, extensions qui modifient l'API, réglages de
+  permaliens). À refaire dès que `WC_STORE_URL` pointera sur le réel.
+- **Historique local devenu redondant.** `Orders.add()` (data.js) écrit encore
+  chaque commande dans le `localStorage`. C'est utile pour afficher le numéro
+  sur l'écran de confirmation, mais cette liste n'est plus lue nulle part :
+  « Mes commandes » interroge le serveur. À nettoyer un jour, sans urgence.
