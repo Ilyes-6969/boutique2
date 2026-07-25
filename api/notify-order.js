@@ -15,6 +15,8 @@
 // ---------------------------------------------------------------------------
 
 const { priceItems, applyCors, errorStatus, rateLimit } = require('../lib/serverCatalog');
+const { wooConfigured, createPickupOrder } = require('../lib/wooCustomers');
+const { readSession } = require('../lib/session');
 
 const MAX_ITEMS = 30;
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -65,8 +67,35 @@ module.exports = async function handler(req, res) {
     const { lines, subtotalCents } = await priceItems(items);
     const total = (subtotalCents / 100).toFixed(2) + ' €'; // retrait → pas de port
 
+    // --- Commande WooCommerce réelle (statut 'pending' : AUCUN stock retiré) ---
+    // La décision historique « pas de commande Woo ici » visait le risque qu'un
+    // inconnu vide le stock en boucle depuis ce endpoint non authentifié. Le
+    // statut 'pending' lève ce risque : WooCommerce ne décrémente qu'à partir de
+    // 'processing'. En échange, le retrait devient une VRAIE commande — suivie,
+    // numérotée, visible dans « Mes commandes » et dans l'admin de la boutique —
+    // au lieu d'un simple e-mail qu'un filtre anti-spam pouvait engloutir.
+    let wooOrder = null;
+    if (wooConfigured()) {
+      try {
+        const sess = readSession(req);      // client connecté → commande rattachée à son compte
+        wooOrder = await createPickupOrder({
+          email: email, name: name, phone: phone, lines: lines,
+          customerId: sess ? sess.cid : 0,
+        });
+      } catch (e) {
+        // On NE bloque PAS : l'e-mail au propriétaire reste le filet de secours.
+        // Mais la trace doit exister, sinon l'échec passerait inaperçu.
+        console.error('notify-order: commande de retrait NON créée dans WooCommerce:',
+          String((e && e.message) || e));
+      }
+    }
+    const ref = (wooOrder && wooOrder.number) || orderRef;
+
     const key = process.env.WEB3FORMS_KEY;
-    if (!key) return res.status(200).json({ ok: false }); // non configuré → best-effort silencieux
+    // Web3Forms non configuré : si la commande Woo existe, l'essentiel EST
+    // enregistré — on le dit honnêtement plutôt que de renvoyer un ok:false qui
+    // laisserait croire à une perte totale.
+    if (!key) return res.status(200).json({ ok: !!wooOrder, orderNumber: ref || null });
 
     const articles = lines.map(function (l) {
       return '- ' + l.name + ' ×' + l.qty + ' : ' + ((l.unitAmount * l.qty) / 100).toFixed(2) + ' €';
@@ -74,15 +103,23 @@ module.exports = async function handler(req, res) {
 
     const payload = {
       access_key: key,
-      subject: 'Commande retrait en boutique ' + (orderRef || '') + ' — CLUB 151',
+      subject: 'Commande retrait en boutique ' + (ref || '') + ' — CLUB 151',
       from_name: 'Boutique CLUB 151',
-      Commande: orderRef || '—',
+      Commande: ref || '—',
       Client: name,
       'E-mail': email,
       'Téléphone': phone || '—',
       Articles: '\n' + articles,
       Total: total,
       Paiement: 'À régler au retrait en boutique (aucun paiement en ligne)',
+      // Dit explicitement si la commande est enregistrée dans WooCommerce ou si
+      // cet e-mail est la SEULE trace — sans quoi le propriétaire ne saurait pas
+      // qu'il doit la saisir à la main.
+      WooCommerce: wooOrder
+        ? 'Commande n° ' + wooOrder.number + ' créée (statut « En attente » — le stock ne bougera qu\'au passage en préparation).'
+        : (wooConfigured()
+          ? '⚠️ Commande NON enregistrée dans WooCommerce — à saisir manuellement.'
+          : 'WooCommerce non configuré — cet e-mail est la seule trace.'),
     };
 
     const r = await fetch('https://api.web3forms.com/submit', {
@@ -94,7 +131,7 @@ module.exports = async function handler(req, res) {
       console.error('notify-order: Web3Forms HTTP ' + r.status);
       return res.status(502).json({ error: 'Notification impossible pour le moment.' });
     }
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, orderNumber: ref || null });
   } catch (err) {
     const msg = String((err && err.message) || err);
     // WooCommerce injoignable (contrat WC_DOWN) → 503, message générique.

@@ -7,7 +7,8 @@
     "node": ">=18.x"
   },
   "scripts": {
-    "build": "node build.mjs"
+    "build": "node build.mjs",
+    "test": "node test-backend.mjs"
   },
   "dependencies": {
     "esbuild": "^0.28.1",
