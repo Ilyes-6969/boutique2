@@ -1041,10 +1041,10 @@ function FormModal({ title, fields, cta, success, onClose }) {
 function AccountModal({ onClose }) {
   const DS = window.ADITCGDesignSystem_df75b7 || {};
   const auth = useAuth();
-  const [tab, setTab] = React.useState('login');
   const [sent, setSent] = React.useState(false);
-  const [name, setName] = React.useState('');
   const [email, setEmail] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState('');
   if (auth.isLoggedIn()) {
     const u = auth.user();
     return (
@@ -1073,31 +1073,53 @@ function AccountModal({ onClose }) {
       </ModalShell>
     );
   }
-  const title = tab === 'login' ? 'Connexion' : 'Créer un compte';
-  const submit = (e) => {
+  // Connexion SANS mot de passe : on envoie un lien à usage unique par e-mail.
+  // L'écran précédent affichait un champ « Mot de passe » qui n'était ni lu ni
+  // vérifié, et un onglet « Créer un compte » qui ne créait rien — du décor. Ici
+  // ce qu'on demande est exactement ce qui sert, et le compte se crée tout seul
+  // au premier lien validé : pas d'inscription séparée.
+  const submit = async (e) => {
     e.preventDefault();
-    window.LC151.Auth.login(email, tab === 'register' ? name : '');
-    setSent(true);
+    if (busy) return;
+    setBusy(true); setErr('');
+    const r = await window.LC151.Auth.requestLink(email);
+    setBusy(false);
+    if (r && r.ok) setSent(true);
+    else setErr((r && r.error) || 'Envoi impossible pour le moment.');
   };
   return (
-    <ModalShell title={title} onClose={onClose}>
-      {sent ? <LcSuccess message={tab === 'login' ? 'Connexion réussie. Vous pouvez finaliser votre commande.' : 'Compte créé. Bienvenue ! Vous pouvez maintenant commander.'} onClose={onClose} /> : (
-        <React.Fragment>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-            {[['login', 'Connexion'], ['register', 'Créer un compte']].map(([k, l]) => (
-              <button key={k} onClick={() => setTab(k)}
-                onMouseEnter={(e) => { if (tab !== k) { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.background = 'var(--accent-wash)'; } }}
-                onMouseLeave={(e) => { if (tab !== k) { e.currentTarget.style.borderColor = 'var(--line-strong)'; e.currentTarget.style.background = 'transparent'; } }}
-                style={{ flex: 1, height: 38, borderRadius: 'var(--radius-sm)', border: '1.5px solid', borderColor: tab === k ? 'var(--ink)' : 'var(--line-strong)', background: tab === k ? 'var(--ink)' : 'transparent', color: tab === k ? 'var(--on-ink)' : 'var(--ink)', fontWeight: 600, fontSize: 13.5, cursor: 'pointer', transition: 'border-color 0.18s ease, background 0.18s ease' }}>{l}</button>
-            ))}
+    <ModalShell title="Connexion" onClose={onClose}>
+      {sent ? (
+        <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
+          <div className="lc-pop" style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--green-soft)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 6L2 7"></path></svg>
           </div>
+          <p style={{ fontSize: 15, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.5 }}>
+            Lien envoyé à <strong style={{ wordBreak: 'break-all' }}>{email}</strong>.
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 18 }}>
+            Ouvrez-le pour vous connecter. Il est valable 20 minutes et ne fonctionne qu’une fois.
+            Pensez à regarder dans vos indésirables.
+          </p>
+          {DS.Button
+            ? <DS.Button variant="accent" size="lg" block className="lc-press" onClick={onClose}>Fermer</DS.Button>
+            : <button className="lc-press" onClick={onClose} style={lcModalBtnFallback}>Fermer</button>}
+        </div>
+      ) : (
+        <React.Fragment>
+          <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 16 }}>
+            Indiquez votre e-mail : nous vous envoyons un lien de connexion. Pas de mot de passe à retenir,
+            et rien à créer — si vous n’avez pas encore de compte, il s’ouvre au premier lien.
+          </p>
           <form onSubmit={submit}>
-            {tab === 'register' && <input required placeholder="Nom" value={name} onChange={(e) => setName(e.target.value)} style={lcField} />}
-            <input required type="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} style={lcField} />
-            <input required type="password" placeholder="Mot de passe" style={lcField} />
+            <input required type="email" autoComplete="email" aria-label="Adresse e-mail" placeholder="votre@email.fr"
+              value={email} onChange={(e) => setEmail(e.target.value)} style={lcField} />
+            {err && (
+              <p role="alert" style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(179,38,30,0.08)', color: 'var(--red, #b3261e)', fontSize: 13.5, lineHeight: 1.5 }}>{err}</p>
+            )}
             {DS.Button
-              ? <DS.Button type="submit" variant="accent" size="lg" block className="lc-press">{tab === 'login' ? 'Se connecter' : 'Créer mon compte'}</DS.Button>
-              : <button type="submit" className="lc-press" style={lcModalBtnFallback}>{tab === 'login' ? 'Se connecter' : 'Créer mon compte'}</button>}
+              ? <DS.Button type="submit" variant="accent" size="lg" block className="lc-press" disabled={busy}>{busy ? 'Envoi…' : 'Recevoir mon lien'}</DS.Button>
+              : <button type="submit" className="lc-press" style={lcModalBtnFallback} disabled={busy}>{busy ? 'Envoi…' : 'Recevoir mon lien'}</button>}
           </form>
         </React.Fragment>
       )}
@@ -1159,11 +1181,49 @@ function AlertsModal({ onClose }) {
 function OrdersModal({ onClose }) {
   const DS = window.ADITCGDesignSystem_df75b7 || {};
   const auth = useAuth();
-  const [, force] = React.useReducer((x) => x + 1, 0);
-  React.useEffect(() => window.LC151.Orders.subscribe(force), []);
-  if (!auth.isLoggedIn()) return <AccountModal onClose={onClose} />;
-  const { fmt, Orders } = window.LC151;
-  const list = Orders.forUser(auth.user().email);
+  const { fmt } = window.LC151;
+  // Les commandes viennent du SERVEUR (WooCommerce), plus du localStorage : une
+  // commande passée depuis un autre appareil doit apparaître ici, et une
+  // commande n'est réelle que si la boutique la connaît. L'ancien écran ne
+  // montrait que ce qu'avait enregistré CE navigateur.
+  const [state, setState] = React.useState({ loading: true, orders: [], error: '' });
+  const loggedIn = auth.isLoggedIn();
+  React.useEffect(() => {
+    if (!loggedIn) return;
+    let cancelled = false;
+    fetch('/api/orders/mine', { credentials: 'same-origin' })
+      .then((r) => r.json().catch(() => ({})).then((j) => ({ ok: r.ok, j: j })))
+      .then((res) => {
+        if (cancelled) return;
+        if (!res.ok || !res.j || res.j.ok !== true) {
+          setState({ loading: false, orders: [], error: (res.j && res.j.error) || 'Commandes indisponibles pour le moment.' });
+          return;
+        }
+        setState({ loading: false, orders: Array.isArray(res.j.orders) ? res.j.orders : [], error: '' });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ loading: false, orders: [], error: 'Erreur réseau — impossible de charger vos commandes.' });
+      });
+    return () => { cancelled = true; };
+  }, [loggedIn]);
+  if (!loggedIn) return <AccountModal onClose={onClose} />;
+  const list = state.orders;
+  if (state.loading) {
+    return (
+      <ModalShell title="Mes commandes" onClose={onClose}>
+        <p style={{ fontSize: 14, color: 'var(--ink-2)', textAlign: 'center', padding: '24px 0' }}>Chargement de vos commandes…</p>
+      </ModalShell>
+    );
+  }
+  // Un échec doit se VOIR : afficher « aucune commande » alors que le serveur
+  // n'a pas répondu ferait croire à un historique vide, ce qui est bien pire.
+  if (state.error) {
+    return (
+      <ModalShell title="Mes commandes" onClose={onClose}>
+        <p role="alert" style={{ margin: 0, padding: '12px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(179,38,30,0.08)', color: 'var(--red, #b3261e)', fontSize: 13.5, lineHeight: 1.5 }}>{state.error}</p>
+      </ModalShell>
+    );
+  }
   return (
     <ModalShell title="Mes commandes" onClose={onClose}>
       {list.length === 0 ? (
@@ -1178,12 +1238,17 @@ function OrdersModal({ onClose }) {
           {list.map((o) => (
             <div key={o.number} style={{ border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '14px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13.5 }}>{o.number}</span>
-                <span style={{ fontSize: 11.5, padding: '3px 9px', borderRadius: 'var(--radius-pill)', background: 'var(--green-soft)', color: 'var(--green)', fontWeight: 600 }}>{o.status}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13.5 }}>N° {o.number}</span>
+                {/* Le libellé vient du serveur : « on-hold » ne veut pas dire la
+                    même chose pour un retrait (prête) et une livraison (en
+                    attente). La couleur suit le sens, pas le vert par défaut. */}
+                <span style={{ fontSize: 11.5, padding: '3px 9px', borderRadius: 'var(--radius-pill)', fontWeight: 600,
+                  background: /annul|échou|rembours/i.test(o.statusLabel) ? 'var(--red-soft)' : (/prête|retirée|expédiée/i.test(o.statusLabel) ? 'var(--green-soft)' : 'var(--accent-wash)'),
+                  color: /annul|échou|rembours/i.test(o.statusLabel) ? 'var(--red)' : (/prête|retirée|expédiée/i.test(o.statusLabel) ? 'var(--green)' : 'var(--accent)') }}>{o.statusLabel}</span>
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 8 }}>{new Date(o.date).toLocaleDateString('fr-FR')} · {(o.items || []).reduce((s, i) => s + i.qty, 0)} article(s)</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-2)', marginBottom: 8 }}>{o.date ? new Date(o.date).toLocaleDateString('fr-FR') : '—'} · {(o.items || []).reduce((s, i) => s + i.qty, 0)} article(s)</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}>
-                <span style={{ color: 'var(--ink-2)' }}>{((window.LC151.Orders.methods()[o.method] || {}).label || 'Livraison standard')}</span>
+                <span style={{ color: 'var(--ink-2)' }}>{o.method || 'Livraison'}</span>
                 <strong style={{ fontFamily: 'var(--font-mono)' }}>{fmt(o.total)}</strong>
               </div>
             </div>
@@ -1216,13 +1281,17 @@ function AddressesModal({ onClose }) {
   if (!loggedIn) return <AccountModal onClose={onClose} />;
   const set = (k, v) => { setA((s) => ({ ...s, [k]: v })); setDone(false); };
 
-  const save = () => {
+  const save = async () => {
     const e = {};
     ['name', 'addr', 'zip', 'city'].forEach((k) => { if (!String(a[k]).trim()) e[k] = 1; });
     if (a.zip && !/^\d{4,5}$/.test(a.zip.trim())) e.zip = 1;
     setErr(e);
     if (Object.keys(e).length) return;
-    auth.setAddress(a);
+    // setAddress écrit dans la fiche client WooCommerce : on ATTEND la réponse
+    // avant d'annoncer « enregistré ». Annoncer tout de suite laisserait croire
+    // l'adresse sauvegardée alors qu'elle aurait disparu au prochain appareil.
+    const r = await auth.setAddress(a);
+    if (r && r.ok === false) { setErr({ server: r.error }); setDone(false); return; }
     setDone(true);
   };
   const fld = (k) => ({ ...lcField, ...(err[k] ? { borderColor: 'var(--red)' } : {}) });
@@ -1239,7 +1308,11 @@ function AddressesModal({ onClose }) {
           <div><label style={lbl} htmlFor="lc-addr-city">Ville</label><input id="lc-addr-city" aria-invalid={err.city ? true : undefined} style={fld('city')} value={a.city} onChange={(e) => set('city', e.target.value)} /></div>
         </div>
         <div><label style={lbl} htmlFor="lc-addr-phone">Téléphone (optionnel)</label><input id="lc-addr-phone" style={lcField} value={a.phone} onChange={(e) => set('phone', e.target.value)} /></div>
-        {Object.keys(err).length > 0 && <div role="alert" style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>Veuillez vérifier les champs en rouge.</div>}
+        {/* Échec serveur et champs invalides sont deux problèmes distincts :
+            « vérifiez les champs en rouge » serait trompeur si la saisie est
+            bonne et que c'est l'enregistrement en boutique qui a échoué. */}
+        {err.server && <div role="alert" style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600, lineHeight: 1.5 }}>{err.server}</div>}
+        {!err.server && Object.keys(err).length > 0 && <div role="alert" style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>Veuillez vérifier les champs en rouge.</div>}
         {done && <div role="status" style={{ fontSize: 13, color: 'var(--green)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}><span>✓</span> Adresse enregistrée.</div>}
         {DS.Button
           ? <DS.Button variant="accent" size="lg" block className="lc-press" onClick={save}>{done ? 'Enregistré ✓' : 'Enregistrer l’adresse'}</DS.Button>

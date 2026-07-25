@@ -685,22 +685,96 @@
   const K_ALERTS = 'lc151_alerts';
   let user = load(K_USER, null);
   const authListeners = new Set();
+  function emitAuth() { authListeners.forEach((fn) => fn()); }
+
+  // Le compte vit désormais CÔTÉ SERVEUR (cookie de session signé + clients
+  // WooCommerce). localStorage n'est plus qu'un cache d'affichage : il évite un
+  // clignotement « déconnecté » au chargement, mais il ne fait plus autorité.
+  // Auparavant, Auth.login(email) suffisait à se déclarer connecté — sans mot de
+  // passe et sans la moindre vérification.
   const Auth = {
     user: () => user,
     isLoggedIn: () => !!user,
-    login(email, name) {
-      user = { email: email, name: name || (email ? email.split('@')[0] : 'Client') };
-      save(K_USER, user); authListeners.forEach((fn) => fn());
+
+    // Demande d'un lien de connexion par e-mail. Renvoie { ok, error } :
+    // l'appelant DOIT afficher l'échec, sinon le client attendra un lien qui
+    // n'arrivera jamais.
+    async requestLink(email) {
+      try {
+        const r = await fetch('/api/account/request-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ email: email }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) return { ok: false, error: (j && j.error) || 'Envoi impossible pour le moment.' };
+        return { ok: true, error: null };
+      } catch (e) {
+        return { ok: false, error: 'Erreur réseau — vérifiez votre connexion.' };
+      }
     },
-    logout() {
+
+    // Relit la session auprès du serveur : au chargement de chaque page et au
+    // retour du lien magique.
+    async hydrate() {
+      try {
+        const r = await fetch('/api/account/me', { credentials: 'same-origin' });
+        if (!r.ok) return;                       // 503 (non configuré) → on garde l'état courant
+        const j = await r.json().catch(() => null);
+        if (!j || j.ok !== true) return;
+        if (j.loggedIn && j.customer) {
+          const c = j.customer;
+          const full = ((c.firstName || '') + ' ' + (c.lastName || '')).trim();
+          user = {
+            email: c.email,
+            name: full || String(c.email || '').split('@')[0],
+            address: { name: full, addr: c.addr, zip: c.zip, city: c.city, phone: c.phone },
+            server: true,
+          };
+          save(K_USER, user);
+        } else if (user) {
+          // Le serveur dit « personne » : session expirée ou compte supprimé. On
+          // purge le cache local plutôt que d'afficher un compte fantôme dont
+          // plus aucune action ne fonctionnerait.
+          user = null;
+          try { localStorage.removeItem(K_USER); } catch (e) {}
+        }
+        emitAuth();
+      } catch (e) { /* hors ligne : on conserve l'affichage courant */ }
+    },
+
+    async logout() {
+      // L'affichage est vidé tout de suite (le clic doit répondre), puis on
+      // ferme la session serveur — c'est elle qui fait foi.
       user = null;
       try { localStorage.removeItem(K_USER); } catch (e) {}
-      authListeners.forEach((fn) => fn());
+      emitAuth();
+      try {
+        await fetch('/api/account/logout', { method: 'POST', credentials: 'same-origin' });
+      } catch (e) { console.warn('[lc151] déconnexion serveur injoignable'); }
     },
-    setAddress(addr) {
-      if (!user) return;
+    // Écrit l'adresse dans la fiche client WooCommerce. Renvoie { ok, error } —
+    // l'affichage local est mis à jour tout de suite, mais un échec serveur doit
+    // remonter : sinon le client croirait son adresse enregistrée alors qu'elle
+    // aurait disparu au prochain appareil.
+    async setAddress(addr) {
+      if (!user) return { ok: false, error: 'Connectez-vous pour enregistrer votre adresse.' };
       user = { ...user, address: addr };
-      save(K_USER, user); authListeners.forEach((fn) => fn());
+      save(K_USER, user); emitAuth();
+      try {
+        const r = await fetch('/api/account/address', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(addr || {}),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok || !j.ok) return { ok: false, error: (j && j.error) || 'Adresse non enregistrée côté boutique.' };
+        return { ok: true, error: null };
+      } catch (e) {
+        return { ok: false, error: 'Erreur réseau — adresse non enregistrée.' };
+      }
     },
     subscribe(fn) { authListeners.add(fn); return () => authListeners.delete(fn); },
   };
@@ -890,6 +964,25 @@
   // et laissait le site blanc, window.LC151 restant indéfini.
   rebuild();
   refreshFromWp();
+
+  // Session serveur : le cookie fait autorité, pas le localStorage. On relit à
+  // chaque chargement — ainsi une session expirée ou fermée depuis un autre
+  // appareil cesse d'afficher un compte connecté.
+  if (typeof fetch !== 'undefined' && typeof location !== 'undefined' && /^https?:/.test(location.protocol)) {
+    Auth.hydrate();
+    // Retour du lien magique (/api/account/verify redirige avec ce paramètre).
+    // Le motif est retiré de l'URL après lecture : sans ça, un rafraîchissement
+    // ou un partage du lien réafficherait indéfiniment le même message.
+    try {
+      const state = new URLSearchParams(location.search).get('connexion');
+      if (state) {
+        window.LC151_CONNEXION = state;         // lu par Chrome.jsx à l'affichage
+        const clean = new URL(location.href);
+        clean.searchParams.delete('connexion');
+        history.replaceState(null, '', clean.pathname + clean.search + clean.hash);
+      }
+    } catch (e) {}
+  }
 })();
 
 /* ---- Bandeau cookies (RGPD) — léger, sans dépendance ----
