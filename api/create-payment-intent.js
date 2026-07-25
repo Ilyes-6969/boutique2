@@ -10,6 +10,7 @@
 
 const Stripe = require('stripe');
 const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit } = require('../lib/serverCatalog');
+const { readSession } = require('../lib/session');
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
@@ -111,6 +112,15 @@ module.exports = async function handler(req, res) {
       },
     } : undefined;
 
+    // Client connecté : on transporte son identifiant WooCommerce jusqu'au
+    // webhook, qui rattachera la commande à son compte. Sans ça, une commande
+    // payée par carte entre dans WooCommerce comme commande INVITÉ et
+    // n'apparaît jamais dans « Mes commandes ». La session vient du cookie
+    // signé — le navigateur ne peut pas la fabriquer, donc pas de risque qu'un
+    // visiteur s'attribue le compte d'un autre.
+    const sess = readSession(req);
+    const cid = sess && sess.cid ? String(sess.cid) : '';
+
     const intent = await stripe.paymentIntents.create({
       amount: amount,
       currency: 'eur',
@@ -119,6 +129,7 @@ module.exports = async function handler(req, res) {
       automatic_payment_methods: { enabled: true },
       metadata: Object.assign(
         { orderRef: orderRef, source: 'leclub151', shipping: String(shipCents), method: method },
+        cid ? { cid: cid } : {},
         splitItemsMeta(itemsMeta)
       ),
     }, { idempotencyKey: key });

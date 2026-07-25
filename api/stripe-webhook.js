@@ -273,8 +273,21 @@ async function createWooOrder(stripe, pi) {
       total: (shipCents / 100).toFixed(2),
     }],
     customer_note: 'Commande site CLUB 151 — réf ' + orderRef,
-    meta_data: [{ key: '_stripe_payment_intent', value: pi.id }],
+    meta_data: [
+      { key: '_stripe_payment_intent', value: pi.id },
+      // Mode de traitement : lu par lib/wooCustomers.js pour libeller les
+      // statuts côté client (« Retirée » vs « Expédiée »).
+      { key: '_lc151_fulfilment', value: meta.method === 'pickup' ? 'pickup' : 'shipping' },
+    ],
   };
+
+  // Rattachement au compte client. `cid` est posé par api/create-payment-intent
+  // à partir du cookie de session SIGNÉ — le navigateur ne peut pas le
+  // fabriquer, donc personne ne peut s'attribuer le compte d'un autre. Sans lui,
+  // une commande payée par carte entre dans WooCommerce comme commande INVITÉ
+  // et n'apparaît jamais dans « Mes commandes ».
+  const cid = parseInt(meta.cid, 10);
+  if (Number.isFinite(cid) && cid > 0) orderBody.customer_id = cid;
 
   const controller = new AbortController();
   const timer = setTimeout(function () { controller.abort(); }, WC_TIMEOUT_MS);
