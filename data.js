@@ -205,7 +205,15 @@
   function mapWoo(p) {
     const minor = (p.prices && p.prices.currency_minor_unit != null) ? p.prices.currency_minor_unit : 2;
     const div = Math.pow(10, minor);
-    const price = p.prices && p.prices.price != null ? Number(p.prices.price) / div : 0;
+    // MÊME RÈGLE que lib/serverCatalog.js (mapWooProduct) : un prix absent ou
+    // illisible ne devient pas 0 en silence. À 0 la fiche paraissait GRATUITE en
+    // vitrine, puis le paiement la refusait avec un « Prix invalide » que le
+    // client ne pouvait pas comprendre. On marque le produit non vendable, comme
+    // le fait le serveur — sinon les deux chemins (WP direct en mode test admin
+    // et /api/catalog) ne produisent PAS les objets identiques promis plus haut.
+    const rawPrice = (p.prices && p.prices.price != null) ? Number(p.prices.price) / div : NaN;
+    const hasValidPrice = Number.isFinite(rawPrice) && rawPrice > 0;
+    const price = hasValidPrice ? rawPrice : 0;
     const regular = p.prices && p.prices.regular_price != null ? Number(p.prices.regular_price) / div : price;
     const onSale = !!p.on_sale && regular > price;
     const cat = (p.categories && p.categories[0] && p.categories[0].name) || 'Carte';
@@ -247,7 +255,9 @@
       images: (p.images || []).slice(0, 6)
         .map((im) => ({ src: (im && im.src) || null, thumb: (im && (im.thumbnail || im.src)) || null }))
         .filter((im) => im.src),
-      inStock: p.is_in_stock !== false,
+      // Sans prix exploitable, l'article n'est pas vendable : on le sort du
+      // circuit d'achat au lieu de l'afficher à 0 € (cf. hasValidPrice ci-dessus).
+      inStock: hasValidPrice && p.is_in_stock !== false,
       stockLeft: stockLeft,
       maxQty: maxQty,
       unique: unique,
@@ -707,7 +717,13 @@
     { key: 'preorder', label: 'Précommandes & sorties' },
     { key: 'accessory', label: 'Accessoires' },
   ];
-  let alerts = load(K_ALERTS, { topics: [], keywords: [] });
+  // Forme validée EN PROFONDEUR, comme les favoris et « vu récemment ». load()
+  // ne garantit que « c'est bien un objet » : un JSON valide mais du mauvais type
+  // à l'intérieur (ex. { "topics": 5 }) passait sans bruit, puis faisait planter
+  // le panneau alertes au premier alerts.topics.indexOf(...). Même garde
+  // toIdArray que les autres listes d'identifiants.
+  const rawAlerts = load(K_ALERTS, { topics: [], keywords: [] });
+  let alerts = { topics: toIdArray(rawAlerts.topics), keywords: toIdArray(rawAlerts.keywords) };
   const alertListeners = new Set();
   function emitAlerts() { save(K_ALERTS, alerts); alertListeners.forEach((fn) => fn()); }
   const Alerts = {

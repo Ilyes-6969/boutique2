@@ -238,13 +238,21 @@ function CheckoutModal({ onClose }) {
       // (429, réseau, ok:false…), la commande reste confirmée mais on lève un
       // bandeau honnête invitant le client à confirmer par téléphone/e-mail. Les
       // paiements carte, eux, sont couverts par le webhook Stripe.
-      if (notifyLines && window.LCPay && window.LCPay.notifyPickupOrder) {
-        try {
-          Promise.resolve(window.LCPay.notifyPickupOrder({
+      if (notifyLines) {
+        // payments.js absent (bloqueur, coupure réseau, déploiement incomplet) :
+        // AUCUNE notification ne part. C'est exactement le scénario contre lequel
+        // le paiement carte est protégé plus bas — le retrait doit donc lever le
+        // même bandeau honnête, et non passer en silence parce que la couche
+        // manquante rendait la condition fausse. LCPay absent = échec d'envoi.
+        const notify = (window.LCPay && window.LCPay.notifyPickupOrder)
+          ? window.LCPay.notifyPickupOrder({
             ref: o.number,
             customer: { name: ship.name, email: ship.email, phone: ship.phone },
             items: notifyLines,
-          }))
+          })
+          : Promise.resolve(false);
+        try {
+          Promise.resolve(notify)
             .then((ok) => { if (!ok) setPickupNotifyFailed(true); })
             .catch(() => setPickupNotifyFailed(true));
         } catch (e) { setPickupNotifyFailed(true); }
@@ -358,6 +366,22 @@ function CheckoutModal({ onClose }) {
     ['retour', 'Retours sous 14 jours', 'Rétractation simple, remboursement rapide'],
   ];
 
+  // Message de confirmation — n'affirme QUE ce qui est réellement vrai.
+  //  • Carte payée : Stripe envoie le reçu (receipt_email est fourni à la
+  //    création du PaymentIntent) → on peut annoncer l'e-mail.
+  //  • Paiement en cours (prélèvement, notification différée) : rien n'est encore
+  //    encaissé, donc aucun reçu n'est parti — le webhook tranchera.
+  //  • Retrait en boutique : PAS de Stripe, et /api/notify-order écrit au
+  //    COMMERÇANT, jamais au client. Promettre ici « un e-mail de confirmation a
+  //    été envoyé » était faux : le client attendait un message qui n'existe pas.
+  const confirmNote = !order ? '' : (
+    order.paid
+      ? 'Paiement reçu. Un reçu Stripe a été envoyé à ' + order.email + '.'
+      : order.processing
+        ? 'Paiement en cours de validation — vous recevrez un e-mail dès qu’il est confirmé.'
+        : 'À régler au retrait en boutique. Présentez le n° ' + order.number + ' sur place : nous gardons votre commande de côté.'
+  );
+
   const summary = (
     <div style={{ background: 'var(--paper-2)', borderRadius: 'var(--radius)', padding: '18px 18px 20px', alignSelf: 'flex-start' }}>
       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Récapitulatif</div>
@@ -452,8 +476,8 @@ function CheckoutModal({ onClose }) {
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600, marginBottom: 18 }}>N° {order.number}</div>
             <div style={{ maxWidth: 420, margin: '0 auto 22px', textAlign: 'left', background: 'var(--paper-2)', borderRadius: 'var(--radius)', padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Total</span><strong style={{ fontFamily: 'var(--font-mono)' }}>{fmt(order.total)}</strong></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Livraison</span><span>{Orders.methods()[order.method].label}</span></div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 8 }}>{order.paid ? 'Paiement reçu.' : order.processing ? 'Paiement en cours de validation — vous recevrez un e-mail dès qu’il est confirmé.' : 'À régler au retrait en boutique.'} Un e-mail de confirmation a été envoyé à {order.email}.</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Livraison</span><span>{(Orders.methods()[order.method] || {}).label || 'Livraison standard'}</span></div>
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 8 }}>{confirmNote}</div>
             </div>
             {/* Retrait en boutique : la notification serveur a échoué → l'échec doit
                 rester VISIBLE (la commande est bien enregistrée pour autant). */}

@@ -137,9 +137,12 @@
   // Prévient le propriétaire d'une commande « retrait en boutique » via le
   // serveur (fiable, contrairement à la clé localStorage du navigateur).
   // BEST-EFFORT : ne lève jamais, ne bloque jamais la confirmation. Renvoie une
-  // Promise<bool> FIDÈLE : true UNIQUEMENT si HTTP ok ET corps { ok:true } ;
-  // false sinon (réseau, 429, ou 200 { ok:false } — ex. WEB3FORMS_KEY absente,
-  // donc aucun e-mail parti). Chaque échec reste consigné en console.
+  // Promise<bool> qui distingue le TRANSPORT du RÉSULTAT : true dès que le
+  // serveur a répondu 200 (même avec un corps { ok:false }), false sur un vrai
+  // échec de transport (réseau, 429, 5xx). Un 200 { ok:false } signifie
+  // « serveur joignable mais WEB3FORMS_KEY non configurée » : c'est un réglage
+  // côté propriétaire, pas un incident à faire remonter au client — voir le
+  // détail dans le corps de la fonction. Chaque échec reste consigné en console.
   function notifyPickupOrder(order) {
     try {
       return fetch(cfg.notifyOrderEndpoint, {
