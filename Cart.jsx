@@ -231,7 +231,11 @@ function CartPage({ navigate }) {
                         <DS.PriceTag price={p.price * line.qty} size="md" />
                       </div>
                     </div>
-                    <button onClick={() => cart.remove(line.id)} aria-label="Retirer" style={{ alignSelf: 'flex-start', fontSize: 14, color: 'var(--muted)', fontFamily: 'var(--font-mono)', background: 'transparent' }}>✕</button>
+                    {/* .lc-line-remove : la croix ne mesurait que 11×19px — sous
+                        le minimum de 24×24 (WCAG 2.5.8) et impossible à viser au
+                        pouce. Zone portée à 40×40 au téléphone (storefront2.css),
+                        sans changer le glyphe ni l'alignement. */}
+                    <button onClick={() => cart.remove(line.id)} aria-label="Retirer" className="lc-line-remove" style={{ alignSelf: 'flex-start', flexShrink: 0, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', fontSize: 14, color: 'var(--muted)', fontFamily: 'var(--font-mono)', background: 'transparent' }}>✕</button>
                   </div>
                 );
               })}

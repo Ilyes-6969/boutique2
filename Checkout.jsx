@@ -59,7 +59,7 @@ function CheckoutModal({ onClose }) {
   // Bordure en longhand (width/style/color séparés) et NON en raccourci `border` :
   // React qui diffe `border` → `borderColor` réinitialise width/style à vide et fait
   // « disparaître » la bordure au focus. Le longhand garde width/style stables.
-  const field = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', borderWidth: '1.5px', borderStyle: 'solid', borderColor: 'var(--line-strong)', background: 'var(--paper)', fontSize: 14.5, color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease), box-shadow var(--dur-fast, 150ms) var(--ease-out, ease)' };
+  const field = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', borderWidth: '1.5px', borderStyle: 'solid', borderColor: 'var(--line-strong)', background: 'var(--paper)', fontSize: 16, color: 'var(--ink)', outline: 'none', boxSizing: 'border-box', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease), box-shadow var(--dur-fast, 150ms) var(--ease-out, ease)' };
   const lbl = { fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 6, display: 'block' };
   // Ordre de priorité visuelle : erreur (rouge) < focus (accent). Un champ en
   // erreur qu'on refocalise passe à l'anneau accent — invitation claire à corriger.
@@ -498,12 +498,14 @@ function CheckoutModal({ onClose }) {
             <div key={step} className="lc-line-in">
               {step === 'livraison' ? (
                 <React.Fragment>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                  {/* .lc-field-pair : repasse en une colonne sous 480px — à deux
+                      colonnes dans la modale, chaque champ tombait à ~108px. */}
+                  <div className="lc-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                     <div><label style={lbl} htmlFor="lc-co-name">Nom complet</label><input id="lc-co-name" autoComplete="name" {...errProps('name')} style={errStyle('name')} {...focusProps('name')} value={ship.name} onChange={(e) => setS('name', e.target.value)} />{fieldErr('name')}</div>
                     <div><label style={lbl} htmlFor="lc-co-email">E-mail</label><input id="lc-co-email" type="email" required autoComplete="email" {...errProps('email')} style={errStyle('email')} {...focusProps('email')} value={ship.email} onChange={(e) => setS('email', e.target.value)} />{fieldErr('email')}</div>
                   </div>
                   <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-addr">Adresse</label><input id="lc-co-addr" autoComplete="street-address" {...errProps('addr')} style={errStyle('addr')} {...focusProps('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" />{fieldErr('addr')}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
+                  <div className="lc-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
                     <div><label style={lbl} htmlFor="lc-co-zip">Code postal</label><input id="lc-co-zip" autoComplete="postal-code" {...errProps('zip')} style={errStyle('zip')} {...focusProps('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} />{fieldErr('zip')}</div>
                     <div><label style={lbl} htmlFor="lc-co-city">Ville</label><input id="lc-co-city" autoComplete="address-level2" {...errProps('city')} style={errStyle('city')} {...focusProps('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} />{fieldErr('city')}</div>
                   </div>
@@ -538,7 +540,7 @@ function CheckoutModal({ onClose }) {
                   ) : (
                     <React.Fragment>
                       <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-card">Numéro de carte</label><input id="lc-co-card" inputMode="numeric" {...errProps('card')} style={errStyle('card')} {...focusProps('card')} value={pay.card} onChange={(e) => setP('card', fmtCard(e.target.value))} placeholder="4242 4242 4242 4242" />{fieldErr('card')}</div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                      <div className="lc-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                         <div><label style={lbl} htmlFor="lc-co-exp">Expiration</label><input id="lc-co-exp" inputMode="numeric" {...errProps('exp')} style={errStyle('exp')} {...focusProps('exp')} value={pay.exp} onChange={(e) => setP('exp', fmtExp(e.target.value))} placeholder="MM/AA" />{fieldErr('exp')}</div>
                         <div><label style={lbl} htmlFor="lc-co-cvc">CVC</label><input id="lc-co-cvc" inputMode="numeric" {...errProps('cvc')} style={errStyle('cvc')} {...focusProps('cvc')} value={pay.cvc} onChange={(e) => setP('cvc', e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="123" />{fieldErr('cvc')}</div>
                       </div>

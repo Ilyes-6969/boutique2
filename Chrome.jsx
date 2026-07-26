@@ -843,7 +843,7 @@ function StoreCard({ product, navigate }) {
         </span>
         {!product.inStock && <span style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}><span style={lcBadgeStyle('oos')}>Rupture</span></span>}
         {favs && product.inStock && (
-          <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Ajouter à ma collection'} title={liked ? 'Dans ma collection' : 'Ajouter à ma collection'}
+          <button type="button" className="lc-card-fav" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Ajouter à ma collection'} title={liked ? 'Dans ma collection' : 'Ajouter à ma collection'}
             onClick={toggleFav}
             onFocus={() => setHeartFocus(true)} onBlur={() => setHeartFocus(false)}
             style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', opacity: hover || liked || heartFocus || lcCoarsePointer ? 1 : 0, transition: 'opacity 0.2s ease, border-color 0.2s ease' }}><span key={favPops} className={favPops > 0 ? 'lc-fav-pop' : undefined} style={{ display: 'flex', lineHeight: 0 }}><FavRibbon caught={liked} size={16} /></span></button>
@@ -887,13 +887,19 @@ function ProductRow({ eyebrow, title, products, navigate, onSeeAll }) {
   if (!products.length) return null;
   return (
     <section style={{ marginBottom: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18, gap: 16 }}>
-        <div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, letterSpacing: '-0.02em' }}>{title}</h2>
+      {/* flexWrap : titre (26px fixes) + « Tout voir » + les deux flèches
+          totalisaient ~380px de min-content et débordaient la page sous 340px
+          (iPhone SE). Le titre devient fluide et le groupe de droite passe à la
+          ligne au lieu de pousser le document. */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18, gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ minWidth: 0 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(21px, 5vw, 26px)', letterSpacing: '-0.02em' }}>{title}</h2>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <a href="#" onClick={(e) => { e.preventDefault(); onSeeAll && onSeeAll(); }} style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Tout voir →</a>
-          <div style={{ display: 'flex', gap: 6 }}>
+          <a href="#" onClick={(e) => { e.preventDefault(); onSeeAll && onSeeAll(); }} style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--ink)', padding: '6px 0' }}>Tout voir →</a>
+          {/* .lc-row-nav : masquées au téléphone (storefront2.css) — le rayon se
+              fait défiler au doigt, les flèches n'y volent que de la place. */}
+          <div className="lc-row-nav" style={{ display: 'flex', gap: 6 }}>
             {[-1, 1].map((d) => (
               <button key={d} onClick={() => scroll(d)} aria-label={d < 0 ? 'Précédent' : 'Suivant'}
                 style={{ width: 36, height: 36, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--card)', color: 'var(--ink)', fontSize: 15 }}>{d < 0 ? '‹' : '›'}</button>
@@ -954,7 +960,9 @@ function useFocusTrap(panelRef, onClose) {
   }, []);
 }
 
-const lcField = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--paper)', fontSize: 14.5, color: 'var(--ink)', outline: 'none', marginBottom: 12, boxSizing: 'border-box' };
+/* fontSize 16 : en dessous, iOS Safari zoome tout seul à la mise au point sur le
+   champ et l'utilisateur se retrouve à devoir dézoomer entre chaque saisie. */
+const lcField = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--paper)', fontSize: 16, color: 'var(--ink)', outline: 'none', marginBottom: 12, boxSizing: 'border-box' };
 
 /* Repli <button> natif si le design system (DS.Button) n'est pas encore chargé —
    même garde défensive que Checkout.jsx (const DS = ... || {} ; DS.Button ? ...).
@@ -967,7 +975,13 @@ function ModalShell({ title, children, onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)' }}></div>
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="lc-modal-title" tabIndex={-1} style={{ position: 'relative', width: 'min(440px, 100%)', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26, outline: 'none' }}>
+      {/* maxHeight + overflowY : sans eux, une modale plus haute que l'écran
+          (« Mes commandes » bien remplie, téléphone en paysage, gros zoom
+          système) débordait en haut ET en bas SANS aucun moyen de faire
+          défiler — le bouton de validation devenait inatteignable. Même
+          traitement que la modale de paiement (Checkout.jsx). overscrollBehavior
+          empêche la page du dessous de défiler en bout de liste. */}
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="lc-modal-title" tabIndex={-1} style={{ position: 'relative', width: 'min(440px, 100%)', maxHeight: '92vh', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26, outline: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
           <h3 id="lc-modal-title" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>{title}</h3>
           <button onClick={onClose} aria-label="Fermer" style={{ width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer' }}>×</button>

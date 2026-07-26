@@ -129,13 +129,40 @@ img { -webkit-user-drag: none; user-select: none; }
 .lc-social:hover { color: #fff; background: var(--accent); border-color: var(--accent); transform: translateY(-2px); }
 
 /* ============================================
-   RESPONSIVE — tablette & téléphone
+   RESPONSIVE — desktop étroit, tablette & téléphone
    Surcharge les grilles inline (d'où !important).
+   Paliers : 1060 (la nav ne tient plus) · 980 (2 colonnes → 1)
+             · 680 (téléphone) · 460 (petit téléphone)
 ============================================ */
+
+/* ---- 1060px : la barre de navigation (8 onglets en whiteSpace:nowrap, ~985px
+   + 48px de gouttières) ne rentre plus dans .container-wide. Les onglets ne
+   peuvent pas rétrécir sous leur min-content : sans conteneur de défilement la
+   barre poussait le document et provoquait un débordement horizontal de
+   ~185px sur TOUTES les pages entre 681 et 1060px (iPad portrait compris).
+   Le méga-panneau est en position:absolute rattaché au <nav> (parent relatif) :
+   il échappe à ce conteneur de défilement et reste pleine largeur. */
+@media (max-width: 1060px) {
+  .lc-nav-scroll {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .lc-nav-scroll::-webkit-scrollbar { display: none; }
+  /* Méga-menu « Autres jeux » : 5 tuiles côte à côte deviennent illisibles. */
+  .lc-mega-games { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
 @media (max-width: 980px) {
   .lc-foot-grid { grid-template-columns: 1fr 1fr !important; gap: 34px !important; }
   .lc-prod-grid, .lc-cart-grid, .lc-checkout-grid, .lc-shop-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
   .lc-prod-gallery { position: static !important; }
+  /* Tuiles d'accueil (5 et 4 colonnes) et grilles « dans le même rayon » /
+     « vus récemment » (4 colonnes) : sous 980px chaque tuile tombe à ~150px et
+     la ligne de titre ne tient plus. Trois colonnes est le palier lisible. */
+  .lc-cat-tiles { grid-template-columns: repeat(3, 1fr) !important; }
+  .lc-grid-auto { grid-template-columns: repeat(3, 1fr) !important; }
 }
 /* Recherche mobile : masquée sur grand écran, affichée sous l'en-tête sur mobile */
 .lc-search-mobile { display: none; }
@@ -149,8 +176,8 @@ img { -webkit-user-drag: none; user-select: none; }
   .lc-search-mobile { display: block !important; }
   .lc-ann-side { display: none !important; }
   .lc-ann { justify-content: center !important; }
-  .lc-nav-scroll { overflow-x: auto !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-  .lc-nav-scroll::-webkit-scrollbar { display: none; }
+  /* .lc-nav-scroll : le défilement horizontal est désormais posé dès 1060px
+     (voir plus haut) — inutile de le redéclarer ici. */
   .lc-foot-grid { grid-template-columns: 1fr !important; gap: 26px !important; }
   /* Gages du footer : en colonne, alignés à gauche sur le bord des colonnes du footer */
   .lc-foot-reassure { flex-direction: column; justify-content: flex-start !important; align-items: flex-start; gap: 14px !important; }
@@ -170,6 +197,18 @@ img { -webkit-user-drag: none; user-select: none; }
   .lc-mega-cols a { white-space: normal !important; }
   .lc-mega-rail { display: none !important; }
   .lc-mega-games { grid-template-columns: 1fr 1fr !important; gap: 10px !important; padding: 16px !important; }
+  /* ---- Cibles tactiles (WCAG 2.5.8 : 24px minimum ; on vise 40px au doigt) ----
+     Les tailles viennent d'inline styles calés sur la souris, d'où !important. */
+  .lc-cat-toolbar button, .lc-cat-toolbar select { min-height: 40px; }
+  .lc-foot-link { padding: 6px 0; }              /* 22px de haut → 34px cliquables */
+  .lc-card-fav { width: 40px !important; height: 40px !important; }
+  .lc-line-remove { width: 40px !important; height: 40px !important; }
+  /* Flèches du carrousel de rayon : au doigt on fait défiler, elles ne servent
+     qu'à voler de la place (et poussaient l'en-tête hors écran sous 340px). */
+  .lc-row-nav { display: none !important; }
+  /* iOS Safari zoome automatiquement à la mise au point sur tout champ dont le
+     texte fait moins de 16px — le tunnel de commande sautait à chaque champ. */
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea { font-size: 16px !important; }
   /* Barre d'achat sticky (fiche produit) : z-index 80 → au-dessus du contenu et
      du header (50), SOUS le tiroir panier (100), les modales (120) et le zoom
      photo (200). Le padding du contenu (10px 14px) est déjà porté en inline par
@@ -193,6 +232,12 @@ img { -webkit-user-drag: none; user-select: none; }
 @media (max-width: 680px) and (prefers-reduced-motion: reduce) {
   /* Reduced-motion : la barre apparaît/disparaît sans glissement. */
   .lc-sticky-cta { transition: none; }
+}
+/* Paires de champs du tunnel de commande (Nom/E-mail, CP/Ville, Exp./CVC) :
+   dans la modale (largeur utile ~228px à 320px d'écran) deux colonnes laissent
+   ~108px par champ — on repasse en pleine largeur. */
+@media (max-width: 480px) {
+  .lc-field-pair { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 460px) {
   .lc-cat-tiles { grid-template-columns: 1fr !important; }
