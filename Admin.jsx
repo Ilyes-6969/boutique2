@@ -10,6 +10,60 @@ const WP = {
   mono: "'JetBrains Mono', ui-monospace, monospace",
 };
 
+/* Responsive du back-office. admin.html ne charge PAS storefront2.css (il a sa
+   propre identité wp-admin) : on injecte la feuille ici, une seule fois, comme
+   Chrome.jsx le fait pour le thème du logo.
+
+   Palier 1000px : le tableau produits a 7 colonnes dont un SKU mono, un sélecteur
+   et deux champs de saisie — il lui faut ~800px, plus les 200px de la barre
+   latérale. Les colonnes sont en `fr` : elles ne débordent jamais, elles se
+   compriment — d'où un tableau lisible en apparence mais illisible en pratique
+   sous ce seuil, ce que la mesure de débordement seule ne détecte pas. En
+   dessous, chaque ligne devient
+   une FICHE empilée dont les cellules sont étiquetées par leur data-label
+   (l'en-tête de colonnes n'a alors plus de sens et disparaît). La barre latérale
+   de 200px en dur passe en bandeau horizontal défilant au-dessus du contenu. */
+(function () {
+  if (typeof document === 'undefined') return;
+  if (document.getElementById('lc-admin-responsive')) return;
+  var s = document.createElement('style');
+  s.id = 'lc-admin-responsive';
+  s.textContent = [
+    '@media (max-width: 1000px){',
+    /* Coquille : barre latérale au-dessus, en bandeau défilant. */
+    '.lc-wp-shell{flex-direction:column !important}',
+    '.lc-wp-side{width:100% !important;display:flex;overflow-x:auto;padding-top:0 !important;scrollbar-width:none}',
+    '.lc-wp-side::-webkit-scrollbar{display:none}',
+    '.lc-wp-side>div{white-space:nowrap;border-left-color:transparent !important;flex-shrink:0}',
+    '.lc-wp-side>div:last-child{display:none !important}',
+    '.lc-wp-main{padding:16px 14px 48px !important}',
+    '.lc-wp-search{min-width:0 !important;width:100% !important}',
+    '.lc-wp-searchbox{margin-left:0 !important;width:100%;margin-top:8px}',
+    /* Tableau → fiches empilées. */
+    '.lc-wp-head{display:none !important}',
+    '.lc-wp-row{display:block !important;padding:14px !important}',
+    '.lc-wp-check{display:none !important}',
+    '.lc-wp-row>.lc-wp-cell{margin-top:12px}',
+    '.lc-wp-row>.lc-wp-name{margin-top:0}',
+    '.lc-wp-row>[data-label]::before{content:attr(data-label);display:block;font-size:10.5px;font-weight:600;',
+    'letter-spacing:.06em;text-transform:uppercase;color:#50575e;margin-bottom:5px}',
+    '.lc-wp-row>.lc-wp-actions{justify-self:auto !important;text-align:right}',
+    '.lc-wp-name-txt{white-space:normal !important}',
+    /* Le bloc texte est un élément flex sans grow : sans ça le nom se replie sur
+       sa largeur de contenu (~148px) au lieu d'occuper la fiche. */
+    '.lc-wp-name>div:last-child{flex:1 1 auto;min-width:0}',
+    /* Bandeau de confirmation : calé sur la barre latérale de 200px, à recentrer. */
+    '.lc-wp-toast{left:12px !important;right:12px}',
+    /* iOS zoome tout seul sous 16px (même raison que storefront2.css). */
+    'input:not([type="checkbox"]):not([type="radio"]),select,textarea{font-size:16px !important}',
+    '}',
+    /* Modale « Ajouter un produit » : Catégorie/Prix côte à côte laissent ~116px
+       par champ sur un petit téléphone, le sélecteur de catégorie y est tronqué. */
+    '@media (max-width: 520px){.lc-wp-pair{grid-template-columns:1fr !important}}',
+  ].join('');
+  (document.head || document.documentElement).appendChild(s);
+})();
+
 function useStoreAdmin() {
   const [, force] = React.useReducer((x) => x + 1, 0);
   React.useEffect(() => window.LC151.Store.subscribe(force), []);
@@ -138,9 +192,9 @@ function AdminApp() {
         <span style={{ marginLeft: 'auto', color: '#a7aaad' }}>Bonjour, CLUB 151 ▾</span>
       </div>
 
-      <div style={{ display: 'flex', flex: 1 }}>
-        {/* SIDEBAR */}
-        <nav style={{ width: 200, background: WP.dark, color: '#f0f0f1', flexShrink: 0, paddingTop: 8 }}>
+      <div className="lc-wp-shell" style={{ display: 'flex', flex: 1 }}>
+        {/* SIDEBAR — bandeau horizontal défilant sous 900px (voir lc-admin-responsive) */}
+        <nav className="lc-wp-side" style={{ width: 200, background: WP.dark, color: '#f0f0f1', flexShrink: 0, paddingTop: 8 }}>
           {menu.map(([ic, label, active]) => (
             <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', fontSize: 14, cursor: 'pointer',
               background: active ? WP.blue : 'transparent', color: active ? '#fff' : '#c3c4c7', fontWeight: active ? 600 : 400,
@@ -154,7 +208,7 @@ function AdminApp() {
         </nav>
 
         {/* CONTENT */}
-        <main style={{ flex: 1, padding: '22px 30px 60px', minWidth: 0 }}>
+        <main className="lc-wp-main" style={{ flex: 1, padding: '22px 30px 60px', minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
             <h1 style={{ fontSize: 23, fontWeight: 400 }}>Produits</h1>
             {!wpConnected && <button onClick={() => setAdding(true)} style={{ fontFamily: WP.font, fontSize: 13, padding: '4px 10px', borderRadius: 3, border: '1px solid ' + WP.blue, color: WP.blue, background: '#f6f7f7', cursor: 'pointer' }}>Ajouter un produit</button>}
@@ -182,15 +236,15 @@ function AdminApp() {
               {tabBtn('oos', 'En rupture', counts.oos)}<span style={{ color: WP.border }}>|</span>
               {tabBtn('promo', 'En promotion', counts.promo)}
             </div>
-            <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
-              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher des produits"
+            <div className="lc-wp-searchbox" style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+              <input className="lc-wp-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher des produits"
                 style={{ padding: '5px 10px', border: '1px solid ' + WP.border, borderRadius: 3, fontSize: 13, fontFamily: WP.font, minWidth: 220, outline: 'none', color: WP.text }} />
             </div>
           </div>
 
           {/* LIST TABLE */}
           <div style={{ background: WP.white, border: '1px solid ' + WP.border, borderRadius: 4, overflow: 'hidden', boxShadow: '0 1px 1px rgba(0,0,0,0.04)' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '46px 1.9fr 0.8fr 1fr 1fr 0.9fr 0.5fr', gap: 12, padding: '10px 14px', borderBottom: '1px solid ' + WP.border, background: '#fff', fontSize: 12, fontWeight: 600, color: WP.text, alignItems: 'center' }}>
+            <div className="lc-wp-head" style={{ display: 'grid', gridTemplateColumns: '46px 1.9fr 0.8fr 1fr 1fr 0.9fr 0.5fr', gap: 12, padding: '10px 14px', borderBottom: '1px solid ' + WP.border, background: '#fff', fontSize: 12, fontWeight: 600, color: WP.text, alignItems: 'center' }}>
               <input type="checkbox" disabled style={{ accentColor: WP.blue }} />
               <span>Nom</span><span>SKU</span><span>Stock</span><span>Prix</span><span>Étiquette</span><span></span>
             </div>
@@ -207,7 +261,7 @@ function AdminApp() {
       {adding && <WpAddModal Store={Store} onClose={() => setAdding(false)} onDone={(name) => { setAdding(false); showToast(name + ' publié'); }} />}
 
       {/* TOAST (WP notice) */}
-      <div style={{ position: 'fixed', bottom: 22, left: 230, transform: `translateY(${toast ? 0 : 16}px)`, opacity: toast ? 1 : 0, transition: 'all 0.25s ease', pointerEvents: 'none', zIndex: 80, background: WP.white, color: WP.text, padding: '11px 18px', borderRadius: 4, fontSize: 13.5, border: '1px solid ' + WP.border, borderLeft: '4px solid ' + WP.green, boxShadow: '0 4px 14px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div className="lc-wp-toast" style={{ position: 'fixed', bottom: 22, left: 230, transform: `translateY(${toast ? 0 : 16}px)`, opacity: toast ? 1 : 0, transition: 'all 0.25s ease', pointerEvents: 'none', zIndex: 80, background: WP.white, color: WP.text, padding: '11px 18px', borderRadius: 4, fontSize: 13.5, border: '1px solid ' + WP.border, borderLeft: '4px solid ' + WP.green, boxShadow: '0 4px 14px rgba(0,0,0,0.12)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ color: WP.green }}>✓</span> {toast}
       </div>
     </div>
@@ -242,19 +296,22 @@ function WpRow({ product, Store, showToast, stripe, readOnly }) {
   };
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '46px 1.9fr 0.8fr 1fr 1fr 0.9fr 0.5fr', gap: 12, padding: '12px 14px', borderBottom: '1px solid #f0f0f1', alignItems: 'center', background: stripe ? '#fbfbfc' : '#fff', fontSize: 13 }}>
-      <input type="checkbox" style={{ accentColor: WP.blue }} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
+    /* Sous 900px, lc-admin-responsive transforme cette ligne en fiche empilée :
+       chaque cellule porte lc-wp-cell + son data-label, qui devient l'intitulé
+       affiché au-dessus de la valeur (l'en-tête de colonnes disparaît). */
+    <div className="lc-wp-row" style={{ display: 'grid', gridTemplateColumns: '46px 1.9fr 0.8fr 1fr 1fr 0.9fr 0.5fr', gap: 12, padding: '12px 14px', borderBottom: '1px solid #f0f0f1', alignItems: 'center', background: stripe ? '#fbfbfc' : '#fff', fontSize: 13 }}>
+      <input type="checkbox" className="lc-wp-check" style={{ accentColor: WP.blue }} />
+      <div className="lc-wp-cell lc-wp-name" style={{ display: 'flex', alignItems: 'center', gap: 11, minWidth: 0 }}>
         <div style={{ width: 40, height: 40, flexShrink: 0, border: '1px solid ' + WP.border, borderRadius: 3, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', padding: 3 }}>
           {product.image ? <img src={product.image} alt="" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontWeight: 800, fontSize: 12, color: WP.muted, fontFamily: WP.mono }}>151</span>}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 600, color: WP.blue, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name} {Store.isModified(product.id) && <span title="Modifié" style={{ color: WP.woo }}>●</span>}</div>
+          <div className="lc-wp-name-txt" style={{ fontWeight: 600, color: WP.blue, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{product.name} {Store.isModified(product.id) && <span title="Modifié" style={{ color: WP.woo }}>●</span>}</div>
           <div style={{ fontSize: 11.5, color: WP.muted }}>{product.cat}</div>
         </div>
       </div>
-      <span style={{ fontFamily: WP.mono, fontSize: 11.5, color: WP.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sku}</span>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
+      <span className="lc-wp-cell" data-label="SKU" style={{ fontFamily: WP.mono, fontSize: 11.5, color: WP.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{sku}</span>
+      <div className="lc-wp-cell" data-label="Stock" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 4 }}>
         <button onClick={() => { if (readOnly) return; Store.update(product.id, 'inStock', !product.inStock); }} disabled={readOnly} title={roHint}
           style={{ justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '4px 10px', borderRadius: 3, border: '1px solid', borderColor: product.inStock ? WP.green : WP.red, background: readOnly ? '#f6f7f7' : '#fff', fontSize: 12, fontWeight: 600, color: product.inStock ? WP.green : WP.red, cursor: readOnly ? 'not-allowed' : 'pointer', opacity: readOnly ? 0.75 : 1 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: product.inStock ? WP.green : WP.red }}></span>{product.inStock ? 'En stock' : 'Rupture'}
@@ -263,14 +320,19 @@ function WpRow({ product, Store, showToast, stripe, readOnly }) {
           <span title="Carte unique — une seule édition disponible" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: WP.mono, fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: WP.woo, background: '#f3eefb', border: '1px solid ' + WP.woo, borderRadius: 3, padding: '2px 6px' }}>1 ex. · Édition unique</span>
         )}
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <div className="lc-wp-cell" data-label="Prix" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <input style={inp} value={price} disabled={readOnly} title={roHint} onChange={(e) => setPrice(e.target.value)} onBlur={commitPrice} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
         <input style={{ ...inp, color: readOnly ? WP.muted : (old ? WP.red : WP.muted), fontSize: 11.5 }} value={old} placeholder="prix barré" disabled={readOnly} title={roHint} onChange={(e) => setOld(e.target.value)} onBlur={commitOld} onKeyDown={(e) => e.key === 'Enter' && e.target.blur()} />
       </div>
-      <select value={curLabel} disabled={readOnly} title={roHint} onChange={(e) => setBadge(e.target.value)} style={{ padding: '6px 6px', border: '1px solid ' + WP.border, borderRadius: 3, fontSize: 12.5, color: readOnly ? WP.muted : WP.text, background: readOnly ? '#f6f7f7' : '#fff', cursor: readOnly ? 'not-allowed' : 'pointer', width: '100%', fontFamily: WP.font }}>
-        <option value="none">— Aucune</option><option value="new">Nouveau</option><option value="sale">Promo</option><option value="graded">Gradée</option>
-      </select>
-      <div style={{ justifySelf: 'end' }}>
+      {/* <select> enveloppé : les pseudo-éléments ne s'affichent pas sur un
+          contrôle de formulaire, l'étiquette ::before doit donc vivre sur un
+          conteneur. Le wrapper occupe la même cellule de grille qu'avant. */}
+      <div className="lc-wp-cell" data-label="Étiquette">
+        <select value={curLabel} disabled={readOnly} title={roHint} onChange={(e) => setBadge(e.target.value)} style={{ padding: '6px 6px', border: '1px solid ' + WP.border, borderRadius: 3, fontSize: 12.5, color: readOnly ? WP.muted : WP.text, background: readOnly ? '#f6f7f7' : '#fff', cursor: readOnly ? 'not-allowed' : 'pointer', width: '100%', fontFamily: WP.font }}>
+          <option value="none">— Aucune</option><option value="new">Nouveau</option><option value="sale">Promo</option><option value="graded">Gradée</option>
+        </select>
+      </div>
+      <div className="lc-wp-cell lc-wp-actions" style={{ justifySelf: 'end' }}>
         {!readOnly && Store.isCustom(product.id)
           ? <button onClick={() => { if (confirm('Supprimer ce produit ?')) { Store.remove(product.id); showToast('Produit supprimé'); } }} title="Corbeille" style={{ color: WP.red, fontSize: 13, background: 'none', border: 'none', cursor: 'pointer' }}>Corbeille</button>
           : <span title={roHint} style={{ color: WP.border, fontSize: 12 }}>—</span>}
@@ -294,14 +356,17 @@ function WpAddModal({ Store, onClose, onDone }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: WP.font }}>
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)' }}></div>
-      <div style={{ position: 'relative', width: 'min(460px, 100%)', background: WP.white, border: '1px solid ' + WP.border, borderRadius: 4, boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }}>
+      {/* maxHeight + overflowY : même correction que ModalShell (Chrome.jsx) —
+          sans eux, sur un téléphone en paysage la modale déborde et le bouton
+          « Publier » devient inatteignable. */}
+      <div style={{ position: 'relative', width: 'min(460px, 100%)', maxHeight: '92vh', overflowY: 'auto', overscrollBehavior: 'contain', background: WP.white, border: '1px solid ' + WP.border, borderRadius: 4, boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderBottom: '1px solid ' + WP.border }}>
           <h3 style={{ fontSize: 17, fontWeight: 600 }}>Ajouter un produit</h3>
           <button onClick={onClose} style={{ fontSize: 18, color: WP.muted, background: 'none', border: 'none', cursor: 'pointer' }}>×</button>
         </div>
         <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 15 }}>
           <div><label style={lbl}>Nom du produit</label><input autoFocus style={field} value={name} onChange={(e) => setName(e.target.value)} placeholder="ex. Ronflex Holo — Jungle" /></div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="lc-wp-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div><label style={lbl}>Catégorie</label>
               <select style={field} value={cat} onChange={(e) => { const c = cats.find((x) => x[0] === e.target.value); setCat(c[0]); setType(c[1]); }}>
                 {cats.map((c) => <option key={c[1]} value={c[0]}>{c[0]}</option>)}
