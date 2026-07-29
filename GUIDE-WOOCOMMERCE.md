@@ -82,7 +82,21 @@ Vercel : ton projet → **Settings → Environment Variables**. Le tableau COMPL
 | `WEB3FORMS_KEY` | ta clé web3forms.com | E-mail de notification à TOI à chaque commande |
 | `ALLOWED_ORIGINS` | `https://leclub151.fr,https://www.leclub151.fr` | Sécurité : seuls tes domaines peuvent appeler le paiement |
 | `ADMIN_PASSWORD` | un mot de passe fort | Protège la page admin du site |
-| `SITE_URL` | `https://leclub151.fr` | Domaine utilisé dans le sitemap et les pages produit (SEO) |
+| `SITE_URL` | `https://leclub151.fr` | Domaine de confiance : liens de connexion, redirections Stripe, SEO |
+| `SESSION_SECRET` | une longue chaîne aléatoire | Signe les comptes clients (voir ci-dessous) |
+| `RESEND_API_KEY` | `re_…` (resend.com) | Envoie les liens de connexion aux clients |
+| `MAIL_FROM` | `CLUB 151 <bonjour@leclub151.fr>` | Expéditeur de ces e-mails |
+
+Génère `SESSION_SECRET` avec cette commande (dans n'importe quel terminal où Node est installé) :
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
+⚠️ **Resend exige de vérifier ton domaine** (enregistrements DNS chez ton
+registrar). Sans ça, les liens de connexion partent en spam — ou pas du tout.
+C'est l'étape la plus facile à oublier. Détail complet dans
+**`BACKEND-COMPTES.md`**.
 
 Coche **Production** (et Preview si tu veux tester avant). Puis **redéploie** le site (Deployments → ⋯ → Redeploy) pour que tout s'applique.
 
@@ -129,11 +143,26 @@ Trois e-mails différents, trois réglages :
 
 ---
 
-## ⚠️ À savoir, honnêtement : le retrait en boutique
+## Le retrait en boutique
 
-Quand un client choisit **« Retrait en boutique »** (payé sur place), le site t'envoie un e-mail **mais n'écrit rien dans WooCommerce** : le stock n'est **pas** décrémenté automatiquement pour ces commandes-là.
+Quand un client choisit **« Retrait en boutique »** (payé sur place), le site crée
+maintenant une **vraie commande WooCommerce**, au statut **« En attente »**.
 
-**Réflexe à prendre :** au moment où tu prépares/mets de côté la commande, décrémente le stock dans WooCommerce (app mobile ou wp-admin), exactement comme pour une vente au comptoir.
+Tu la retrouves donc dans wp-admin → Commandes, avec un numéro, exactement comme
+une commande payée en ligne. Le client la voit aussi dans son compte.
+
+**Pourquoi « En attente » et pas « En préparation » :** WooCommerce ne retire le
+stock qu'à partir de « En préparation ». Tant que la commande est en attente,
+**aucun stock n'est décompté**. C'est volontaire : n'importe qui peut passer une
+commande de retrait sans payer, et sans ce garde-fou il suffirait d'en enchaîner
+quelques-unes pour vider ta boutique sur le papier.
+
+**Ton geste :** quand tu prépares réellement la commande et que tu la mets de
+côté, passe-la en **« En préparation »** dans wp-admin (ou l'app mobile). C'est
+à ce moment que le stock bouge — et c'est toi qui décides.
+
+Ensuite, quand le client est venu la chercher et a payé au comptoir, passe-la en
+**« Terminée »**. Le site affichera « Retirée » de son côté.
 
 ---
 
@@ -144,9 +173,13 @@ Quand un client choisit **« Retrait en boutique »** (payé sur place), le site
 - [ ] Tous les produits créés dans WooCommerce (catégories aux bons mots-clés, prix TTC, photos)
 - [ ] « Gérer le stock ? » activé partout, « Vendu individuellement » coché sur les pièces uniques
 - [ ] Clés API REST créées (Lecture/Écriture) — `ck_…` et `cs_…` copiées
-- [ ] Les 10 variables renseignées dans Vercel (tableau de l'étape 4)
+- [ ] Les 13 variables renseignées dans Vercel (tableau de l'étape 4)
+- [ ] Domaine vérifié chez Resend (DNS) — sinon aucun lien de connexion n'arrive
 - [ ] **Redéploiement** Vercel effectué
 - [ ] Le site affiche les vrais produits (et plus la démo)
+- [ ] **Test compte client** : demande un lien de connexion, ouvre-le, vérifie que
+      « Mes commandes » s'affiche — puis reclique le MÊME lien : il doit être refusé
+      (usage unique)
 - [ ] **Commande test** en mode test Stripe avec la carte `4242 4242 4242 4242` (date future, CVC `123`)
 - [ ] Vérifier dans wp-admin : la commande apparaît dans WooCommerce → Commandes **et le stock a été décrémenté**
 - [ ] Vérifier les e-mails : confirmation WooCommerce au client + notification à toi
