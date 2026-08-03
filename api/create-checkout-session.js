@@ -7,7 +7,7 @@
 //
 // Variables d'environnement Vercel :
 //   STRIPE_SECRET_KEY   = sk_live_...   (ou sk_test_... pour les essais)
-//   SITE_URL            = https://leclub151.fr   (secours si l'hôte est absent)
+//   SITE_URL            = https://club151.fr   (secours si l'hôte est absent)
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
@@ -104,7 +104,7 @@ module.exports = async function handler(req, res) {
     // en mode redirection.
     const itemsMeta = splitItemsMeta(lines.map(function (l) { return l.id + 'x' + l.qty; }).join(','));
     const sharedMeta = Object.assign(
-      { orderRef: orderRef.slice(0, 120), source: 'leclub151', shipping: String(shipCents), method: method },
+      { orderRef: orderRef.slice(0, 120), source: 'club151', shipping: String(shipCents), method: method },
       itemsMeta
     );
 

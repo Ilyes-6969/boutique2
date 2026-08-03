@@ -1,8 +1,8 @@
 {
-  "name": "leclub151",
+  "name": "club151",
   "version": "1.0.0",
   "private": true,
-  "description": "Boutique leclub151 — site statique + fonctions serverless Stripe (Vercel)",
+  "description": "Boutique club151 — site statique + fonctions serverless Stripe (Vercel)",
   "engines": {
     "node": ">=18.x"
   },

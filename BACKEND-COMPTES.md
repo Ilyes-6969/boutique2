@@ -27,8 +27,8 @@ erreur technique, et jamais un faux succès.
 | `WC_CONSUMER_KEY` | Lire/écrire clients + commandes | WooCommerce → Réglages → Avancé → API REST |
 | `WC_CONSUMER_SECRET` | idem | idem |
 | `RESEND_API_KEY` | Envoyer le lien de connexion | resend.com → API Keys |
-| `MAIL_FROM` | Expéditeur, ex. `CLUB 151 <bonjour@leclub151.fr>` | Domaine à vérifier chez Resend |
-| `SITE_URL` | Domaine de confiance des liens | `https://leclub151.fr` |
+| `MAIL_FROM` | Expéditeur, ex. `CLUB 151 <bonjour@club151.fr>` | Domaine à vérifier chez Resend |
+| `SITE_URL` | Domaine de confiance des liens | `https://club151.fr` |
 
 Génère le secret de session avec :
 
@@ -42,7 +42,7 @@ Deux points à ne pas rater :
   la clé en clair dans l'en-tête : en HTTP, n'importe qui sur le réseau la lit.
   Le code refuse donc de démarrer en HTTP (sauf `localhost`, pour les tests).
 - **Resend exige de vérifier le domaine** (enregistrements DNS SPF/DKIM sur
-  `leclub151.fr`). Sans ça, les liens de connexion partent en spam — ou pas du
+  `club151.fr`). Sans ça, les liens de connexion partent en spam — ou pas du
   tout. C'est l'étape la plus facile à oublier.
 
 ## Les endpoints

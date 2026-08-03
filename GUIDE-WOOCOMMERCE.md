@@ -17,7 +17,7 @@ WordPress a besoin d'un hébergement (un petit serveur loué au mois). Recommand
 | OVH | ~4–8 €/mois | Français, très répandu |
 
 1. Prends l'offre de base (largement suffisante pour quelques centaines de produits).
-2. Utilise l'installation **WordPress en 1 clic** proposée par l'hébergeur. Note bien l'adresse de ton WordPress (ex. `https://gestion.leclub151.fr` ou `https://CLUB 151-gestion.fr`) : c'est elle qu'on appellera **l'adresse WordPress** dans tout le guide.
+2. Utilise l'installation **WordPress en 1 clic** proposée par l'hébergeur. Note bien l'adresse de ton WordPress (ex. `https://gestion.club151.fr` ou `https://CLUB 151-gestion.fr`) : c'est elle qu'on appellera **l'adresse WordPress** dans tout le guide.
 3. Connecte-toi à **wp-admin** (l'adresse WordPress + `/wp-admin`).
 4. **Extensions → Ajouter → cherche « WooCommerce » → Installer → Activer.**
 5. Laisse-toi guider par l'assistant WooCommerce : adresse de la boutique, **euros**, **France**, TVA selon ta situation (à valider avec le comptable). Tu peux ignorer les propositions de thème/paiement WooCommerce : **le paiement reste sur le site CLUB 151 via Stripe**, WordPress ne sert qu'à gérer le catalogue.
@@ -73,19 +73,19 @@ Vercel : ton projet → **Settings → Environment Variables**. Le tableau COMPL
 
 | Nom | Valeur | À quoi ça sert |
 |---|---|---|
-| `WC_STORE_URL` | l'adresse WordPress (ex. `https://gestion.leclub151.fr`) | Le site lit ton catalogue (prix, stock, photos) |
+| `WC_STORE_URL` | l'adresse WordPress (ex. `https://gestion.club151.fr`) | Le site lit ton catalogue (prix, stock, photos) |
 | `WC_CONSUMER_KEY` | `ck_…` (étape 3) | Créer les commandes dans WooCommerce → stock décrémenté |
 | `WC_CONSUMER_SECRET` | `cs_…` (étape 3) | Va avec la clé ci-dessus |
 | `STRIPE_SECRET_KEY` | `sk_test_…` puis `sk_live_…` | Encaisser les paiements |
 | `STRIPE_PUBLISHABLE_KEY` | `pk_test_…` puis `pk_live_…` | Le formulaire de carte sur le site |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_…` | **Obligatoire** — confirme les paiements de façon fiable |
 | `WEB3FORMS_KEY` | ta clé web3forms.com | E-mail de notification à TOI à chaque commande |
-| `ALLOWED_ORIGINS` | `https://leclub151.fr,https://www.leclub151.fr` | Sécurité : seuls tes domaines peuvent appeler le paiement |
+| `ALLOWED_ORIGINS` | `https://club151.fr,https://www.club151.fr` | Sécurité : seuls tes domaines peuvent appeler le paiement |
 | `ADMIN_PASSWORD` | un mot de passe fort | Protège la page admin du site |
-| `SITE_URL` | `https://leclub151.fr` | Domaine de confiance : liens de connexion, redirections Stripe, SEO |
+| `SITE_URL` | `https://club151.fr` | Domaine de confiance : liens de connexion, redirections Stripe, SEO |
 | `SESSION_SECRET` | une longue chaîne aléatoire | Signe les comptes clients (voir ci-dessous) |
 | `RESEND_API_KEY` | `re_…` (resend.com) | Envoie les liens de connexion aux clients |
-| `MAIL_FROM` | `CLUB 151 <bonjour@leclub151.fr>` | Expéditeur de ces e-mails |
+| `MAIL_FROM` | `CLUB 151 <bonjour@club151.fr>` | Expéditeur de ces e-mails |
 
 Génère `SESSION_SECRET` avec cette commande (dans n'importe quel terminal où Node est installé) :
 

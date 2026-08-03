@@ -28,7 +28,7 @@ Récapitulatif des corrections apportées suite à l'audit, et de ce qu'il reste
 | `STRIPE_WEBHOOK_SECRET` | Signature du webhook | oui (webhook) |
 | `ADMIN_PASSWORD` | Mot de passe de l'admin | **oui** |
 | `WC_STORE_URL` | URL WooCommerce → vrais prix côté serveur | en réel |
-| `ALLOWED_ORIGINS` | Domaines autorisés (CORS), séparés par `,` | non (défaut leclub151.fr) |
+| `ALLOWED_ORIGINS` | Domaines autorisés (CORS), séparés par `,` | non (défaut club151.fr) |
 | `ALLOW_DEMO_CHECKOUT` | `1` pour autoriser l'achat des produits démo | non |
 | `SITE_URL` | URL de secours pour le retour de paiement | non |
 

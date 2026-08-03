@@ -48,7 +48,7 @@ _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment E
 - **À faire dans Stripe** : Développeurs → Webhooks → ajouter l'événement
   **`payment_intent.succeeded`** (sinon pas d'e-mail au propriétaire pour les paiements
   intégrés au site).
-- Domaine du sitemap : variable d'env **`SITE_URL`** dans Vercel (sinon `https://leclub151.fr`).
+- Domaine du sitemap : variable d'env **`SITE_URL`** dans Vercel (sinon `https://club151.fr`).
 - Test local : `npx serve dist -l 5151` puis `node smoke-test.mjs`.
 
 ## Backend opérationnel (03/07/2026) : le site est prêt pour WooCommerce

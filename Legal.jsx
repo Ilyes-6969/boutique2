@@ -14,7 +14,7 @@ const COMPANY = {
   rcs: '',                  // RCS / RM, ex. "Vienne 000 000 000"
   vat: '',                  // TVA intracom., ex. "FR00 000000000"
   address: '',              // ex. "12 rue de la République, 38200 Vienne"
-  email: 'contact@leclub151.fr',
+  email: 'contact@club151.fr',
   phone: '',                // ex. "04 00 00 00 00"
   director: '',             // Directeur de la publication (Prénom Nom)
   directorRole: '',         // gérant / président…
@@ -74,7 +74,7 @@ function LegalPage({ navigate, kind }) {
               <LI>SIRET : <V v={COMPANY.siret} ph="000 000 000 00000" /> — RCS / RM : <V v={COMPANY.rcs} ph="Ville + n°" /></LI>
               <LI>N° TVA intracommunautaire : <V v={COMPANY.vat} ph="FR00 000000000" /></LI>
               <LI>Siège social : <V v={COMPANY.address} ph="Adresse complète, 38200 Vienne" /></LI>
-              <LI>E-mail : <V v={COMPANY.email} ph="contact@leclub151.fr" /> — Téléphone : <V v={COMPANY.phone} ph="04 00 00 00 00" /></LI>
+              <LI>E-mail : <V v={COMPANY.email} ph="contact@club151.fr" /> — Téléphone : <V v={COMPANY.phone} ph="04 00 00 00 00" /></LI>
             </UL>
             <H>2. Directeur de la publication</H>
             <P><V v={COMPANY.director} ph="Prénom Nom" />, en qualité de <V v={COMPANY.directorRole} ph="gérant / responsable" />.</P>
@@ -118,7 +118,7 @@ function LegalPage({ navigate, kind }) {
         {kind === 'confidentialite' && (
           <React.Fragment>
             <H>1. Responsable du traitement</H>
-            <P>Le responsable du traitement des données est <V v={COMPANY.name} ph="Nom de l'entreprise" />, <V v={COMPANY.address} ph="adresse" />, joignable à <V v={COMPANY.email} ph="contact@leclub151.fr" />.</P>
+            <P>Le responsable du traitement des données est <V v={COMPANY.name} ph="Nom de l'entreprise" />, <V v={COMPANY.address} ph="adresse" />, joignable à <V v={COMPANY.email} ph="contact@club151.fr" />.</P>
             <H>2. Données collectées</H>
             <UL>
               <LI>Identité & contact : nom, e-mail, adresse de livraison, téléphone</LI>
@@ -138,7 +138,7 @@ function LegalPage({ navigate, kind }) {
             <H>5. Destinataires</H>
             <P>Les données ne sont transmises qu'aux prestataires nécessaires (hébergeur, transporteur, prestataire de paiement) et ne sont <strong>jamais revendues</strong>.</P>
             <H>6. Vos droits (RGPD)</H>
-            <P>Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité. Pour les exercer : <V v={COMPANY.email} ph="contact@leclub151.fr" />. Vous pouvez aussi saisir la CNIL (cnil.fr).</P>
+            <P>Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité. Pour les exercer : <V v={COMPANY.email} ph="contact@club151.fr" />. Vous pouvez aussi saisir la CNIL (cnil.fr).</P>
             <H>7. Cookies</H>
             <P>Le site utilise des cookies techniques (panier, session) et, sous réserve de votre consentement, des cookies de mesure d'audience. Vous pouvez les gérer à tout moment via le bandeau cookies / les réglages de votre navigateur.</P>
           </React.Fragment>

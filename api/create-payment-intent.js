@@ -128,7 +128,7 @@ module.exports = async function handler(req, res) {
       shipping: shipping,
       automatic_payment_methods: { enabled: true },
       metadata: Object.assign(
-        { orderRef: orderRef, source: 'leclub151', shipping: String(shipCents), method: method },
+        { orderRef: orderRef, source: 'club151', shipping: String(shipCents), method: method },
         cid ? { cid: cid } : {},
         splitItemsMeta(itemsMeta)
       ),

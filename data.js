@@ -385,7 +385,7 @@
   // le branchement de WooCommerce. Elle reste active sur localhost / preview
   // Vercel pour tes essais. Forçage possible : localStorage.lc151_demo = '1'
   // (afficher) ou '0' (masquer). Adapte PROD_HOSTS à ton domaine réel.
-  const PROD_HOSTS = ['leclub151.fr', 'www.leclub151.fr'];
+  const PROD_HOSTS = ['club151.fr', 'www.club151.fr'];
   function demoEnabled() {
     try {
       const f = localStorage.getItem('lc151_demo');
@@ -856,7 +856,7 @@
   function notifyOrderWebhook(order) {
     const lines = (order.items || []).map(function (i) { return '- ' + i.name + ' ×' + i.qty + ' : ' + i.price + ' €'; }).join('\n');
     postWebhook(
-      { source: 'leclub151', type: 'new_order', order: order },
+      { source: 'club151', type: 'new_order', order: order },
       {
         subject: 'Nouvelle commande ' + order.number + ' — CLUB 151',
         from_name: 'Boutique CLUB 151',
@@ -874,7 +874,7 @@
   function notifyForm(subject, fields) {
     const f = fields || {};
     return postWebhook(
-      Object.assign({ source: 'leclub151', type: 'form', subject: subject }, f),
+      Object.assign({ source: 'club151', type: 'form', subject: subject }, f),
       Object.assign({ subject: subject + ' — CLUB 151', from_name: 'Site CLUB 151' }, f)
     );
   }

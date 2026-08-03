@@ -59,7 +59,7 @@ Dans Vercel : ton projet **boutique2** → **Settings → Environment Variables*
 | `STRIPE_WEBHOOK_SECRET` | `whsec_...` (obtenu à l'étape 4) | ✅ oui — le code refuse de traiter un webhook sans lui |
 | `WEB3FORMS_KEY` | ta clé Web3Forms (pour l'e-mail propriétaire fiable) | facultatif |
 
-> `SITE_URL` reste utile : le build s'en sert pour le **sitemap** et les **pages produit** (SEO) — mets-y `https://leclub151.fr`. Pour le paiement lui-même, le site détecte son domaine tout seul : la carte s'affiche **directement dans la fenêtre du site** (Payment Element), sans redirection vers Stripe.
+> `SITE_URL` reste utile : le build s'en sert pour le **sitemap** et les **pages produit** (SEO) — mets-y `https://club151.fr`. Pour le paiement lui-même, le site détecte son domaine tout seul : la carte s'affiche **directement dans la fenêtre du site** (Payment Element), sans redirection vers Stripe.
 
 Coche bien **Production** (et Preview si tu veux tester sur les déploiements de test). Puis **redéploie** le site pour qu'elles s'appliquent.
 

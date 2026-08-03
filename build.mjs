@@ -12,8 +12,8 @@
 //  4. Écrit api/_catalog.json : le catalogue de référence CÔTÉ SERVEUR utilisé
 //     par les fonctions de paiement pour refuser les prix manipulés.
 //
-// Domaine : variable d'env SITE_URL (recommandé, ex. https://leclub151.fr),
-// sinon le domaine de production Vercel, sinon https://leclub151.fr.
+// Domaine : variable d'env SITE_URL (recommandé, ex. https://club151.fr),
+// sinon le domaine de production Vercel, sinon https://club151.fr.
 // ---------------------------------------------------------------------------
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, readdirSync, existsSync } from 'node:fs';
@@ -26,13 +26,13 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = join(ROOT, 'dist');
 const SITE = (process.env.SITE_URL
   || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL : '')
-  || 'https://leclub151.fr').replace(/\/+$/, '');
+  || 'https://club151.fr').replace(/\/+$/, '');
 
 // Les pages /produits/ ne sont générées QUE là où le catalogue est visible :
 // - vrai catalogue WooCommerce si WC_STORE_URL est configurée (recommandé) ;
 // - sinon produits de démo, mais PAS sur le domaine de production (même règle
 //   que data.js : pas de fausses cartes indexées par Google sur le vrai site).
-const PROD_HOSTS = ['leclub151.fr', 'www.leclub151.fr'];
+const PROD_HOSTS = ['club151.fr', 'www.club151.fr'];
 // L'hôte de production est le SEUL critère : ALLOW_DEMO_CHECKOUT n'a rien à
 // faire ici. Cette variable autorise l'ACHAT des produits de démo (cf.
 // AUDIT-CORRECTIFS.md) ; la combiner en `||` faisait qu'activer l'achat de démo

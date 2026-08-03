@@ -1040,7 +1040,7 @@ function FormModal({ title, fields, cta, success, onClose }) {
           {failed && (
             <p role="alert" style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(179,38,30,0.08)', color: 'var(--red, #b3261e)', fontSize: 13.5, lineHeight: 1.5 }}>
               L’envoi n’a pas abouti. Écrivez-nous directement à{' '}
-              <a href="mailto:contact@leclub151.fr" style={{ color: 'inherit', fontWeight: 600 }}>contact@leclub151.fr</a>.
+              <a href="mailto:contact@club151.fr" style={{ color: 'inherit', fontWeight: 600 }}>contact@club151.fr</a>.
             </p>
           )}
           {DS.Button

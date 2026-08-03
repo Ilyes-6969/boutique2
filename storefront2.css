@@ -1,4 +1,4 @@
-/* leclub151 — shared storefront styles (linked by every page) */
+/* club151 — shared storefront styles (linked by every page) */
 
 @keyframes lcFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @keyframes lcPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
