@@ -573,6 +573,25 @@
   const authListeners = new Set();
   function emitAuth() { authListeners.forEach((fn) => fn()); }
 
+  // Appel commun aux actions de compte. Renvoie TOUJOURS { ok, error } : une
+  // erreur réseau et un refus serveur se traitent de la même façon côté écran,
+  // et l'appelant ne peut pas oublier de gérer l'échec.
+  async function postAccount(action, body) {
+    try {
+      const r = await fetch('/api/account/' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify(body || {}),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) return { ok: false, error: (j && j.error) || 'Opération impossible pour le moment.' };
+      return { ok: true, error: null };
+    } catch (e) {
+      return { ok: false, error: 'Erreur réseau — vérifiez votre connexion.' };
+    }
+  }
+
   // Le compte vit désormais CÔTÉ SERVEUR (cookie de session signé + clients
   // WooCommerce). localStorage n'est plus qu'un cache d'affichage : il évite un
   // clignotement « déconnecté » au chargement, mais il ne fait plus autorité.
@@ -582,23 +601,25 @@
     user: () => user,
     isLoggedIn: () => !!user,
 
-    // Demande d'un lien de connexion par e-mail. Renvoie { ok, error } :
-    // l'appelant DOIT afficher l'échec, sinon le client attendra un lien qui
-    // n'arrivera jamais.
-    async requestLink(email) {
-      try {
-        const r = await fetch('/api/account/request-link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ email: email }),
-        });
-        const j = await r.json().catch(() => ({}));
-        if (!r.ok || !j.ok) return { ok: false, error: (j && j.error) || 'Envoi impossible pour le moment.' };
-        return { ok: true, error: null };
-      } catch (e) {
-        return { ok: false, error: 'Erreur réseau — vérifiez votre connexion.' };
-      }
+    // Inscription : crée le compte ET ouvre la session dans la foulée — le
+    // client n'a pas à se reconnecter juste après s'être inscrit.
+    async register(email, password) {
+      const r = await postAccount('register', { email: email, password: password });
+      if (r.ok) await Auth.hydrate();
+      return r;
+    },
+
+    // Connexion. Renvoie { ok, error } — l'appelant DOIT afficher l'échec.
+    async login(email, password) {
+      const r = await postAccount('login', { email: email, password: password });
+      if (r.ok) await Auth.hydrate();
+      return r;
+    },
+
+    // Mot de passe oublié : WordPress envoie son e-mail de réinitialisation.
+    // Réponse volontairement identique que l'adresse existe ou non.
+    async forgot(email) {
+      return postAccount('forgot', { email: email });
     },
 
     // Relit la session auprès du serveur : au chargement de chaque page et au

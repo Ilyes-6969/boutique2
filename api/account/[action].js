@@ -6,24 +6,25 @@
 // le même contrat d'erreur et le même modèle de session — les séparer aurait
 // éparpillé un flux unique sur quatre fichiers quasi identiques.
 //
-//   POST /api/account/request-link   { email }      → envoie le lien de connexion
-//   GET  /api/account/verify?token=…                → pose le cookie, redirige
+//   POST /api/account/register  { email, password } → crée le compte + session
+//   POST /api/account/login     { email, password } → ouvre la session
+//   POST /api/account/forgot    { email }           → e-mail de réinitialisation
 //   GET  /api/account/me                            → client connecté + adresse
-//   POST /api/account/address        { … }          → met à jour l'adresse
+//   POST /api/account/address   { … }               → met à jour l'adresse
 //   POST /api/account/logout                        → efface la session
 //
-// ANTI-ÉNUMÉRATION : /request-link répond STRICTEMENT la même chose que le
-// compte existe ou non. Une réponse différenciée transformerait ce endpoint en
-// outil pour savoir qui est client de la boutique.
+// LE MOT DE PASSE N'EST JAMAIS STOCKÉ ICI. À l'inscription il part vers
+// WooCommerce, qui le hache. À la connexion il part vers le pont
+// wordpress/lc151-auth.php, qui répond seulement « oui » ou « non ». Aucun
+// journal, aucune base intermédiaire de notre côté.
 //
-// Variables d'environnement : SESSION_SECRET, RESEND_API_KEY, MAIL_FROM,
-// WC_STORE_URL, WC_CONSUMER_KEY, WC_CONSUMER_SECRET, SITE_URL.
+// Variables d'environnement : SESSION_SECRET, WP_AUTH_SECRET, WC_STORE_URL,
+// WC_CONSUMER_KEY, WC_CONSUMER_SECRET.
 // ---------------------------------------------------------------------------
 
 const { applyCors, rateLimit } = require('../../lib/serverCatalog');
 const S = require('../../lib/session');
 const W = require('../../lib/wooCustomers');
-const M = require('../../lib/mailer');
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const LIMITS = { name: 120, addr: 300, zip: 12, city: 120, phone: 40 };
@@ -37,19 +38,6 @@ function cleanText(v, max) {
 function readBody(req) {
   if (typeof req.body === 'string') { try { return JSON.parse(req.body || '{}'); } catch (e) { return {}; } }
   return req.body || {};
-}
-
-// Domaine de confiance pour le lien de connexion. Même raisonnement que
-// api/create-checkout-session.js : les en-têtes Host / X-Forwarded-Host sont
-// manipulables, et bâtir le lien dessus permettrait d'envoyer au client un lien
-// de connexion pointant vers un domaine pirate — qui capterait son jeton.
-// SITE_URL fait autorité ; la déduction depuis la requête n'est qu'un repli
-// pour les préversions et le développement local.
-function siteUrl(req) {
-  if (process.env.SITE_URL) return String(process.env.SITE_URL).replace(/\/+$/, '');
-  const proto = String(req.headers['x-forwarded-proto'] || 'https').split(',')[0].trim();
-  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
-  return host ? proto + '://' + host : '';
 }
 
 // Contrat d'erreur commun : WooCommerce injoignable → 503 générique, jamais le
@@ -89,83 +77,92 @@ module.exports = async function handler(req, res) {
     return res.status(503).json({ ok: false, error: 'Les comptes ne sont pas encore activés sur ce site.' });
   }
 
-  // ---- 1) Demande de lien de connexion ----
-  if (action === 'request-link') {
+  // ---- 1) Inscription ----
+  if (action === 'register') {
     if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
-    // Strict : 5 demandes / 15 min / IP. Ce endpoint déclenche l'envoi d'un
-    // e-mail à une adresse choisie par l'appelant — sans limite, il devient un
-    // outil de harcèlement par mail et brûle le quota d'envoi.
-    if (!rateLimit(req, 'account-link', 5, 15 * 60 * 1000)) {
-      return res.status(429).json({ ok: false, error: 'Trop de demandes — réessayez dans quelques minutes.' });
+    // Sans limite, ce endpoint sert à créer des comptes en masse dans ta
+    // boutique WooCommerce.
+    if (!rateLimit(req, 'account-register', 5, 15 * 60 * 1000)) {
+      return res.status(429).json({ ok: false, error: 'Trop de tentatives — réessayez dans quelques minutes.' });
     }
-    const email = String(readBody(req).email || '').trim().toLowerCase();
+    const body = readBody(req);
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
     if (!EMAIL_RE.test(email) || email.length > 160) {
       return res.status(400).json({ ok: false, error: 'Adresse e-mail invalide.' });
     }
-    if (!M.mailerConfigured()) {
-      // Échec honnête : sans fournisseur d'envoi, aucun lien ne partira jamais.
-      // Répondre « c'est envoyé » laisserait le client attendre pour rien.
-      console.error('account/request-link: RESEND_API_KEY / MAIL_FROM absentes — aucun lien ne peut partir');
-      return res.status(503).json({ ok: false, error: 'L’envoi d’e-mails n’est pas encore configuré — contactez la boutique.' });
+    // 8 caractères minimum : plus court, un mot de passe se casse hors ligne en
+    // quelques secondes. On refuse plutôt que d'offrir une fausse sécurité.
+    if (password.length < 8 || password.length > 200) {
+      return res.status(400).json({ ok: false, error: 'Le mot de passe doit faire au moins 8 caractères.' });
     }
 
     try {
-      let customer = await W.findCustomerByEmail(email);
-      const nonce = S.newNonce();
-      if (!customer) {
-        // Premier passage : le compte est créé à la volée. Pas de formulaire
-        // d'inscription séparé — l'e-mail vérifié EST l'inscription.
-        customer = await W.createCustomer(email, nonce);
-      } else {
-        await W.rotateNonce(customer.id, nonce);
+      const existing = await W.findCustomerByEmail(email);
+      if (existing) {
+        // On le dit franchement. Masquer l'existence du compte protégerait un
+        // peu la vie privée, mais laisserait le client bloqué sans comprendre
+        // pourquoi son inscription échoue — sur une boutique, ce coût dépasse
+        // le bénéfice.
+        return res.status(409).json({ ok: false, error: 'Un compte existe déjà avec cette adresse — connectez-vous.' });
       }
-
-      const base = siteUrl(req);
-      const token = S.signMagic(email, nonce);
-      const sent = await M.sendMagicLink(email, base + '/api/account/verify?token=' + encodeURIComponent(token));
-      if (!sent.ok) {
-        return res.status(502).json({ ok: false, error: 'L’e-mail n’a pas pu être envoyé — réessayez dans un instant.' });
-      }
-      // Réponse IDENTIQUE que le compte ait existé ou non (anti-énumération).
+      const customer = await W.createCustomer(email, password);
+      if (!customer || !customer.id) throw new Error('création client sans identifiant');
+      S.setSessionCookie(res, S.signSession(customer.id, email));
       return res.status(200).json({ ok: true });
-    } catch (err) { return fail(res, err, 'request-link'); }
+    } catch (err) { return fail(res, err, 'register'); }
   }
 
-  // ---- 2) Vérification du lien → session ----
-  if (action === 'verify') {
-    if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' });
-    const base = siteUrl(req);
-    const token = (req.query && req.query.token) || '';
-    const payload = S.verifyMagic(token);
-    // Lien expiré ou déjà utilisé : on redirige avec un motif unique, sans dire
-    // lequel des deux — inutile au client, utile à un attaquant.
-    if (!payload || !payload.em) {
-      res.writeHead(302, { Location: base + '/?connexion=expire' });
-      return res.end();
+  // ---- 2) Connexion ----
+  if (action === 'login') {
+    if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+    // Limite SERRÉE : c'est la porte d'entrée des attaques par force brute.
+    // 10 tentatives / 10 min / IP laissent de quoi se tromper deux fois, mais
+    // rendent tout balayage automatisé inutile.
+    if (!rateLimit(req, 'account-login', 10, 10 * 60 * 1000)) {
+      return res.status(429).json({ ok: false, error: 'Trop de tentatives — réessayez dans quelques minutes.' });
     }
-    try {
-      const customer = await W.findCustomerByEmail(payload.em);
-      if (!customer) {
-        res.writeHead(302, { Location: base + '/?connexion=expire' });
-        return res.end();
-      }
-      // USAGE UNIQUE : le nonce du lien doit être celui encore en vigueur. Une
-      // seconde utilisation du même lien échoue ici, puisque la connexion
-      // précédente l'a fait tourner.
-      if (!payload.n || payload.n !== W.readNonce(customer)) {
-        res.writeHead(302, { Location: base + '/?connexion=expire' });
-        return res.end();
-      }
-      await W.rotateNonce(customer.id, S.newNonce());   // brûle le lien
+    if (!W.authConfigured()) {
+      console.error('account/login: WP_AUTH_SECRET absente — pont d\'authentification WordPress non configuré');
+      return res.status(503).json({ ok: false, error: 'La connexion n’est pas encore activée sur ce site.' });
+    }
+    const body = readBody(req);
+    const email = String(body.email || '').trim().toLowerCase();
+    const password = String(body.password || '');
+    if (!EMAIL_RE.test(email) || !password) {
+      return res.status(400).json({ ok: false, error: 'E-mail ou mot de passe invalide.' });
+    }
 
-      S.setSessionCookie(res, S.signSession(customer.id, payload.em));
-      res.writeHead(302, { Location: base + '/?connexion=ok' });
-      return res.end();
-    } catch (err) {
-      console.error('account/verify:', String((err && err.message) || err));
-      res.writeHead(302, { Location: base + '/?connexion=erreur' });
-      return res.end();
+    try {
+      const customerId = await W.verifyPassword(email, password);
+      if (!customerId) {
+        // Message IDENTIQUE pour « compte inconnu » et « mot de passe faux » :
+        // les distinguer révélerait qui est client de la boutique.
+        return res.status(401).json({ ok: false, error: 'E-mail ou mot de passe incorrect.' });
+      }
+      S.setSessionCookie(res, S.signSession(customerId, email));
+      return res.status(200).json({ ok: true });
+    } catch (err) { return fail(res, err, 'login'); }
+  }
+
+  // ---- 3) Mot de passe oublié ----
+  if (action === 'forgot') {
+    if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
+    if (!rateLimit(req, 'account-forgot', 5, 15 * 60 * 1000)) {
+      return res.status(429).json({ ok: false, error: 'Trop de demandes — réessayez dans quelques minutes.' });
     }
+    if (!W.authConfigured()) {
+      return res.status(503).json({ ok: false, error: 'La réinitialisation n’est pas encore activée sur ce site.' });
+    }
+    const email = String(readBody(req).email || '').trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'Adresse e-mail invalide.' });
+
+    try {
+      await W.requestPasswordReset(email);
+      // Réponse IDENTIQUE que l'adresse existe ou non : sinon ce formulaire
+      // devient un moyen de savoir qui a un compte.
+      return res.status(200).json({ ok: true });
+    } catch (err) { return fail(res, err, 'forgot'); }
   }
 
   // ---- 3) Client connecté ----

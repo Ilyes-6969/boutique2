@@ -1055,8 +1055,10 @@ function FormModal({ title, fields, cta, success, onClose }) {
 function AccountModal({ onClose }) {
   const DS = window.ADITCGDesignSystem_df75b7 || {};
   const auth = useAuth();
+  const [tab, setTab] = React.useState('login');     // login | register | forgot
   const [sent, setSent] = React.useState(false);
   const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState('');
   if (auth.isLoggedIn()) {
@@ -1087,54 +1089,95 @@ function AccountModal({ onClose }) {
       </ModalShell>
     );
   }
-  // Connexion SANS mot de passe : on envoie un lien à usage unique par e-mail.
-  // L'écran précédent affichait un champ « Mot de passe » qui n'était ni lu ni
-  // vérifié, et un onglet « Créer un compte » qui ne créait rien — du décor. Ici
-  // ce qu'on demande est exactement ce qui sert, et le compte se crée tout seul
-  // au premier lien validé : pas d'inscription séparée.
+  // Connexion / inscription classiques : e-mail + mot de passe.
+  // Le mot de passe vit UNIQUEMENT dans l'état de ce formulaire, le temps de
+  // l'envoi. Il n'est jamais écrit en localStorage, jamais mis dans l'URL.
   const submit = async (e) => {
     e.preventDefault();
     if (busy) return;
     setBusy(true); setErr('');
-    const r = await window.LC151.Auth.requestLink(email);
+    const A = window.LC151.Auth;
+    let r;
+    if (tab === 'forgot') r = await A.forgot(email);
+    else if (tab === 'register') r = await A.register(email, password);
+    else r = await A.login(email, password);
     setBusy(false);
-    if (r && r.ok) setSent(true);
-    else setErr((r && r.error) || 'Envoi impossible pour le moment.');
+    if (!r || !r.ok) { setErr((r && r.error) || 'Opération impossible pour le moment.'); return; }
+    setPassword('');                       // on ne garde pas le mot de passe en mémoire
+    if (tab === 'forgot') { setSent(true); return; }
+    onClose();                             // connecté : le panneau se ferme
   };
+
+  const tabBtn = (k, label) => (
+    <button key={k} type="button" onClick={() => { setTab(k); setErr(''); }}
+      style={{ flex: 1, height: 38, borderRadius: 'var(--radius-sm)', border: '1.5px solid',
+        borderColor: tab === k ? 'var(--ink)' : 'var(--line-strong)',
+        background: tab === k ? 'var(--ink)' : 'transparent',
+        color: tab === k ? 'var(--on-ink)' : 'var(--ink)',
+        fontWeight: 600, fontSize: 13.5, cursor: 'pointer', transition: 'border-color 0.18s ease, background 0.18s ease' }}>{label}</button>
+  );
+
+  const title = tab === 'register' ? 'Créer un compte' : (tab === 'forgot' ? 'Mot de passe oublié' : 'Connexion');
+
   return (
-    <ModalShell title="Connexion" onClose={onClose}>
+    <ModalShell title={title} onClose={onClose}>
       {sent ? (
         <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
           <div className="lc-pop" style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--green-soft)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 6L2 7"></path></svg>
           </div>
-          <p style={{ fontSize: 15, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.5 }}>
-            Lien envoyé à <strong style={{ wordBreak: 'break-all' }}>{email}</strong>.
-          </p>
-          <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 18 }}>
-            Ouvrez-le pour vous connecter. Il est valable 20 minutes et ne fonctionne qu’une fois.
+          <p style={{ fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.55, marginBottom: 18 }}>
+            Si un compte existe avec cette adresse, un e-mail de réinitialisation vient d’être envoyé.
             Pensez à regarder dans vos indésirables.
           </p>
           {DS.Button
-            ? <DS.Button variant="accent" size="lg" block className="lc-press" onClick={onClose}>Fermer</DS.Button>
-            : <button className="lc-press" onClick={onClose} style={lcModalBtnFallback}>Fermer</button>}
+            ? <DS.Button variant="accent" size="lg" block className="lc-press" onClick={() => { setSent(false); setTab('login'); }}>Retour à la connexion</DS.Button>
+            : <button className="lc-press" onClick={() => { setSent(false); setTab('login'); }} style={lcModalBtnFallback}>Retour à la connexion</button>}
         </div>
       ) : (
         <React.Fragment>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 16 }}>
-            Indiquez votre e-mail : nous vous envoyons un lien de connexion. Pas de mot de passe à retenir,
-            et rien à créer — si vous n’avez pas encore de compte, il s’ouvre au premier lien.
-          </p>
+          {tab !== 'forgot' && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+              {tabBtn('login', 'Connexion')}
+              {tabBtn('register', 'Créer un compte')}
+            </div>
+          )}
+          {tab === 'register' && (
+            <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 14 }}>
+              Deux champs suffisent. Vos coordonnées de livraison seront demandées à la commande —
+              et vous pouvez aussi commander sans créer de compte.
+            </p>
+          )}
+          {tab === 'forgot' && (
+            <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 14 }}>
+              Indiquez votre e-mail : nous vous envoyons un lien pour choisir un nouveau mot de passe.
+            </p>
+          )}
           <form onSubmit={submit}>
             <input required type="email" autoComplete="email" aria-label="Adresse e-mail" placeholder="votre@email.fr"
               value={email} onChange={(e) => setEmail(e.target.value)} style={lcField} />
+            {tab !== 'forgot' && (
+              <input required type="password" aria-label="Mot de passe" placeholder="Mot de passe"
+                autoComplete={tab === 'register' ? 'new-password' : 'current-password'}
+                minLength={tab === 'register' ? 8 : undefined}
+                value={password} onChange={(e) => setPassword(e.target.value)} style={lcField} />
+            )}
+            {tab === 'register' && (
+              <p style={{ fontSize: 12, color: 'var(--muted)', margin: '-6px 0 12px' }}>8 caractères minimum.</p>
+            )}
             {err && (
               <p role="alert" style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(179,38,30,0.08)', color: 'var(--red, #b3261e)', fontSize: 13.5, lineHeight: 1.5 }}>{err}</p>
             )}
             {DS.Button
-              ? <DS.Button type="submit" variant="accent" size="lg" block className="lc-press" disabled={busy}>{busy ? 'Envoi…' : 'Recevoir mon lien'}</DS.Button>
-              : <button type="submit" className="lc-press" style={lcModalBtnFallback} disabled={busy}>{busy ? 'Envoi…' : 'Recevoir mon lien'}</button>}
+              ? <DS.Button type="submit" variant="accent" size="lg" block className="lc-press" disabled={busy}>{busy ? 'Un instant…' : (tab === 'register' ? 'Créer mon compte' : (tab === 'forgot' ? 'Envoyer le lien' : 'Se connecter'))}</DS.Button>
+              : <button type="submit" className="lc-press" style={lcModalBtnFallback} disabled={busy}>{busy ? 'Un instant…' : (tab === 'register' ? 'Créer mon compte' : (tab === 'forgot' ? 'Envoyer le lien' : 'Se connecter'))}</button>}
           </form>
+          <div style={{ textAlign: 'center', marginTop: 14 }}>
+            <button type="button" onClick={() => { setTab(tab === 'forgot' ? 'login' : 'forgot'); setErr(''); }}
+              style={{ background: 'none', border: 'none', color: 'var(--ink-2)', fontSize: 12.5, textDecoration: 'underline', cursor: 'pointer', padding: 4 }}>
+              {tab === 'forgot' ? 'Revenir à la connexion' : 'Mot de passe oublié ?'}
+            </button>
+          </div>
         </React.Fragment>
       )}
     </ModalShell>

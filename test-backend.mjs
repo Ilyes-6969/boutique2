@@ -20,6 +20,12 @@ const require = createRequire(import.meta.url);
 // ---------------------------------------------------------------------------
 const NONCE_KEY = '_lc151_login_nonce';
 
+// Secret attendu par le simulateur, FIGÉ ici. Le lire depuis process.env
+// rendrait le test inutile : en changeant la variable pour simuler un mauvais
+// secret, on changerait aussi ce que le simulateur attend, et les deux
+// continueraient de correspondre.
+const AUTH_SECRET = 'z'.repeat(64);
+
 const customers = [
   { id: 42, email: 'client@exemple.fr', first_name: 'Marie', last_name: 'Durand',
     billing: { first_name: 'Marie', last_name: 'Durand', address_1: '3 rue des Lilas', postcode: '38200', city: 'Vienne', phone: '0400000000' },
@@ -63,6 +69,20 @@ const woo = createServer(async (req, res) => {
     res.end(JSON.stringify(body));
   };
 
+  // Pont d'authentification (wordpress/lc151-auth.php). Protégé par le secret
+  // partagé et non par l'auth Basic — donc traité AVANT le contrôle ci-dessous.
+  if (p === '/wp-json/lc151/v1/verify' && req.method === 'POST') {
+    if (req.headers['x-lc151-secret'] !== AUTH_SECRET) return send(403, { message: 'bad secret' });
+    const body = await readJson(req);
+    const u = customers.find((c) => c.email.toLowerCase() === String(body.email || '').toLowerCase());
+    if (!u || !u.password || u.password !== body.password) return send(401, { ok: false });
+    return send(200, { ok: true, customer_id: u.id });
+  }
+  if (p === '/wp-json/lc151/v1/reset' && req.method === 'POST') {
+    if (req.headers['x-lc151-secret'] !== AUTH_SECRET) return send(403, { message: 'bad secret' });
+    return send(200, { ok: true });   // réponse identique, compte connu ou non
+  }
+
   // L'auth Basic doit être présente — c'est aussi ce qu'on veut vérifier.
   if (!String(req.headers.authorization || '').startsWith('Basic ')) return send(401, { message: 'no auth' });
 
@@ -72,8 +92,10 @@ const woo = createServer(async (req, res) => {
   }
   if (p === '/customers' && req.method === 'POST') {
     const body = await readJson(req);
+    // WooCommerce reçoit et hache le mot de passe. Le simulateur le conserve en
+    // clair — c'est acceptable ici, ce sont des données synthétiques en mémoire.
     const c = { id: nextCustomerId++, email: body.email, first_name: '', last_name: '',
-      billing: {}, meta_data: body.meta_data || [] };
+      password: body.password || '', billing: {}, meta_data: body.meta_data || [] };
     customers.push(c);
     return send(201, c);
   }
@@ -124,6 +146,7 @@ process.env.WC_STORE_URL = 'http://localhost:5199';
 process.env.WC_CONSUMER_KEY = 'ck_test';
 process.env.WC_CONSUMER_SECRET = 'cs_test';
 process.env.SESSION_SECRET = 'x'.repeat(64);
+process.env.WP_AUTH_SECRET = AUTH_SECRET;
 
 const S = require('./lib/session.js');
 const W = require('./lib/wooCustomers.js');
@@ -187,20 +210,32 @@ process.env.SESSION_SECRET = realSecret;
 // ---- Clients WooCommerce ----
 const found = await W.findCustomerByEmail('CLIENT@Exemple.FR');   // casse différente à dessein
 check('client : trouvé malgré la casse', found && found.id === 42);
-check('client : nonce lu', W.readNonce(found) === 'nonce-initial');
 check('client : inconnu → null', (await W.findCustomerByEmail('personne@exemple.fr')) === null);
 
-const created = await W.createCustomer('nouveau@exemple.fr', 'n1');
-check('client : création', created && created.email === 'nouveau@exemple.fr');
-check('client : nonce posé à la création', W.readNonce(created) === 'n1');
+const created = await W.createCustomer('nouveau@exemple.fr', 'motdepasse123');
+check('inscription : compte créé', created && created.email === 'nouveau@exemple.fr');
 
-// Usage unique du lien : la rotation du nonce invalide le lien précédent.
-await W.rotateNonce(42, 'nonce-2');
-const afterRotate = await W.findCustomerByEmail('client@exemple.fr');
-const oldMagic = S.verifyMagic(magicTok);
-check('lien magique : usage unique (le nonce du 1er lien ne vaut plus)',
-  oldMagic && oldMagic.n !== W.readNonce(afterRotate),
-  'nonce courant = ' + W.readNonce(afterRotate));
+// ---- Mot de passe (pont WordPress) ----
+check('connexion : bon mot de passe → id client',
+  (await W.verifyPassword('nouveau@exemple.fr', 'motdepasse123')) === created.id);
+check('connexion : mauvais mot de passe refusé',
+  (await W.verifyPassword('nouveau@exemple.fr', 'pasbon')) === null);
+check('connexion : compte inconnu refusé (même réponse)',
+  (await W.verifyPassword('personne@exemple.fr', 'motdepasse123')) === null);
+check('connexion : casse de l\'e-mail sans importance',
+  (await W.verifyPassword('NOUVEAU@Exemple.FR', 'motdepasse123')) === created.id);
+check('mot de passe oublié : répond toujours ok (anti-énumération)',
+  (await W.requestPasswordReset('personne@exemple.fr')) === true);
+
+// Le secret partagé est ce qui empêche d'en faire un testeur de mots de passe.
+const goodSecret = process.env.WP_AUTH_SECRET;
+process.env.WP_AUTH_SECRET = 'y'.repeat(64);      // mauvais secret
+let secretErr = null;
+try { await W.verifyPassword('nouveau@exemple.fr', 'motdepasse123'); } catch (e) { secretErr = e.code; }
+check('pont : mauvais secret partagé → refusé', secretErr === 'WC_DOWN', String(secretErr));
+process.env.WP_AUTH_SECRET = '';
+check('pont : secret absent → authConfigured() faux', W.authConfigured() === false);
+process.env.WP_AUTH_SECRET = goodSecret;
 
 await W.updateCustomerAddress(42, { firstName: 'Marie', lastName: 'Durand', addr: '8 quai Riondet', zip: '38200', city: 'Vienne', phone: '0411223344' });
 const updated = await W.findCustomerByEmail('client@exemple.fr');
