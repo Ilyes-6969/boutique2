@@ -61,20 +61,51 @@ async function fetchWooPage(base, page) {
 async function wooProducts() {
   const base = String(process.env.WC_STORE_URL || '').replace(/\/+$/, '');
   if (!base) return null; // pas de WooCommerce configuré → mode démo inchangé
+  // Plusieurs tentatives : un hébergeur mutualisé peut refuser ponctuellement
+  // les adresses des serveurs de build (protection anti-robots), sans que le
+  // WordPress soit réellement en panne. Une seule tentative transformait ce
+  // refus passager en échec de déploiement.
   const raw = [];
-  try {
-    for (let page = 1; page <= WOO_MAX_PAGES; page += 1) {
-      const list = await fetchWooPage(base, page);
-      raw.push(...list);
-      if (list.length < WOO_PER_PAGE) break; // dernière page atteinte
+  let lastErr = null;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    raw.length = 0;
+    try {
+      for (let page = 1; page <= WOO_MAX_PAGES; page += 1) {
+        const list = await fetchWooPage(base, page);
+        raw.push(...list);
+        if (list.length < WOO_PER_PAGE) break; // dernière page atteinte
+      }
+      lastErr = null;
+      break;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < 3) {
+        console.warn('  WooCommerce injoignable (tentative ' + attempt + '/3) — nouvel essai…');
+        await new Promise((r) => setTimeout(r, attempt * 2000));
+      }
     }
-  } catch (e) {
-    // WC_STORE_URL est configurée : sortir un site sans pages produit
-    // effacerait silencieusement tout le SEO. On échoue FRANCHEMENT →
+  }
+
+  if (lastErr) {
+    // WC_STORE_URL est configurée : sortir un site sans pages produit effacerait
+    // silencieusement tout le SEO. On échoue donc FRANCHEMENT par défaut →
     // Vercel conserve le déploiement précédent, rien n'est cassé en ligne.
-    console.error('✖ Build interrompu : WooCommerce injoignable (' + e.message + ').');
+    //
+    // Échouer est ici plus sûr que continuer : un build interrompu se voit et se
+    // relance, alors qu'un sitemap vidé de ses produits se remarque des semaines
+    // plus tard, quand Google a déjà désindexé les fiches.
+    if (process.env.ALLOW_BUILD_WITHOUT_CATALOG === '1') {
+      console.warn('⚠ WooCommerce injoignable (' + lastErr.message + ') — build POURSUIVI.');
+      console.warn('  ALLOW_BUILD_WITHOUT_CATALOG=1 est actif : AUCUNE page produit ne sera générée,');
+      console.warn('  et le sitemap ne listera aucun produit. La boutique reste fonctionnelle (le');
+      console.warn('  catalogue est lu en direct par le site), mais le référencement des fiches');
+      console.warn('  disparaît jusqu\'au prochain build réussi. À retirer dès que possible.');
+      return null;
+    }
+    console.error('✖ Build interrompu : WooCommerce injoignable (' + lastErr.message + ').');
     console.error('  WC_STORE_URL = ' + base + ' — on refuse de publier un site sans pages produit.');
     console.error('  Vérifie que le WordPress répond, puis relance le déploiement.');
+    console.error('  Contournement temporaire : variable ALLOW_BUILD_WITHOUT_CATALOG=1 (voir GUIDE-WOOCOMMERCE.md).');
     process.exit(1);
   }
   const strip = (h) => String(h || '').replace(/<[^>]*>/g, '').trim();

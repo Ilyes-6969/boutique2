@@ -116,6 +116,35 @@ Le site fabrique **une page Google par produit** au moment du déploiement. Quan
 
 ---
 
+## Si le déploiement échoue sur « WooCommerce injoignable »
+
+Le build fabrique une page Google par produit. S'il n'arrive pas à lire ton
+catalogue, il **s'arrête volontairement** plutôt que de publier un site sans
+aucune fiche — Vercel garde alors la version précédente, ton site reste en ligne.
+
+Pourquoi cette sévérité : un build interrompu se voit et se relance. Un sitemap
+vidé de ses produits, lui, ne se remarque que des semaines plus tard, quand
+Google a déjà désindexé les fiches.
+
+**Cause la plus fréquente :** ton hébergeur mutualisé refuse les connexions
+venant des serveurs de build (protection anti-robots). Le site, lui, continue de
+fonctionner : il lit le catalogue en direct depuis les fonctions serveur, qui
+partent d'adresses différentes.
+
+**Que faire, dans l'ordre :**
+
+1. Relance simplement le déploiement — le build réessaie 3 fois, le blocage est
+   souvent passager
+2. Si ça persiste, appelle le support de ton hébergeur : demande-lui pourquoi
+   son serveur refuse les connexions HTTPS venant de l'extérieur vers
+   `gestion.club151.fr`
+3. **En dernier recours et temporairement**, ajoute dans Vercel la variable
+   `ALLOW_BUILD_WITHOUT_CATALOG` = `1`. Le build passera, mais **aucune page
+   produit ne sera générée** et le sitemap ne listera aucun produit. À retirer
+   dès que l'hébergeur a corrigé.
+
+---
+
 ## ÉTAPE 6 — Les ventes en MAGASIN (TPE Qonto)
 
 Ton TPE Qonto encaisse très bien, mais **il n'est relié à rien** : quand tu vends une carte au comptoir, le site ne le sait pas et croit qu'elle est encore disponible.
