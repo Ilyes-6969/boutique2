@@ -4,104 +4,11 @@
    from the back-office (admin.html), which persist to localStorage. */
 (function () {
   // ---- Catalogue ----
-  // Demo products across every category for testing. Replace with your real
-  // catalogue via WordPress / WooCommerce (admin.html) — these disappear once
-  // a WooCommerce site is connected and returns products.
-  // Images de cartes via le CDN pokemontcg.io (le même que les logos de sets
-  // ci-dessous) — une seule source d'images, fiable, pour tout le catalogue.
-  const img = (set, n) => `https://images.pokemontcg.io/${set}/${n}.png`;
-  const DEFAULTS = [
-    // ----- Cartes à l'unité -----
-    { id: 'd1', name: 'Dracaufeu — Set de Base', set: 'Set de Base · 1999', num: '4/102', type: 'single',
-      cat: "Carte à l'unité", price: 1890, image: img('base1', 4), rarity: 'Rare Holo', inStock: true, unique: true,
-      desc: "Dracaufeu holographique du Set de Base, édition 1999. État Near Mint, centrage excellent." },
-    { id: 'd2', name: 'Tortank Holo', set: 'Set de Base · 1999', num: '2/102', type: 'single',
-      cat: "Carte à l'unité", price: 329.9, image: img('base1', 2), rarity: 'Rare Holo', inStock: true, unique: true,
-      desc: "Tortank holographique, Set de Base. Near Mint." },
-    { id: 'd3', name: 'Pikachu — Joues Rouges', set: 'Set de Base · 1999', num: '58/102', type: 'single',
-      cat: "Carte à l'unité", price: 54.9, image: img('base1', 58), rarity: 'Common', inStock: true, unique: true,
-      badge: { tone: 'new', label: 'Nouveau' }, desc: "Pikachu « joues rouges », variante recherchée du Set de Base." },
-    // ----- Cartes gradées -----
-    { id: 'd4', name: 'Dracaufeu — Gradée PSA 10', set: 'Set de Base · 1999', num: '4/102', type: 'graded',
-      cat: 'Carte gradée', price: 8900, image: img('base1', 4), rarity: 'Gem Mint', inStock: true, unique: true,
-      badge: { tone: 'graded', label: 'PSA 10' }, desc: "Dracaufeu Set de Base certifié PSA 10 Gem Mint. Sous coque, scellé." },
-    { id: 'd5', name: 'Mewtwo Holo — Gradée PSA 9', set: 'Set de Base · 1999', num: '10/102', type: 'graded',
-      cat: 'Carte gradée', price: 460, image: img('base1', 10), rarity: 'Mint', inStock: true, unique: true,
-      badge: { tone: 'graded', label: 'PSA 9' }, desc: "Mewtwo holographique certifié PSA 9 Mint." },
-    // ----- Scellé : ETB, display, coffret, booster -----
-    { id: 'd6', name: "ETB — Pokémon 151", set: 'Écarlate & Violet · 151', num: 'sv3.5', type: 'sealed',
-      cat: "Coffret Dresseur d'Élite", price: 64.9, image: 'https://images.pokemontcg.io/sv3pt5/logo.png', glyph: 'ETB', inStock: true,
-      badge: { tone: 'new', label: 'Nouveau' }, desc: "Coffret Dresseur d'Élite Pokémon 151. Scellé, version française. 9 boosters + accessoires." },
-    { id: 'd7', name: "Display — Étincelles Déferlantes", set: 'EV8 · Scellé FR', num: '36 boosters', type: 'sealed',
-      cat: 'Boîte de boosters', price: 209.9, image: 'https://images.pokemontcg.io/sv8/logo.png', glyph: 'DISPLAY', inStock: true,
-      desc: "Display scellé Étincelles Déferlantes (EV8), 36 boosters, version française." },
-    { id: 'd8', name: "Coffret — Évolutions Prismatiques", set: 'EV8.5 · FR', num: 'Collection', type: 'sealed',
-      cat: 'Coffret', price: 39.9, image: 'https://images.pokemontcg.io/sv8pt5/logo.png', glyph: 'COFFRET', inStock: true,
-      desc: "Coffret Collection Évolutions Prismatiques, scellé, version française." },
-    { id: 'd9', name: "Booster — Flammes Obsidiennes", set: 'EV3 · FR', num: 'x1', type: 'sealed',
-      cat: 'Booster', price: 5.5, image: 'https://images.pokemontcg.io/sv3/logo.png', glyph: 'BOOSTER', inStock: false,
-      desc: "Booster scellé Flammes Obsidiennes (EV3), 10 cartes, version française." },
-    // ----- Accessoires -----
-    { id: 'd10', name: 'Sleeves Ultra Pro — Pack 100', set: 'Ultra Pro · Matte', num: 'x100', type: 'accessory',
-      cat: 'Protège-cartes', price: 9.9, image: 'assets/acc-sleeves.svg', glyph: 'SLEEVES', inStock: true,
-      desc: "100 protège-cartes Ultra Pro finition matte, format standard." },
-    { id: 'd11', name: 'Classeur 360 cartes', set: 'Ultimate Guard', num: '360', type: 'accessory',
-      cat: 'Classeur', price: 24.9, image: 'assets/acc-binder.svg', glyph: 'CLASSEUR', inStock: true,
-      desc: "Classeur 360 cartes à fermeture zip, pochettes Side-Loading." },
-    // ----- Précommandes -----
-    { id: 'd12', name: "Display — Couronne Stellaire", set: 'Sortie 10-10-2026 · FR', num: '36 boosters', type: 'sealed',
-      cat: 'Boîte de boosters', price: 219.9, image: 'https://images.pokemontcg.io/sv7/logo.png', glyph: 'DISPLAY', inStock: true, preorder: true,
-      badge: { tone: 'sale', label: 'Précommande' }, desc: "Display scellé Couronne Stellaire. Précommande — expédié à la sortie le 10/10/2026." },
-    { id: 'd13', name: "ETB — Mascarade Crépusculaire", set: 'Sortie 28-08-2026 · FR', num: 'Dresseur d’Élite', type: 'sealed',
-      cat: "Coffret Dresseur d'Élite", price: 54.9, image: 'https://images.pokemontcg.io/sv6/logo.png', glyph: 'ETB', inStock: true, preorder: true,
-      badge: { tone: 'sale', label: 'Précommande' }, desc: "Coffret Dresseur d'Élite Mascarade Crépusculaire. Précommande." },
-    // ===== Cartes à l'unité (suite) =====
-    { id: 'd14', name: 'Venusaur Holo — Set de Base', set: 'Set de Base · 1999', num: '15/102', type: 'single',
-      cat: "Carte à l'unité", price: 279.9, image: img('base1', 15), rarity: 'Rare Holo', inStock: true, unique: true,
-      desc: "Florizarre holographique du Set de Base. Near Mint." },
-    { id: 'd15', name: 'Alakazam Holo — Set de Base', set: 'Set de Base · 1999', num: '1/102', type: 'single',
-      cat: "Carte à l'unité", price: 119.9, image: img('base1', 1), rarity: 'Rare Holo', inStock: true, unique: true,
-      desc: "Alakazam holographique, première carte du Set de Base." },
-    { id: 'd16', name: 'Zapdos Holo — Set de Base', set: 'Set de Base · 1999', num: '16/102', type: 'single',
-      cat: "Carte à l'unité", price: 99.9, image: img('base1', 16), rarity: 'Rare Holo', inStock: true, unique: true,
-      desc: "Électhor holographique du Set de Base. Légendaire électrik." },
-    { id: 'd17', name: 'Machamp Holo — Set de Base', set: 'Set de Base · 1999', num: '8/102', type: 'single',
-      cat: "Carte à l'unité", price: 44.9, oldPrice: 59.9, image: img('base1', 8), rarity: 'Rare Holo', inStock: true, unique: true,
-      badge: { tone: 'sale', label: 'Promo' }, desc: "Mackogneur holographique, édition 1er Set de Base." },
-    { id: 'd18', name: 'Raichu Holo — Set de Base', set: 'Set de Base · 1999', num: '14/102', type: 'single',
-      cat: "Carte à l'unité", price: 69.9, image: img('base1', 14), rarity: 'Rare Holo', inStock: true, unique: true,
-      desc: "Raichu holographique du Set de Base. Near Mint." },
-    { id: 'd19', name: 'Gyarados Holo — Set de Base', set: 'Set de Base · 1999', num: '6/102', type: 'single',
-      cat: "Carte à l'unité", price: 74.9, image: img('base1', 6), rarity: 'Rare Holo', inStock: true, unique: true,
-      desc: "Léviator holographique, Set de Base 1999." },
-    // ===== Cartes gradées (suite) =====
-    { id: 'd20', name: 'Venusaur — Gradée PSA 8', set: 'Set de Base · 1999', num: '15/102', type: 'graded',
-      cat: 'Carte gradée', price: 690, image: img('base1', 15), rarity: 'NM-MT', inStock: true, unique: true,
-      badge: { tone: 'graded', label: 'PSA 8' }, desc: "Florizarre Set de Base certifié PSA 8. Sous coque." },
-    { id: 'd21', name: 'Blastoise — Gradée PSA 9', set: 'Set de Base · 1999', num: '2/102', type: 'graded',
-      cat: 'Carte gradée', price: 1290, image: img('base1', 2), rarity: 'Mint', inStock: true, unique: true,
-      badge: { tone: 'graded', label: 'PSA 9' }, desc: "Tortank Set de Base certifié PSA 9 Mint." },
-    { id: 'd22', name: 'Zapdos — Gradée PSA 9', set: 'Set de Base · 1999', num: '16/102', type: 'graded',
-      cat: 'Carte gradée', price: 540, image: img('base1', 16), rarity: 'Mint', inStock: false, unique: true,
-      badge: { tone: 'graded', label: 'PSA 9' }, desc: "Électhor Set de Base certifié PSA 9 Mint." },
-    // ===== Scellé (suite) =====
-    { id: 'd23', name: "ETB — Couronne Stellaire", set: 'EV7 · Scellé FR', num: "Dresseur d'Élite", type: 'sealed',
-      cat: "Coffret Dresseur d'Élite", price: 49.9, image: 'https://images.pokemontcg.io/sv7/logo.png', glyph: 'ETB', inStock: true,
-      desc: "Coffret Dresseur d'Élite Couronne Stellaire, scellé FR." },
-    { id: 'd24', name: "Display — Forces Temporelles", set: 'EV5 · Scellé FR', num: '36 boosters', type: 'sealed',
-      cat: 'Boîte de boosters', price: 199.9, image: 'https://images.pokemontcg.io/sv5/logo.png', glyph: 'DISPLAY', inStock: true,
-      desc: "Display scellé Forces Temporelles (EV5), 36 boosters, FR." },
-    { id: 'd25', name: "Coffret — Destinées de Paldea", set: 'EV4.5 · FR', num: 'Collection', type: 'sealed',
-      cat: 'Coffret', price: 34.9, oldPrice: 44.9, image: 'https://images.pokemontcg.io/sv4pt5/logo.png', glyph: 'COFFRET', inStock: true,
-      badge: { tone: 'sale', label: 'Promo' }, desc: "Coffret Collection Destinées de Paldea, scellé FR." },
-    // ===== Accessoires (suite) =====
-    { id: 'd26', name: 'Toploaders — Pack 25', set: 'Ultra Pro · Rigide', num: 'x25', type: 'accessory',
-      cat: 'Protection rigide', price: 6.9, image: 'assets/acc-toploader.svg', glyph: 'TOPLOADER', inStock: true,
-      desc: "25 toploaders rigides Ultra Pro, format standard." },
-    { id: 'd27', name: 'Tapis de jeu — Pokéball', set: 'Playmat · Néoprène', num: '60×35 cm', type: 'accessory',
-      cat: 'Tapis de jeu', price: 19.9, image: 'assets/acc-playmat.svg', glyph: 'TAPIS', inStock: true,
-      desc: "Tapis de jeu néoprène anti-dérapant, motif Pokéball." },
-  ];
+  // AUCUN produit en dur. Le catalogue vient exclusivement de WooCommerce
+  // (via /api/catalog), plus les produits ajoutés depuis le back-office.
+  // Les cartes de démonstration ont été retirées : sur un domaine public, de
+  // faux produits sont au mieux embarrassants, au pire pris pour du vrai
+  // stock par un client.
 
   const FILTERS = [
     { key: 'all', label: 'Tout' },
@@ -327,11 +234,6 @@
       // Panne transitoire → dernier catalogue connu (< 24 h), site utilisable.
       wpProducts = cached;
       wpStatus = { state: 'ok', count: cached.length, error: '' };
-    } else if (!wpUrl && demoEnabled()) {
-      // Pas d'API joignable (file://, hébergement statique…) : on retombe sur la
-      // logique démo — l'état « erreur » n'a de sens que là où la démo est masquée.
-      wpProducts = [];
-      wpStatus = { state: 'off', count: 0, error: '' };
     } else {
       wpProducts = [];
       wpStatus = { state: 'error', count: 0, error: String((err && err.message) || err) };
@@ -380,22 +282,6 @@
   let custom = load(K_CUSTOM, []);
   let PRODUCTS = [];
 
-  // La démo (DEFAULTS) ne doit JAMAIS apparaître sur le vrai domaine : sinon des
-  // cartes fictives (Dracaufeu 1 890 €…) seraient visibles et commandables avant
-  // le branchement de WooCommerce. Elle reste active sur localhost / preview
-  // Vercel pour tes essais. Forçage possible : localStorage.lc151_demo = '1'
-  // (afficher) ou '0' (masquer). Adapte PROD_HOSTS à ton domaine réel.
-  const PROD_HOSTS = ['club151.fr', 'www.club151.fr'];
-  function demoEnabled() {
-    try {
-      const f = localStorage.getItem('lc151_demo');
-      if (f === '1') return true;
-      if (f === '0') return false;
-    } catch (e) {}
-    const h = (location.hostname || '').toLowerCase();
-    return PROD_HOSTS.indexOf(h) === -1;   // vrai domaine → pas de démo
-  }
-
   function rebuild() {
     overrides = load(K_OVR, {});
     custom = load(K_CUSTOM, []);
@@ -406,7 +292,7 @@
     //  - mode test admin (wpUrl) : uniquement ce que renvoie le WordPress ;
     //  - catalogue réel chargé (/api/catalog ou cache de panne) : les produits réels ;
     //  - sinon : la démo (jamais sur le domaine de production).
-    const base = wpUrl ? wpProducts : (wpProducts.length ? wpProducts : (demoEnabled() ? DEFAULTS : []));
+    const base = wpProducts;
     const combined = base.concat(custom);
     const merged = combined.map((p) => {
       const o = overrides[p.id] || {};
@@ -941,8 +827,6 @@
       .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
   }
   function productUrl(id) {
-    const p = Store.get(id);
-    if (p && /^d\d+$/.test(String(id))) return '/produits/' + lcSlugify(p.name) + '-' + id + '.html';
     return '/produit.html?id=' + encodeURIComponent(id);
   }
 

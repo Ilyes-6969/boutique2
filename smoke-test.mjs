@@ -11,7 +11,7 @@ const PAGES = [
   '/index.html',
   '/boutique.html',
   '/panier.html',
-  '/produit.html?id=d1',
+  '/produit.html?id=inexistant',
   '/lorcana.html',
   '/faq.html',
   '/cgv.html',

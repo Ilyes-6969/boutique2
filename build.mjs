@@ -28,17 +28,13 @@ const SITE = (process.env.SITE_URL
   || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL : '')
   || 'https://club151.fr').replace(/\/+$/, '');
 
-// Les pages /produits/ ne sont générées QUE là où le catalogue est visible :
-// - vrai catalogue WooCommerce si WC_STORE_URL est configurée (recommandé) ;
-// - sinon produits de démo, mais PAS sur le domaine de production (même règle
-//   que data.js : pas de fausses cartes indexées par Google sur le vrai site).
+// Les pages /produits/ sont générées à partir du SEUL vrai catalogue
+// WooCommerce (WC_STORE_URL). Il n'existe plus aucun produit de démonstration :
+// rien de fictif ne peut donc être indexé par Google.
 const PROD_HOSTS = ['club151.fr', 'www.club151.fr'];
-// L'hôte de production est le SEUL critère : ALLOW_DEMO_CHECKOUT n'a rien à
-// faire ici. Cette variable autorise l'ACHAT des produits de démo (cf.
-// AUDIT-CORRECTIFS.md) ; la combiner en `||` faisait qu'activer l'achat de démo
-// suffisait à faire générer — donc indexer par Google — de fausses cartes sur le
-// vrai domaine, exactement ce que le commentaire ci-dessus interdit.
-const demoOnSite = PROD_HOSTS.indexOf(new URL(SITE).hostname.toLowerCase()) === -1;
+// Ne sert plus qu'à durcir la garde anti-données bouche-trou (plus bas) : sur le
+// domaine de production on REFUSE de publier, ailleurs on se contente d'alerter.
+const isProdSite = PROD_HOSTS.indexOf(new URL(SITE).hostname.toLowerCase()) !== -1;
 
 // Vrai catalogue WooCommerce (Store API publique) au moment du build.
 // Pagination : ?page=N&per_page=100, arrêt dès qu'une page renvoie moins de
@@ -114,10 +110,12 @@ function extractDsComponents() {
 }
 
 // ---------------------------------------------------------------------------
-// 1. Catalogue : on exécute data.js dans un bac à sable Node pour récupérer
-//    les produits par défaut (même source de vérité que le site).
+// 1. Coordonnées boutique : on exécute data.js dans un bac à sable Node pour
+//    relire LC151.SHOP et refuser de publier de fausses coordonnées.
+//    (Ce bac à sable servait aussi à extraire les produits de démonstration —
+//    il n'y en a plus, le catalogue vient uniquement de WooCommerce.)
 // ---------------------------------------------------------------------------
-function extractCatalog() {
+function checkShopContact() {
   const code = readFileSync(join(ROOT, 'data.js'), 'utf8');
   const noop = () => {};
   const ls = { getItem: () => null, setItem: noop, removeItem: noop };
@@ -130,15 +128,10 @@ function extractCatalog() {
     head: { appendChild: noop },
     documentElement: { appendChild: noop, setAttribute: noop },
   };
-  // location.hostname = localhost → demoEnabled() est vrai dans data.js, on
-  // extrait donc bien les produits par défaut (le masquage en production est
-  // géré à l'exécution côté site, et côté paiement par serverCatalog).
   const sandbox = { window: w, localStorage: ls, document: doc, location: { hostname: 'localhost' }, fetch: () => new Promise(noop), Intl, console, Date, Math, JSON };
   vm.runInNewContext(code, sandbox, { filename: 'data.js' });
-  const products = w.LC151.Store.all();
-  if (!products || !products.length) throw new Error('Catalogue vide — data.js a changé ?');
+  if (!w.LC151) throw new Error('data.js n\'a pas exposé window.LC151 — le fichier a changé ?');
   assertShopContactUsable(w.LC151.SHOP);
-  return products;
 }
 
 // Garde anti-données bouche-trou. Les coordonnées vivent dans data.js (LC151.SHOP)
@@ -162,7 +155,7 @@ function assertShopContactUsable(shop) {
     }
   });
   if (!bad.length) return;
-  const onProd = !demoOnSite;
+  const onProd = isProdSite;
   const head = (onProd ? '✖ Build interrompu' : '⚠ Attention') + ' : coordonnées bouche-trou dans data.js (LC151.SHOP)';
   (onProd ? console.error : console.warn)(head);
   bad.forEach((b) => (onProd ? console.error : console.warn)('  - ' + b));
@@ -323,21 +316,10 @@ console.log('Build CLUB 151 → ' + SITE);
 rmSync(DIST, { recursive: true, force: true });
 mkdirSync(join(DIST, 'produits'), { recursive: true });
 
-// Catalogue → lib/catalog-demo.json : la table de prix CÔTÉ SERVEUR utilisée
-// par lib/serverCatalog.js (paiements). Régénérée ici pour rester alignée sur
-// data.js. Format : { id: { name, price (euros), unique, inStock } }.
-const products = extractCatalog();
-const catalog = {};
-for (const p of products) {
-  catalog[p.id] = {
-    name: p.name,
-    price: Math.round(Number(p.price) * 100) / 100,
-    unique: !!(p.unique === true || p.type === 'single' || p.type === 'graded'),
-    inStock: p.inStock !== false,
-  };
-}
-writeFileSync(join(ROOT, 'lib', 'catalog-demo.json'), JSON.stringify(catalog, null, 2) + '\n');
-console.log('lib/catalog-demo.json : ' + products.length + ' produits');
+// Garde anti-coordonnées bouche-trou (téléphone en « 00 00 00 », lien social
+// sans compte). La table de prix serveur n'est plus générée ici : elle vient
+// désormais uniquement de WooCommerce, à l'exécution.
+checkShopContact();
 
 // Design system allégé (ou bundle complet en secours)
 const dsComponents = SLIM_DS_BUNDLE ? extractDsComponents() : null;
@@ -378,19 +360,15 @@ for (const f of readdirSync(ROOT)) {
   if (f === 'produit.html') produitTemplate = out;
 }
 
-// Pages produits statiques : WooCommerce si configuré, sinon démo (jamais de
-// démo sur le domaine de production — cohérent avec data.js).
+// Pages produits statiques : uniquement le vrai catalogue WooCommerce.
 const woo = await wooProducts();
 let staticProducts;
 if (woo !== null) {
   staticProducts = woo.filter((p) => p.inStock !== false);
   console.log('Pages produits : ' + staticProducts.length + ' (catalogue WooCommerce)');
-} else if (demoOnSite) {
-  staticProducts = products.filter((p) => /^d\d+$/.test(p.id));
-  console.log('Pages produits : ' + staticProducts.length + ' (démo — hôte hors production)');
 } else {
   staticProducts = [];
-  console.log('Pages produits : 0 — domaine de production sans WooCommerce (WC_STORE_URL), la démo n\'est pas indexée.');
+  console.log('Pages produits : 0 — WC_STORE_URL non configurée.');
 }
 for (const p of staticProducts) {
   writeFileSync(join(DIST, productPath(p)), productPage(produitTemplate, p));
