@@ -30,7 +30,7 @@
 <link rel="icon" type="image/svg+xml" href="assets/brand/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="storefront2.css">
 <style>main section{opacity:1 !important}</style>
@@ -54,12 +54,12 @@
     const params = new URLSearchParams(window.location.search);
     const cat = params.get('cat') || 'all';
     const q = params.get('q') || '';
-    const game = params.get('game') || 'pokemon';
+    const game = params.get('game') || null;   // null = toute la boutique ; ?game=onepiece… filtre un jeu
     return (
       <React.Fragment>
         <a href="#lc-main" className="lc-skip">Aller au contenu principal</a>
         <Header navigate={nav} active="catalogue" onCart={() => nav('cart')} />
-        <main id="lc-main"><Catalogue navigate={nav} initialFilter={cat} initialQuery={q} initialGame={game} /></main>
+        <main id="lc-main"><Catalogue navigate={nav} initialFilter={cat} initialQuery={q} initialGame={game} initialRayon={params.get('rayon') || ''} initialSort={params.get('tri') === 'nouveau' ? 'new' : 'feat'} /></main>
         <Footer navigate={nav} />
         <Announcement />
         <ModalHost />

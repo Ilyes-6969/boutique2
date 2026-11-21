@@ -220,7 +220,7 @@ img { -webkit-user-drag: none; user-select: none; }
        l'ordre de tabulation et de l'arbre d'accessibilité (pas de CTA fantôme). */
     visibility: hidden;
     background: var(--card);
-    border-top: 1.5px solid var(--line);
+    border-top: 1px solid var(--line);
     padding: 0 0 env(safe-area-inset-bottom);
     box-shadow: var(--shadow-lg);
     transform: translateY(110%);
@@ -372,7 +372,7 @@ body.lc-scrolled header { box-shadow: 0 8px 30px rgba(0,0,0,0.14); }
 /* ---- 4. Carte gradée — traitement « slab » doré (bordure + ombre dorées) ----
    L'or code la rareté. Ombre chaude douce + fine bordure or foncé. */
 .lc-graded {
-  border: 1.5px solid var(--yellow-deep);
+  border: 1px solid var(--yellow-deep);
   box-shadow:
     0 0 0 1px rgba(224, 174, 0, 0.18),
     0 10px 30px rgba(224, 174, 0, 0.20);
@@ -445,4 +445,79 @@ body.lc-scrolled header { box-shadow: 0 8px 30px rgba(0,0,0,0.14); }
   width: 34px;
   background: var(--yellow-deep);
   border-radius: 2px;
+}
+
+/* ============================================================
+   HABILLAGE « TRAIT FIN » — refonte de novembre 2026
+   ------------------------------------------------------------
+   Page blanche, structure au trait d'un pixel, rien qui flotte.
+   Les jetons (tokens/*.css) portent l'essentiel : couleurs, angles,
+   ombres, polices. Ce bloc ajoute les grilles « pochettes », coupe les
+   effets décoratifs, et sert de filet pour les écrans pas encore repris
+   à la main (panier, commande, fiche produit, pages légales, fenêtres),
+   dont les styles sont écrits dans les composants.
+============================================================ */
+
+/* 1. EN-TÊTE */
+.lc-logo-mark { display: none; }
+.lc-searchbox input::placeholder { color: rgba(255, 255, 255, 0.62); }
+.lc-nav-link { border-radius: 0 !important; transition: color 0.12s ease; }
+.lc-nav-link:hover { background: transparent !important; color: var(--ink) !important; border-color: transparent !important; box-shadow: inset 0 -1px 0 var(--ink); }
+@media (max-width: 760px) {
+  .lc-logo-full { display: none; }
+  .lc-logo-mark { display: inline-flex; }
+  .lc-topbar-extra { display: none; }   /* l'adresse reste dans l'ouverture et le pied de page */
+}
+
+/* 2. GRILLES « POCHETTES » — les produits partagent leurs traits, comme une page de classeur */
+.lc-pockets { border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.lc-pockets > * { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); min-width: 0; }
+.lc-pocket-row { border: 1px solid var(--line); border-right: 0; }
+.lc-pocket-row > * { border-right: 1px solid var(--line); min-width: 0; }
+.lc-pocket-row::-webkit-scrollbar { display: none; }
+.lc-pockets .lc-line-in > div { border: 0 !important; border-radius: 0 !important; }
+.lc-add:not(:disabled):hover { background: var(--ink) !important; color: var(--on-ink) !important; }
+.lc-cell-link:hover { background: var(--paper-2); }
+.lc-pocket a:focus-visible, .lc-add:focus-visible, .lc-cell-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* 3. PLUS D'EFFETS DÉCORATIFS — ni apparitions au défilement, ni cartes qui se soulèvent,
+      ni halo doré. Ce qui bouge répond à un geste (ouvrir un menu, ajouter au panier). */
+.lc-reveal.lc-reveal-init { opacity: 1 !important; transform: none !important; }
+main section:not(.lc-reveal), .lc-card, .lc-hero-in > * { animation: none !important; }
+.lc-hero-kenburns { animation: none !important; }
+.lc-tile, .lc-tile:hover { transform: none !important; box-shadow: none !important; }
+.lc-tile:hover { border-color: var(--line-strong) !important; }
+.lc-graded { border: 0 !important; box-shadow: none !important; }
+.lc-stage-lux { background-image: none !important; }
+.lc-gold-rule { display: none !important; }
+
+/* 4. FILET TYPOGRAPHIQUE pour les écrans pas encore repris : plus de petites capitales
+      espacées, plus de titres très gras (les styles sont écrits dans les composants,
+      d'où le ciblage par attribut). */
+[style*="text-transform: uppercase"] { text-transform: none !important; letter-spacing: 0 !important; }
+[style*="--font-display"][style*="font-weight: 800"],
+[style*="--font-display"][style*="font-weight: 700"],
+[style*="--font-display"][style*="font-weight: 600"] { font-weight: 400 !important; }
+
+@media (max-width: 640px) {
+  .lc-pockets { grid-template-columns: 1fr 1fr !important; }   /* deux pochettes de front au téléphone */
+  .lc-pocket { padding: 10px !important; }
+}
+
+/* 5. ACCUEIL sur petit écran */
+@media (max-width: 900px) {
+  .lc-open { grid-template-columns: 1fr !important; }
+  .lc-open-text { border-right: 0 !important; padding-left: 20px !important; padding-right: 20px !important; }
+  .lc-open-visual { min-height: 230px !important; border-top: 1px solid var(--line); }
+  .lc-facts { margin-left: -20px !important; margin-right: -20px !important; grid-template-columns: 1fr !important; }
+  .lc-facts > div { border-left: 0 !important; padding: 14px 20px 16px !important; }
+  .lc-facts > div + div { border-top: 1px solid var(--line); }
+  .lc-games { grid-template-columns: 1fr 1fr !important; }
+  .lc-games > a { border-left: 0 !important; border-top: 1px solid var(--line); padding: 16px 20px 18px !important; }
+  .lc-games > a:nth-child(even) { border-left: 1px solid var(--line) !important; }
+  .lc-games > a:nth-child(-n+2) { border-top: 0; }
+  .lc-split { grid-template-columns: 1fr !important; gap: 18px !important; }
+  .lc-foot-reassure { grid-template-columns: 1fr !important; }
+  .lc-foot-reassure > div { border-left: 0 !important; padding: 14px 20px !important; }
+  .lc-foot-reassure > div + div { border-top: 1px solid rgba(255,255,255,0.14); }
 }

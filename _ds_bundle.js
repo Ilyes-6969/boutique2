@@ -39,7 +39,7 @@ function QtyStepper({
     style: {
       display: 'inline-flex',
       alignItems: 'center',
-      border: '1.5px solid var(--line-strong)',
+      border: '1px solid var(--line-strong)',
       borderRadius: 'var(--radius-sm)',
       overflow: 'hidden',
       background: 'var(--card)'
@@ -57,7 +57,7 @@ function QtyStepper({
       fontSize: 15,
       fontWeight: 600,
       fontVariantNumeric: 'tabular-nums',
-      borderInline: '1.5px solid var(--line)',
+      borderInline: '1px solid var(--line)',
       padding: '11px 4px'
     }
   }, value), /*#__PURE__*/React.createElement("button", {
@@ -86,27 +86,27 @@ function Badge({
     new: {
       background: 'var(--accent)',
       color: 'var(--on-accent)',
-      border: '1.5px solid var(--accent)'
+      border: '1px solid var(--accent)'
     },
     sale: {
       background: 'var(--ink)',
       color: 'var(--on-ink)',
-      border: '1.5px solid var(--ink)'
+      border: '1px solid var(--ink)'
     },
     graded: {
       background: 'var(--card)',
       color: 'var(--ink)',
-      border: '1.5px solid var(--line-strong)'
+      border: '1px solid var(--line-strong)'
     },
     stock: {
       background: 'var(--green-soft)',
       color: 'var(--green)',
-      border: '1.5px solid transparent'
+      border: '1px solid transparent'
     },
     oos: {
       background: 'var(--red-soft)',
       color: 'var(--red)',
-      border: '1.5px solid transparent'
+      border: '1px solid transparent'
     }
   };
   return /*#__PURE__*/React.createElement("span", _extends({
@@ -164,12 +164,12 @@ function Button({
     padding: pad,
     borderRadius: 'var(--radius-sm)',
     fontFamily: 'var(--font-body)',
-    fontWeight: 600,
+    fontWeight: 500,
     fontSize,
     lineHeight: 1.1,
-    letterSpacing: '0.01em',
+    letterSpacing: 0,
     whiteSpace: 'nowrap',
-    border: '1.5px solid transparent',
+    border: '1px solid transparent',
     transition: 'background 0.18s ease, color 0.18s ease, border-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.45 : 1
@@ -177,14 +177,12 @@ function Button({
   const variants = {
     primary: {
       background: hover && !disabled ? 'var(--ink-soft)' : 'var(--ink)',
-      color: 'var(--on-ink)',
-      transform: hover && !disabled ? 'translateY(-1px)' : 'none'
+      color: 'var(--on-ink)'
     },
     accent: {
       background: hover && !disabled ? 'var(--accent-deep)' : 'var(--accent)',
       color: 'var(--on-accent)',
-      boxShadow: hover && !disabled ? 'var(--shadow-accent)' : 'var(--shadow-xs)',
-      transform: hover && !disabled ? 'translateY(-1px)' : 'none'
+      boxShadow: 'none'
     },
     outline: {
       background: hover && !disabled ? 'var(--ink)' : 'transparent',
@@ -194,7 +192,7 @@ function Button({
     ghost: {
       background: 'transparent',
       color: 'var(--ink)',
-      borderBottom: hover && !disabled ? '1.5px solid var(--accent)' : '1.5px solid transparent',
+      borderBottom: hover && !disabled ? '1px solid var(--accent)' : '1px solid transparent',
       borderRadius: 0,
       padding: size === 'sm' ? '6px 2px' : '8px 2px'
     }
@@ -247,7 +245,7 @@ function Tag({
       transition: 'all 0.18s ease',
       background: active ? 'var(--ink)' : 'transparent',
       color: active ? 'var(--on-ink)' : 'var(--ink)',
-      border: `1.5px solid ${active ? 'var(--ink)' : hover ? 'var(--ink)' : 'var(--line-strong)'}`
+      border: `1px solid ${active ? 'var(--ink)' : hover ? 'var(--ink)' : 'var(--line-strong)'}`
     }
   }, rest), children);
 }
@@ -347,7 +345,7 @@ function ProductCard({
       display: 'flex',
       flexDirection: 'column',
       background: 'var(--card)',
-      border: '1.5px solid var(--line)',
+      border: '1px solid var(--line)',
       borderRadius: 'var(--radius)',
       overflow: 'hidden',
       transition: 'border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease',
@@ -409,7 +407,7 @@ function ProductCard({
       alignItems: 'center',
       justifyContent: 'center',
       background: 'var(--card)',
-      border: '1.5px solid var(--line)',
+      border: '1px solid var(--line)',
       fontSize: 14,
       lineHeight: 1,
       color: liked ? 'var(--accent)' : 'var(--muted)',
@@ -524,7 +522,7 @@ function ProductCard({
       fontSize: 14,
       cursor: inStock ? 'pointer' : 'not-allowed',
       transition: 'all 0.18s ease',
-      border: '1.5px solid',
+      border: '1px solid',
       borderColor: inStock ? 'var(--ink)' : 'var(--line)',
       background: !inStock ? 'transparent' : hover ? 'var(--accent)' : 'var(--ink)',
       color: !inStock ? 'var(--muted)' : hover ? 'var(--on-accent)' : 'var(--on-ink)',

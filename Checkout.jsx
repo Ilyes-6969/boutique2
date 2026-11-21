@@ -20,7 +20,7 @@ function ShipOption({ selected, onSelect, label, eta, cost, fmt }) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       aria-pressed={selected}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid', borderColor: active ? 'var(--accent)' : 'var(--line)', background: selected ? 'var(--accent-wash)' : 'var(--card)', cursor: 'pointer', textAlign: 'left', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease), background var(--dur-fast, 150ms) var(--ease-out, ease)' }}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1px solid', borderColor: active ? 'var(--accent)' : 'var(--line)', background: selected ? 'var(--accent-wash)' : 'var(--card)', cursor: 'pointer', textAlign: 'left', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease), background var(--dur-fast, 150ms) var(--ease-out, ease)' }}
     >
       <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid', borderColor: active ? 'var(--accent)' : 'var(--line-strong)', flexShrink: 0, position: 'relative', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease)' }}>{selected && <span className="lc-pop" style={{ position: 'absolute', inset: 3, borderRadius: '50%', background: 'var(--accent)' }}></span>}</span>
       <span style={{ flex: 1 }}><span style={{ fontWeight: 600, fontSize: 14, display: 'block' }}>{label}</span><span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{eta}</span></span>
@@ -100,7 +100,7 @@ function CheckoutModal({ onClose }) {
       bouclier: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>,
       retour: <React.Fragment><polyline points="1 4 1 10 7 10"></polyline><path d="M3.5 15a9 9 0 1 0 2.1-9.4L1 10"></path></React.Fragment>,
     };
-    return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>{shapes[name]}</svg>;
+    return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0 }}>{shapes[name]}</svg>;
   };
   // Mini-logos moyens de paiement monochromes (CB / Visa / Mastercard), sobres.
   const payMark = (name) => {
@@ -343,7 +343,7 @@ function CheckoutModal({ onClose }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16, color: 'var(--muted)' }}>
       <span style={{ display: 'inline-flex', gap: 6 }} aria-hidden="true">{payMark('cb')}{payMark('visa')}{payMark('mc')}</span>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-2)', fontWeight: 500 }}>
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
         Paiement 100&nbsp;% sécurisé{stripeEmbedded ? ' par Stripe' : ''}
       </span>
     </div>
@@ -384,12 +384,12 @@ function CheckoutModal({ onClose }) {
 
   const summary = (
     <div style={{ background: 'var(--paper-2)', borderRadius: 'var(--radius)', padding: '18px 18px 20px', alignSelf: 'flex-start' }}>
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Récapitulatif</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 15, marginBottom: 14 }}>Récapitulatif</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14, maxHeight: 220, overflowY: 'auto' }}>
         {items.map((l) => { const p = window.LC151.get(l.id); if (!p) return null; return (
           <div key={l.id} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 6, background: 'var(--card)', border: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              {p.image ? <img src={p.image} alt="" loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 11, color: 'var(--muted)' }}>151</span>}
+              {p.image ? <img src={p.image} alt="" loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 11, color: 'var(--muted)' }}>151</span>}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, lineHeight: 1.25, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
@@ -404,13 +404,13 @@ function CheckoutModal({ onClose }) {
         <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 7 }}>
           {freeShipRemaining > 0
             ? <span>Plus que <strong style={{ color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>{fmt(freeShipRemaining)}</strong> pour la livraison offerte</span>
-            : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 600 }}><span className="lc-pop" style={{ display: 'inline-flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Livraison offerte débloquée</span>}
+            : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 600 }}><span className="lc-pop" style={{ display: 'inline-flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Livraison offerte débloquée</span>}
         </div>
         <div className={freeShipRemaining === 0 ? 'lc-shimmer' : undefined} style={{ height: 6, borderRadius: 3, background: 'var(--card)', overflow: 'hidden' }}>
           <div style={{ width: freeShipPct + '%', height: '100%', background: freeShipRemaining === 0 ? 'var(--green)' : 'var(--accent)', transition: 'width var(--dur-normal, 300ms) var(--ease-out, ease)' }}></div>
         </div>
       </div>
-      <div style={{ borderTop: '1.5px solid var(--line)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
+      <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-2)' }}><span>Sous-total</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(subtotal)}</span></div>
         {savings > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)', fontWeight: 600 }}><span>Vous économisez</span><span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(savings)}</span></div>}
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-2)' }}><span>Livraison</span><span style={{ fontFamily: 'var(--font-mono)', color: shippingCost === 0 ? 'var(--green)' : 'var(--ink-2)', fontWeight: shippingCost === 0 ? 600 : 400 }}>{shippingCost === 0 ? 'Offerte' : fmt(shippingCost)}</span></div>
@@ -434,13 +434,13 @@ function CheckoutModal({ onClose }) {
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
       <div onClick={guardedClose} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }}></div>
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Paiement sécurisé" tabIndex={-1} style={{ position: 'relative', width: 'min(760px, 100%)', maxHeight: '92vh', overflowY: 'auto', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26, outline: 'none' }}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label="Paiement sécurisé" tabIndex={-1} style={{ position: 'relative', width: 'min(760px, 100%)', maxHeight: '92vh', overflowY: 'auto', background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26, outline: 'none' }}>
         {/* head */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, letterSpacing: '-0.02em' }}>
             {step === 'confirme' ? 'Commande confirmée' : 'Paiement sécurisé'}
           </h3>
-          <button onClick={guardedClose} aria-label="Fermer" style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer', background: 'transparent' }}>×</button>
+          <button onClick={guardedClose} aria-label="Fermer" style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer', background: 'transparent' }}>×</button>
         </div>
 
         {/* stepper — pastilles avec transition douce background/color quand l'étape avance */}
@@ -483,7 +483,7 @@ function CheckoutModal({ onClose }) {
                 rester VISIBLE (la commande est bien enregistrée pour autant). */}
             {pickupNotifyFailed && (
               <div role="alert" style={{ maxWidth: 420, margin: '0 auto 18px', textAlign: 'left', display: 'flex', gap: 10, alignItems: 'flex-start', background: 'var(--red-soft)', borderLeft: '3px solid var(--red)', borderRadius: 'var(--radius-sm)', padding: '12px 14px' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
                 <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.5 }}>Votre commande est bien enregistrée, mais nous n’avons pas pu nous notifier automatiquement — merci de contacter la boutique pour confirmer votre retrait.</div>
               </div>
             )}
@@ -523,7 +523,7 @@ function CheckoutModal({ onClose }) {
               ) : (
                 <React.Fragment>
                   {ship.method === 'pickup' ? (
-                    <div style={{ padding: '20px', background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
+                    <div style={{ padding: '20px', background: 'var(--accent-wash)', border: '1px solid var(--accent-soft)', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
                       Vous avez choisi le <strong>retrait en boutique</strong> à Vienne. Vous réglerez sur place — aucune carte requise maintenant.
                     </div>
                   ) : stripeEmbedded ? (
@@ -556,7 +556,7 @@ function CheckoutModal({ onClose }) {
                   <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
                     {DS.Button
                       ? <DS.Button variant="outline" size="lg" iconLeft="←" onClick={() => { setErrors({}); setStep('livraison'); }}>Retour</DS.Button>
-                      : <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>}
+                      : <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>}
                     {/* flex:1 porté par le wrapper — ne pas passer `style` à DS.Button
                         (son `style` calculé serait écrasé par le prop `rest`). */}
                     {DS.Button

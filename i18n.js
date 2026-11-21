@@ -15,7 +15,7 @@
       f_displays: 'Displays scellés', f_preorders: 'Précommandes',
       f_boutique: 'La boutique', f_auth: 'Authentification', f_about: 'À propos', f_news: 'Actualités', f_events: 'Évènements',
       f_orders: 'Mes commandes', f_addresses: 'Mes adresses', f_alerts: 'Mes alertes',
-      f_desc: 'La boutique des collectionneurs Pokémon, à Vienne. On déniche, on authentifie et on conseille.',
+      f_desc: 'La boutique TCG de Vienne : cartes à collectionner, mangas et objets de collection. On déniche, on authentifie et on conseille.',
       f_copyright: '© 2026 CLUB 151. Tous droits réservés.',
       f_cookies: 'Utilisation des cookies', f_terms: "Conditions d'utilisation", f_privacy: 'Politique de confidentialité',
       f_soon: 'Disponible prochainement',

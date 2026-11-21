@@ -1,22 +1,6 @@
-/* CLUB 151 — Accueil. Works with an EMPTY catalogue (no demo products).
-   When products are added (via WordPress/WooCommerce or the back-office),
-   the rayons appear automatically. */
-
-/* Icônes de réassurance en SVG (trait currentColor, même style que Chrome.jsx) :
-   rendu identique sur tous les OS, contrairement aux glyphes texte (✓ ⤓ ↺ ◈). */
-function ReassureIcon({ name, size = 17 }) {
-  const shapes = {
-    check: <polyline points="20 6 9 17 4 12"></polyline>,
-    truck: <React.Fragment><rect x="1" y="3" width="15" height="13" rx="1"></rect><path d="M16 8h4l3 3v5h-7V8z"></path><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></React.Fragment>,
-    retour: <React.Fragment><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></React.Fragment>,
-    bouclier: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>,
-  };
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {shapes[name]}
-    </svg>
-  );
-}
+/* CLUB 151 — Accueil (refonte nov. 2026 : le magasin d'abord, entrée par jeu,
+   rangées de produits réels). Fonctionne aussi avec un catalogue VIDE : les
+   rangées laissent alors la place à un message, sans faux produit. */
 
 function Home({ navigate }) {
   const DS = window.ADITCGDesignSystem_df75b7;
@@ -28,205 +12,199 @@ function Home({ navigate }) {
   const has = all.length > 0;
   const by = (t) => all.filter((p) => p.type === t);
   const preorders = all.filter((p) => p.preorder);
-  const nouveautes = [...new Map(all.filter((p) => (p.badge && p.badge.tone === 'new') || p.type === 'sealed').map((p) => [p.id, p])).values()].slice(0, 8);
-  const ventes = [...new Map(['d1', 'd4', 'd5', 'd3', 'd6', 'd8'].map((id) => Store.get(id)).filter(Boolean).map((p) => [p.id, p])).values()];
-  const ventesFill = ventes.length ? ventes : all.slice(0, 8);
+  // Coordonnées du magasin : source unique (data.js → LC151.SHOP).
+  const SHOP = (window.LC151 && window.LC151.SHOP) || {};
+  const shopAddr = SHOP.street ? SHOP.street + '\n' + SHOP.zip + ' ' + SHOP.city : 'Vienne (38200)';
+  const shopHours = (SHOP.hours || []).map(([d, h]) => d + ' · ' + h).join('\n');
+  const instagram = ((SHOP.socials || []).find(([n]) => n === 'Instagram') || [])[1] || '';
+  // Carte : cadrage serré autour de la boutique (±0,004° de longitude).
+  const geo = SHOP.geo || { lat: 45.5256, lon: 4.8745 };
+  const mapSrc = 'https://www.openstreetmap.org/export/embed.html?bbox='
+    + [geo.lon - 0.004, geo.lat - 0.0025, geo.lon + 0.004, geo.lat + 0.0025].map((n) => n.toFixed(5)).join('%2C')
+    + '&layer=mapnik&marker=' + geo.lat.toFixed(5) + '%2C' + geo.lon.toFixed(5);
 
-  // RÉVEILS AU SCROLL des sections .lc-reveal — variante « jamais caché » :
-  // l'état masqué (.lc-reveal-init, voir storefront2.css) n'est posé que par CE
-  // code, juste avant l'observation. Sans JS, sans IntersectionObserver ou en
-  // reduced-motion, rien n'est jamais caché. Les sections déjà dans le viewport
-  // au chargement restent visibles telles quelles (zéro flash). Dépend de `has` :
-  // le bloc des rayons monte quand le catalogue arrive (souvent APRÈS le mount).
+  // ---------- REFONTE : accueil « boutique » ----------
+  // Bannière : les photos du magasin (LC151.SHOP.photos) quand il y en a,
+  // sinon le visuel de cartes. Plusieurs photos = diaporama (5 s, pause au survol).
+  const heroImgs = (SHOP.photos && SHOP.photos.length) ? SHOP.photos : ['assets/hero-cards.webp'];
+  const [slide, setSlide] = React.useState(0);
+  const [paused, setPaused] = React.useState(false);
   React.useEffect(() => {
-    if (typeof IntersectionObserver === 'undefined') return undefined;
-    const mq = (q) => { try { return !!(window.matchMedia && window.matchMedia(q).matches); } catch (e) { return false; } };
-    if (mq('(prefers-reduced-motion: reduce)')) return undefined;
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('in');       // une seule fois, puis on lâche
-        io.unobserve(entry.target);
-      });
-    }, { threshold: 0.15 });
-    document.querySelectorAll('.lc-reveal:not(.in)').forEach((el) => {
-      if (!el.classList.contains('lc-reveal-init')) {
-        const r = el.getBoundingClientRect();
-        if (r.top < window.innerHeight && r.bottom > 0) return; // déjà visible → on ne cache pas
-        el.classList.add('lc-reveal-init');
-      }
-      io.observe(el);
-    });
-    return () => io.disconnect();
-  }, [has]);
+    if (heroImgs.length < 2 || paused) return undefined;
+    const id = setInterval(() => setSlide((n) => (n + 1) % heroImgs.length), 5000);
+    return () => clearInterval(id);
+  }, [heroImgs.length, paused]);
+
+  const GAMES = (window.LC151 && window.LC151.GAMES) || {};
+  const gameUrl = (window.LC151 && window.LC151.gameUrl) || ((g) => '/boutique.html?game=' + g);
+  const countGame = (g) => all.filter((p) => p.game === g).length;
+  const OTHER_GAMES = ['riftbound', 'naruto', 'dragonball', 'kayou', 'rise'];
+  const othersCount = OTHER_GAMES.reduce((n, g) => n + countGame(g), 0);
+  // Tuile « Autres TCG » : mène au plus fourni de ces jeux (le menu liste les autres).
+  const bestOther = OTHER_GAMES.map((g) => [g, countGame(g)]).sort((a, b) => b[1] - a[1])[0];
+  const otherUrl = bestOther && bestOther[1] ? gameUrl(bestOther[0]) : '/boutique.html';
+  const wpNum = (p) => parseInt(String(p.id).replace(/\D/g, ''), 10) || 0;
+  const top = (list, n) => list.slice(0, n || 12);
+  const byPrice = (list) => [...list].sort((a, b) => b.price - a.price);
+  // Rangées de l'accueil — uniquement des produits réels du catalogue.
+  const rowNew = top([...all].sort((a, b) => wpNum(b) - wpNum(a)));
+  const rowSealed = top(byPrice(by('sealed')).filter((p) => p.price >= 20));
+  const rowBoosters = top(all.filter((p) => p.type === 'sealed' && /booster|blister/i.test(p.cat || '')).sort((a, b) => a.price - b.price));
+  const rowSingles = top(byPrice(by('single')));
+  const rowGraded = top(byPrice(by('graded')));
+  const rowGoodies = top(byPrice(by('goodies')));
+  // ---------- HABILLAGE « TRAIT FIN » ----------
+  // La page est blanche ; ce sont des traits d'un pixel qui la structurent, comme
+  // les pochettes d'un classeur. Chaque trait sépare deux choses réelles (deux
+  // rayons, deux infos, deux produits) — aucun n'est décoratif. Titres en Poppins
+  // léger, pas de sur-titres en capitales, pas de flèches, pas d'animation.
+  const line = '1px solid var(--line)';
+  const h2 = { fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 'clamp(22px, 2.6vw, 30px)', letterSpacing: '-0.02em', lineHeight: 1.15 };
+  const link = { fontSize: 14.5, fontWeight: 500, color: 'var(--ink)', textDecoration: 'underline', textUnderlineOffset: 4, textDecorationThickness: 1 };
+  const factLabel = { fontSize: 12.5, color: 'var(--muted)', marginBottom: 4 };
+  const factValue = { fontSize: 15, fontWeight: 500, lineHeight: 1.45, whiteSpace: 'pre-line' };
+  const games = [['pokemon', 'Pokémon'], ['onepiece', 'One Piece'], ['lorcana', 'Lorcana'], ['magic', 'Magic'], ['yugioh', 'Yu-Gi-Oh!'], [null, 'Autres TCG']];
+  const facts = [
+    ['Adresse', shopAddr],
+    ...(shopHours ? [['Horaires', shopHours.replace(/ · /g, ' : ') + '\nFermé le lundi']] : []),
+    ...((SHOP.phone || '').trim() ? [['Téléphone', SHOP.phone]] : []),
+  ];
 
   return (
     <div>
-      {/* HERO */}
-      <section style={{ position: 'relative', overflow: 'hidden', borderBottom: '1.5px solid var(--line)', background: 'var(--paper)' }}>
-        {/* real graded-cards photo, desaturated + faded into the page */}
-        <div className="lc-hero-kenburns" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(assets/hero-cards.webp)', backgroundSize: 'cover', backgroundPosition: 'center right', opacity: 0.9, pointerEvents: 'none', transformOrigin: 'center' }}></div>
-        {/* gradient scrim: solid paper on the left → transparent on the right, plus a bottom fade */}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, var(--paper) 0%, var(--paper) 28%, rgba(0,0,0,0) 78%)', pointerEvents: 'none' }}></div>
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(0deg, var(--paper) 0%, rgba(0,0,0,0) 42%)', pointerEvents: 'none' }}></div>
-
-        <div className="container-wide" style={{ position: 'relative', padding: '76px 24px 80px', minHeight: 420 }}>
-          <div className="lc-hero-in" style={{ maxWidth: 560 }}>
-            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(34px, 5vw, 66px)', letterSpacing: '-0.03em', lineHeight: 1.02, marginBottom: 20 }}>
-              Votre boutique<br />Pokémon, à <span style={{ position: 'relative', whiteSpace: 'nowrap', borderBottom: '5px solid var(--yellow)', paddingBottom: 2 }}>Vienne</span>.
+      {/* 1. OUVERTURE — le magasin : un titre, la fiche (adresse, horaires, téléphone), le visuel */}
+      <section style={{ borderBottom: line }}>
+        <div className="container-wide lc-open" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 0.95fr)', gap: 0, padding: 0 }}>
+          <div className="lc-open-text" style={{ padding: '56px 48px 0 24px', display: 'flex', flexDirection: 'column', borderRight: line }}>
+            <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 'clamp(33px, 4vw, 54px)', letterSpacing: '-0.035em', lineHeight: 1.08, marginBottom: 20 }}>
+              Cartes à collectionner,<br />à Vienne.
             </h1>
-            <p style={{ fontSize: 17.5, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 480, marginBottom: 30 }}>
-              On déniche, on authentifie et on conseille — du Set de Base aux dernières sorties. Cartes à l'unité, pièces gradées, scellé et accessoires, à retirer en magasin ou livrés chez vous.
+            <p style={{ fontSize: 17, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 500, marginBottom: 28 }}>
+              Pokémon, One Piece, Lorcana, Magic, Yu-Gi-Oh! À voir en magasin, à retirer sur place ou livré chez vous.
             </p>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 28 }}>
-              <DS.Button variant="accent" size="lg" as="a" href="boutique.html" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'all'); }}>Explorer la boutique</DS.Button>
-              <DS.Button variant="outline" size="lg" as="a" href="boutique.html?cat=graded" onClick={(e) => { e.preventDefault(); navigate('catalogue', 'graded'); }}>Cartes gradées</DS.Button>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 44 }}>
+              <DS.Button variant="primary" size="lg" as="a" href={has ? '/boutique.html?tri=nouveau' : '/boutique.html'}>{has ? 'Voir les nouveautés' : 'Voir la boutique'}</DS.Button>
+              <DS.Button variant="outline" size="lg" as="a" href="#la-boutique">Venir au magasin</DS.Button>
             </div>
-            {/* Le trio de gages du hero a été retiré : il doublonnait la section
-                dédiée plus bas et le bandeau du haut (« Livraison offerte ·
-                Authentification garantie »). Un seul rappel fort vaut mieux que
-                trois — la répétition est un tic de template. */}
+            {/* la fiche du magasin : trois colonnes séparées par un trait */}
+            <div className="lc-facts" style={{ marginTop: 'auto', display: 'grid', gridTemplateColumns: 'repeat(' + facts.length + ', 1fr)', borderTop: line, marginLeft: -24, marginRight: -48 }}>
+              {facts.map(([k, v], n) => (
+                <div key={k} style={{ padding: '18px 24px 22px', borderLeft: n ? line : 'none' }}>
+                  <div style={factLabel}>{k}</div>
+                  <div style={factValue}>{v}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="lc-open-visual" style={{ position: 'relative', minHeight: 460, background: 'var(--paper-2)', overflow: 'hidden' }}
+            onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+            {heroImgs.map((src, k) => (
+              <div key={src} aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(' + src + ')', backgroundSize: 'cover', backgroundPosition: 'center', opacity: k === slide ? 1 : 0, transition: 'opacity 0.6s ease' }}></div>
+            ))}
+            {heroImgs.length > 1 && (
+              <div style={{ position: 'absolute', left: 0, right: 0, bottom: 14, display: 'flex', justifyContent: 'center', gap: 6 }}>
+                {heroImgs.map((src, k) => (
+                  <button key={src} type="button" aria-label={'Photo ' + (k + 1) + ' sur ' + heroImgs.length} aria-current={k === slide ? 'true' : undefined} onClick={() => setSlide(k)}
+                    style={{ width: 22, height: 2, background: k === slide ? '#fff' : 'rgba(255,255,255,0.5)' }}></button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      {/* NOS UNIVERS (jeux TCG) — tuiles éditoriales hautes : lettre-logo géante
-          en filigrane, fond légèrement teinté de la couleur du jeu, respiration. */}
-      <section className="container-wide lc-reveal" style={{ padding: '48px 24px 8px' }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Nos univers</div>
-          <div className="lc-gold-rule" style={{ marginBottom: 14 }}></div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(30px, 3.4vw, 38px)', letterSpacing: '-0.025em', lineHeight: 1.04 }}>Tous vos jeux de cartes</h2>
-        </div>
-        <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16 }}>
-          {[['Pokémon', 'boutique.html', '#FFCB05', 'Le cœur de la boutique', false, 'P'], ['Disney Lorcana', 'lorcana.html', '#1E63C8', 'Singles & chapitres', true, 'L'], ['One Piece', 'one-piece.html', '#D8232A', 'Romance Dawn & +', true, 'O'], ['Magic', 'magic.html', '#E08A2B', 'The Gathering', true, 'M'], ['Yu-Gi-Oh!', 'yugioh.html', '#6A3FB5', 'Cartes & coffrets', true, 'Y']].map(([t, href, color, sub, soon, initial]) => (
-            <a key={href} href={href} className="lc-tile"
-              style={{ position: 'relative', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '22px 20px 20px', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 176, overflow: 'hidden' }}>
-              {/* voile teinté de la couleur du jeu, très bas */}
-              <span aria-hidden="true" style={{ position: 'absolute', inset: 0, background: color, opacity: 0.05, pointerEvents: 'none' }}></span>
-              {/* lettre-logo géante en filigrane, débordant en bas à droite */}
-              <span aria-hidden="true" style={{ position: 'absolute', right: -10, bottom: -30, fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 130, lineHeight: 1, color: color, opacity: 0.1, letterSpacing: '-0.04em', pointerEvents: 'none', userSelect: 'none' }}>{initial}</span>
-              <span style={{ position: 'absolute', top: 0, left: 0, width: 4, height: '100%', background: color }}></span>
-              <span style={{ position: 'relative', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 19, letterSpacing: '-0.01em' }}>{t}</span>
-              <span style={{ position: 'relative', fontSize: 12.5, color: 'var(--ink-2)' }}>{sub}</span>
-              <span style={{ position: 'relative', marginTop: 'auto', paddingTop: 10, fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: soon ? 'var(--muted)' : 'var(--accent)', fontWeight: 600 }}>{soon ? 'Bientôt disponible' : 'Explorer →'}</span>
-            </a>
-          ))}
+      {/* 2. LES JEUX — une rangée réglée : le nom, et ce qu'il y a réellement en ligne */}
+      <section style={{ borderBottom: line }}>
+        <div className="container-wide lc-games" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', padding: 0 }}>
+          {games.map(([g, label], n) => {
+            const count = g ? countGame(g) : othersCount;
+            return (
+              <a key={label} href={g ? gameUrl(g) : otherUrl} className="lc-cell-link" style={{ padding: '22px 24px 24px', borderLeft: n ? line : 'none', display: 'block' }}>
+                <span style={{ display: 'block', fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 20, letterSpacing: '-0.01em', color: 'var(--ink)' }}>{label}</span>
+                <span style={{ display: 'block', fontSize: 13.5, color: 'var(--muted)', marginTop: 3, fontVariantNumeric: 'tabular-nums' }}>{count ? count + ' produit' + (count > 1 ? 's' : '') : 'bientôt en ligne'}</span>
+              </a>
+            );
+          })}
         </div>
       </section>
 
-      {/* CATÉGORIES — plus compactes/discrètes que « Nos univers » : filet fin à
-          gauche, sous-titre, un rayon = une ligne. Header propre (eyebrow + titre). */}
-      <section className="container-wide lc-reveal" style={{ padding: '44px 24px 8px' }}>
-        <div style={{ marginBottom: 18 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 10 }}>Par rayon</div>
-          <div className="lc-gold-rule" style={{ marginBottom: 12 }}></div>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(26px, 2.8vw, 32px)', letterSpacing: '-0.02em', lineHeight: 1.05 }}>Trouvez ce que vous cherchez</h2>
-        </div>
-        <div className="lc-cat-tiles" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-          {[["Cartes à l'unité", 'single', 'Du Set de Base à aujourd’hui'], ['Cartes gradées', 'graded', 'PSA · BGS authentifiées'], ['Scellé', 'sealed', 'Displays · ETB · coffrets'], ['Accessoires', 'accessory', 'Sleeves · classeurs · tapis']].map(([t, key, sub]) => (
-            <a key={key} href={'boutique.html?cat=' + key} onClick={(e) => { e.preventDefault(); navigate('catalogue', key); }} className="lc-tile"
-              style={{ position: 'relative', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', padding: '16px 18px 15px 20px', display: 'flex', flexDirection: 'column', gap: 3, overflow: 'hidden' }}>
-              <span aria-hidden="true" style={{ position: 'absolute', top: 0, left: 0, width: 3, height: '100%', background: key === 'graded' ? 'var(--yellow-deep)' : 'var(--line-strong)' }}></span>
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>{t}</span>
-              <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{sub}</span>
-              <span style={{ marginTop: 7, fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 600 }}>Découvrir →</span>
-            </a>
-          ))}
-        </div>
-      </section>
-
-      {/* RAYONS (only when products exist) or EMPTY STATE */}
+      {/* 3. LES RANGÉES DE PRODUITS (catalogue réel) ou l'état vide */}
       {has ? (
-        <div className="container-wide lc-reveal" style={{ padding: '40px 24px', display: 'flex', flexDirection: 'column', gap: 48 }}>
-          <ProductRow eyebrow="Tout juste arrivé" title="Nouveautés" products={nouveautes} navigate={navigate} onSeeAll={() => navigate('catalogue', 'all')} />
-          <ProductRow eyebrow="Réservez les prochaines sorties" title="Précommandes" products={preorders} navigate={navigate} onSeeAll={() => navigate('catalogue', 'preorder')} />
-          <ProductRow eyebrow="Les préférées des collectionneurs" title="Meilleures ventes" products={ventesFill} navigate={navigate} onSeeAll={() => navigate('catalogue', 'all')} />
+        <div className="container-wide" style={{ padding: '44px 24px 56px', display: 'flex', flexDirection: 'column', gap: 52 }}>
+          <ProductRow title="Nouveautés" products={rowNew} navigate={navigate} onSeeAll={() => { window.location.href = '/boutique.html?tri=nouveau'; }} />
+          <ProductRow title="Précommandes" products={preorders} navigate={navigate} onSeeAll={() => navigate('catalogue', 'preorder')} />
+          <ProductRow title="Displays, ETB et coffrets" products={rowSealed} navigate={navigate} onSeeAll={() => navigate('catalogue', 'sealed')} />
+          <ProductRow title="Boosters et blisters" products={rowBoosters} navigate={navigate} onSeeAll={() => navigate('catalogue', 'sealed')} />
+          <ProductRow title="Cartes à l'unité" products={rowSingles} navigate={navigate} onSeeAll={() => navigate('catalogue', 'single')} />
+          <ProductRow title="Cartes gradées" products={rowGraded} navigate={navigate} onSeeAll={() => navigate('catalogue', 'graded')} />
+          <ProductRow title="Figurines, peluches et goodies" products={rowGoodies} navigate={navigate} onSeeAll={() => navigate('catalogue', 'goodies')} />
         </div>
       ) : (
-        <section className="container-wide lc-reveal" style={{ padding: '56px 24px 64px' }}>
-          <div style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: '48px 32px', textAlign: 'center', maxWidth: 720, margin: '0 auto' }}>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 30, letterSpacing: '-0.02em', marginBottom: 12 }}>On garnit les rayons</h2>
-            <p style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 500, margin: '0 auto 24px' }}>
-              La boutique en ligne ouvre très bientôt. En attendant, passez nous voir rue de la Juiverie — ou dites-nous la carte que vous cherchez, on l'a souvent en réserve.
-            </p>
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <DS.Button variant="accent" type="button" onClick={() => openModal('contact')}>Nous écrire</DS.Button>
-              <DS.Button variant="outline" type="button" onClick={() => openModal('newsletter')}>Prévenez-moi du lancement</DS.Button>
-            </div>
+        <section className="container-wide" style={{ padding: '56px 24px 64px' }}>
+          <h2 style={{ ...h2, marginBottom: 12 }}>Le catalogue en ligne arrive</h2>
+          <p style={{ fontSize: 16, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 560, marginBottom: 22 }}>
+            En attendant, tout se passe en magasin{SHOP.street ? ', au ' + SHOP.street : ''}. Vous cherchez une carte précise ? Écrivez-nous, on regarde si on l'a.
+          </p>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <DS.Button variant="primary" type="button" onClick={() => openModal('contact')}>Nous écrire</DS.Button>
+            <DS.Button variant="outline" type="button" onClick={() => openModal('newsletter')}>Être prévenu de la mise en ligne</DS.Button>
           </div>
         </section>
       )}
 
-      {/* NOTRE BOUTIQUE À VIENNE */}
-      <section className="container-wide lc-reveal" style={{ padding: '8px 24px 16px' }}>
-        <div className="lc-shop-grid lc-tile" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: 0, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1.5px solid var(--line)', background: 'var(--card)' }}>
-          <div style={{ padding: '36px 36px 38px' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 12 }}><Pokeball size={14} tone="brand" />Boutique physique</div>
-            <div className="lc-gold-rule" style={{ marginBottom: 14 }}></div>
-            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(28px, 3vw, 34px)', letterSpacing: '-0.02em', lineHeight: 1.05, marginBottom: 12 }}>Retrouvez-nous à Vienne</h2>
-            <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 440, marginBottom: 22 }}>
-              Poussez la porte de la boutique pour voir les pièces en vrai, faire estimer vos cartes ou retirer une commande. On adore parler collection.
+      {/* 4. TOURNOIS — une ligne, entre deux traits */}
+      <section id="evenements" style={{ borderTop: line, borderBottom: line, scrollMarginTop: 140 }}>
+        <div className="container-wide lc-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 32, padding: '34px 24px' }}>
+          <div>
+            <h2 style={{ ...h2, marginBottom: 8 }}>Des tournois chaque semaine, en magasin</h2>
+            <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 560 }}>
+              Le programme (jeu, date, inscription) est annoncé sur notre Instagram.
             </p>
-            <div className="lc-addr-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, marginBottom: 24 }}>
-              {/* Le téléphone vient de LC151.SHOP (source unique) et n'apparaît que
-                  s'il est renseigné : mieux vaut aucun numéro qu'un faux numéro. */}
-              {[
-                ['Adresse', 'Rue de la Juiverie\n38200 Vienne'],
-                ['Horaires', 'Mar–Sam · 10h–19h\nDimanche · 14h–18h'],
-                ...((((window.LC151 || {}).SHOP || {}).phone || '').trim()
-                  ? [['Téléphone', window.LC151.SHOP.phone]] : []),
-                ['Services', 'Estimation · Retrait\nAchat de collections'],
-              ].map(([k, v]) => (
-                <div key={k}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 5 }}>{k}</div>
-                  <div style={{ fontSize: 14.5, fontWeight: 500, lineHeight: 1.45, whiteSpace: 'pre-line' }}>{v}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <DS.Button variant="accent" onClick={() => openModal('contact')}>Nous contacter</DS.Button>
-              <DS.Button variant="outline" as="a" href="https://maps.google.com/?q=Rue+de+la+Juiverie+Vienne" target="_blank">Itinéraire →</DS.Button>
-            </div>
           </div>
-          <div style={{ position: 'relative', background: 'var(--header-bg)', minHeight: 340, overflow: 'hidden' }}>
-            {/* Carte OpenStreetMap (sans cookie, sans clé). Centrée sur Vienne (38).
-                ⚠️ Pour pointer l'adresse exacte de la boutique, ajuste les coordonnées
-                « marker » (lat,lon) et le « bbox » ci-dessous. */}
-            <iframe
-              title="Carte — CLUB 151 à Vienne"
-              src="https://www.openstreetmap.org/export/embed.html?bbox=4.855%2C45.512%2C4.895%2C45.540&layer=mapnik&marker=45.5256%2C4.8745"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
-            ></iframe>
-            {/* Cartouche adresse en surimpression */}
-            <div style={{ position: 'absolute', left: 16, bottom: 16, background: 'var(--card)', borderRadius: 'var(--radius-sm)', padding: '10px 14px', boxShadow: 'var(--shadow-lg)', display: 'flex', alignItems: 'center', gap: 9, maxWidth: 'calc(100% - 32px)' }}>
-              <Pokeball size={20} tone="brand" />
-              <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontStyle: 'italic', fontSize: 16 }}>leclub<span style={{ color: 'var(--accent)' }}>151</span></span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>Vienne · 38</span>
-            </div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {instagram && <DS.Button variant="outline" as="a" href={instagram} target="_blank" rel="noopener noreferrer">Voir le programme</DS.Button>}
           </div>
         </div>
       </section>
 
-      {/* BANDE FINALE — Pokéball géante en filigrane (débordante, masquée par
-          overflow), eyebrow + filet or, sous-titre. Marque sans surcharger. */}
-      <section className="lc-reveal" style={{ position: 'relative', background: 'var(--ink)', color: 'var(--on-ink)', overflow: 'hidden' }}>
-        {/* Pokéball géante en filigrane, débordant à droite, très basse opacité */}
-        <div aria-hidden="true" style={{ position: 'absolute', right: -70, top: '50%', transform: 'translateY(-50%)', opacity: 0.06, pointerEvents: 'none', filter: 'grayscale(1)' }}>
-          <Pokeball size={300} />
-        </div>
-        <div className="container-wide" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 28, padding: '52px 24px', flexWrap: 'wrap' }}>
-          <div style={{ maxWidth: 560 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--yellow)', marginBottom: 10 }}>Rue de la Juiverie · Vienne</div>
-            <div className="lc-gold-rule" style={{ marginBottom: 16 }}></div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(28px, 3.4vw, 38px)', letterSpacing: '-0.025em', lineHeight: 1.05, marginBottom: 12 }}>Passez nous voir — on adore parler cartes</div>
-            <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--on-ink)', opacity: 0.82, maxWidth: 480 }}>
-              Un doute sur une carte, une collection à faire estimer, ou juste l'envie de fouiner : la porte est ouverte du mardi au samedi.
+      {/* 5. LE MAGASIN — la fiche complète à gauche, la carte à droite */}
+      <section id="la-boutique" style={{ borderBottom: line, scrollMarginTop: 140 }}>
+        <div className="container-wide lc-open" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 0.95fr)', padding: 0 }}>
+          <div className="lc-open-text" style={{ padding: '44px 48px 44px 24px', borderRight: line }}>
+            <h2 style={{ ...h2, marginBottom: 10 }}>Le magasin</h2>
+            <p style={{ fontSize: 15.5, lineHeight: 1.6, color: 'var(--ink-2)', maxWidth: 460, marginBottom: 26 }}>
+              Voir les pièces en vrai, faire estimer ou racheter vos cartes, jouer un tournoi, retirer une commande.
             </p>
+            <dl style={{ margin: '0 0 28px', borderTop: line }}>
+              {[...facts, ['Sur place', 'Rachat et estimation de cartes\nTournois chaque semaine\nRetrait des commandes passées en ligne']].map(([k, v]) => (
+                <div key={k} style={{ display: 'grid', gridTemplateColumns: '120px minmax(0, 1fr)', gap: 16, padding: '13px 0', borderBottom: line }}>
+                  <dt style={{ fontSize: 13.5, color: 'var(--muted)' }}>{k}</dt>
+                  <dd style={{ margin: 0, fontSize: 15, fontWeight: 500, lineHeight: 1.5, whiteSpace: 'pre-line' }}>{v}</dd>
+                </div>
+              ))}
+            </dl>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <DS.Button variant="primary" as="a" href={SHOP.mapsUrl || 'https://www.google.com/maps/search/?api=1&query=Club151+Vienne'} target="_blank" rel="noopener noreferrer">Itinéraire</DS.Button>
+              <DS.Button variant="outline" onClick={() => openModal('contact')}>Nous écrire</DS.Button>
+            </div>
           </div>
-          <DS.Button className="lc-press" variant="accent" size="lg" type="button" onClick={() => openModal('contact')}>Nous trouver</DS.Button>
+          <div style={{ position: 'relative', minHeight: 360, background: 'var(--paper-2)' }}>
+            {/* Carte OpenStreetMap (sans cookie, sans clé), centrée sur le magasin :
+                coordonnées dans data.js (LC151.SHOP.geo). */}
+            <iframe title={'Carte : CLUB 151, ' + (SHOP.street || 'Vienne')} src={mapSrc} loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}></iframe>
+          </div>
+        </div>
+      </section>
+
+      {/* 6. LETTRE D'INFORMATION */}
+      <section>
+        <div className="container-wide lc-split" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 32, padding: '34px 24px 40px' }}>
+          <div>
+            <h2 style={{ ...h2, marginBottom: 6 }}>Les arrivages par e-mail</h2>
+            <p style={{ fontSize: 15.5, color: 'var(--ink-2)' }}>Nouvelles sorties, précommandes et dates de tournois.</p>
+          </div>
+          <DS.Button variant="outline" type="button" onClick={() => openModal('newsletter')}>S'inscrire</DS.Button>
         </div>
       </section>
 

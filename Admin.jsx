@@ -185,7 +185,7 @@ function AdminApp() {
       <div style={{ height: 34, background: WP.darker, color: '#c3c4c7', display: 'flex', alignItems: 'center', paddingInline: 12, fontSize: 13, gap: 16, position: 'sticky', top: 0, zIndex: 60 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7 }}>
           <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 1, fontWeight: 700 }}>
-            <span style={{ color: '#fff' }}>leclub</span><span style={{ background: '#fff', color: '#161412', padding: '0 4px', borderRadius: 2 }}>151</span>
+            <span style={{ color: '#fff' }}>CLUB&nbsp;</span><span style={{ background: '#fff', color: '#161412', padding: '0 4px', borderRadius: 2 }}>151</span>
           </span>
         </span>
         <a href="index.html" style={{ color: '#c3c4c7', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}>⌂ Voir le site</a>

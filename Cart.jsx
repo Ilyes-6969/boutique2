@@ -90,11 +90,11 @@ function CartDrawer({ open, onClose, navigate }) {
       {/* scrim */}
       <div onClick={onClose} style={{ position: 'absolute', inset: 0, background: 'rgba(26,23,20,0.45)', opacity: open ? 1 : 0, transition: 'opacity 0.3s ease' }}></div>
       {/* panel */}
-      <aside ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Votre panier" aria-hidden={!open} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 'min(440px, 100%)', background: 'var(--paper)', borderLeft: '1.5px solid var(--line)', boxShadow: 'var(--shadow-lg)', transform: open ? 'translateX(0)' : 'translateX(100%)', visibility: open ? 'visible' : 'hidden', transition: 'transform 0.32s cubic-bezier(0.2,0.8,0.2,1), visibility 0.32s', display: 'flex', flexDirection: 'column', outline: 'none' }}>
+      <aside ref={panelRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Votre panier" aria-hidden={!open} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 'min(440px, 100%)', background: 'var(--paper)', borderLeft: '1px solid var(--line)', boxShadow: 'var(--shadow-lg)', transform: open ? 'translateX(0)' : 'translateX(100%)', visibility: open ? 'visible' : 'hidden', transition: 'transform 0.32s cubic-bezier(0.2,0.8,0.2,1), visibility 0.32s', display: 'flex', flexDirection: 'column', outline: 'none' }}>
         {/* head */}
-        <div style={{ padding: '20px 22px', borderBottom: '1.5px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19 }}>Votre panier <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 14 }}>({cart.count()})</span></div>
-          <button onClick={onClose} aria-label="Fermer" style={{ width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', fontSize: 16, color: 'var(--ink)' }}>×</button>
+        <div style={{ padding: '20px 22px', borderBottom: '1px solid var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 19 }}>Votre panier <span style={{ color: 'var(--muted)', fontFamily: 'var(--font-mono)', fontSize: 14 }}>({cart.count()})</span></div>
+          <button onClick={onClose} aria-label="Fermer" style={{ width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', fontSize: 16, color: 'var(--ink)' }}>×</button>
         </div>
 
         {items.length === 0 ? (
@@ -106,7 +106,7 @@ function CartDrawer({ open, onClose, navigate }) {
         ) : (
           <React.Fragment>
             {/* free-ship progress */}
-            <div style={{ padding: '16px 22px', borderBottom: '1.5px solid var(--line)' }}>
+            <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--line)' }}>
               <div style={{ fontSize: 13, color: 'var(--ink-2)', marginBottom: 8 }}>
                 {remaining > 0
                   ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour la livraison offerte</span>
@@ -125,16 +125,16 @@ function CartDrawer({ open, onClose, navigate }) {
                 const p = window.LC151.get(line.id);
                 if (!p) return null;   // stale line — Cart.reconcile() prunes it; never crash
                 return (
-                  <div key={line.id} className="lc-line-in" style={{ animationDelay: (i * 0.05) + 's', display: 'flex', gap: 14, padding: '16px 0', borderBottom: '1.5px solid var(--line)' }}>
+                  <div key={line.id} className="lc-line-in" style={{ animationDelay: (i * 0.05) + 's', display: 'flex', gap: 14, padding: '16px 0', borderBottom: '1px solid var(--line)' }}>
                     <div style={{ width: 64, height: 64, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', boxShadow: 'var(--shadow-xs)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, overflow: 'hidden' }}>
-                      {(p.thumb || p.image) ? <img src={p.thumb || p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
+                      {(p.thumb || p.image) ? <img src={p.thumb || p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 400, color: 'var(--muted)' }}>151</span>}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5, lineHeight: 1.25 }}>{p.name}</div>
+                      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 14.5, lineHeight: 1.25 }}>{p.name}</div>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '3px 0 8px' }}>{p.num}</div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         {window.LC151.Cart.isUnique(line.id)
-                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '5px 9px' }}>Pièce unique · 1</span>
+                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '5px 9px' }}>Pièce unique · 1</span>
                           : <DS.QtyStepper value={line.qty} onChange={(q) => cart.setQty(line.id, q)} max={Math.min(10, cart.qtyCap(line.id))} />}
                         <DS.PriceTag price={p.price * line.qty} size="sm" />
                       </div>
@@ -146,7 +146,7 @@ function CartDrawer({ open, onClose, navigate }) {
             </div>
 
             {/* foot */}
-            <div style={{ padding: '18px 22px 22px', borderTop: '1.5px solid var(--line)', background: 'var(--card)' }}>
+            <div style={{ padding: '18px 22px 22px', borderTop: '1px solid var(--line)', background: 'var(--card)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                 <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>Sous-total</span>
                 <DS.PriceTag price={animatedSubtotal} size="lg" />
@@ -206,27 +206,27 @@ function CartPage({ navigate }) {
       <section className="container-wide" style={{ padding: '12px 24px 80px' }}>
         <h1 className="display-2" style={{ marginBottom: 24 }}>Votre panier</h1>
         {items.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 24px', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', background: 'var(--card)' }}>
+          <div style={{ textAlign: 'center', padding: '60px 24px', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', background: 'var(--card)' }}>
             <p style={{ fontSize: 16, color: 'var(--ink-2)', marginBottom: 20 }}>Votre panier est vide pour l'instant.</p>
             <DS.Button variant="accent" onClick={() => navigate('catalogue', 'all')}>Explorer la boutique</DS.Button>
           </div>
         ) : (
           <div className="lc-cart-grid" style={{ display: 'grid', gridTemplateColumns: '1.6fr 0.9fr', gap: 32, alignItems: 'start' }}>
-            <div style={{ border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--card)' }}>
+            <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden', background: 'var(--card)' }}>
               {items.map((line) => {
                 const p = window.LC151.get(line.id);
                 if (!p) return null;
                 return (
-                  <div key={line.id} style={{ display: 'flex', gap: 16, padding: '18px 20px', borderBottom: '1.5px solid var(--line)' }}>
+                  <div key={line.id} style={{ display: 'flex', gap: 16, padding: '18px 20px', borderBottom: '1px solid var(--line)' }}>
                     <a href={window.LC151.productUrl(p.id)} style={{ width: 80, height: 80, flexShrink: 0, borderRadius: 'var(--radius-sm)', background: 'var(--paper-2)', boxShadow: 'var(--shadow-xs)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 8, overflow: 'hidden' }}>
-                      {(p.thumb || p.image) ? <img src={p.thumb || p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--muted)' }}>151</span>}
+                      {(p.thumb || p.image) ? <img src={p.thumb || p.image} alt={p.name} loading="lazy" decoding="async" style={{ maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontFamily: 'var(--font-display)', fontWeight: 400, color: 'var(--muted)' }}>151</span>}
                     </a>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <a href={window.LC151.productUrl(p.id)} style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, lineHeight: 1.25, color: 'var(--ink)' }}>{p.name}</a>
+                      <a href={window.LC151.productUrl(p.id)} style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 16, lineHeight: 1.25, color: 'var(--ink)' }}>{p.name}</a>
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '4px 0 10px' }}>{p.cat} · {p.num}</div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                         {cart.isUnique(line.id)
-                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>Pièce unique · 1</span>
+                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>Pièce unique · 1</span>
                           : <DS.QtyStepper value={line.qty} onChange={(q) => cart.setQty(line.id, q)} max={Math.min(10, cart.qtyCap(line.id))} />}
                         <DS.PriceTag price={p.price * line.qty} size="md" />
                       </div>
@@ -240,8 +240,8 @@ function CartPage({ navigate }) {
                 );
               })}
             </div>
-            <div style={{ border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', background: 'var(--card)', padding: '22px 22px 24px', position: 'sticky', top: 96 }}>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 16 }}>Récapitulatif</div>
+            <div style={{ border: '1px solid var(--line)', borderRadius: 'var(--radius)', background: 'var(--card)', padding: '22px 22px 24px', position: 'sticky', top: 96 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 18, marginBottom: 16 }}>Récapitulatif</div>
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--ink-2)', marginBottom: 8 }}>
                   {remaining > 0

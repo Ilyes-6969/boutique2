@@ -11,20 +11,27 @@ function catNormalize(s) {
 // Icône favori « marque-page » partagée (Chrome.jsx, chargé avant) — repli discret.
 const FavRibbon = window.FavRibbon || function () { return null; };
 
-function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
+function Catalogue({ navigate, initialFilter, initialQuery, initialGame, initialRayon, initialSort }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const { PRODUCTS, FILTERS } = window.LC151;
   const CHIPS = [...FILTERS, { key: 'preorder', label: 'Précommande' }];
   const [filter, setFilter] = React.useState(initialFilter || 'all');
   const [query, setQuery] = React.useState(initialQuery || '');
-  const [sort, setSort] = React.useState('feat');
+  const [sort, setSort] = React.useState(initialSort || 'feat');
+  // Rayon précis = catégorie WooCommerce exacte (« Scellé — ETB »…), posé par le menu (?rayon=).
+  const [rayon, setRayon] = React.useState(initialRayon || '');
   // Pagination d'affichage : la grille rend 48 produits, puis « Afficher plus »
   // (le catalogue WooCommerce peut compter plusieurs centaines de produits).
   const PAGE_SIZE = 48;
   const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
-  const game = initialGame || 'pokemon';
-  const GAMES = { pokemon: 'Pokémon', lorcana: 'Disney Lorcana', onepiece: 'One Piece Card Game', magic: 'Magic: The Gathering', yugioh: 'Yu-Gi-Oh!' };
-  const comingSoon = game !== 'pokemon';
+  // game = null → toute la boutique (boutique.html). Sur une page de jeu
+  // (lorcana.html, one-piece.html…), on ne montre que les produits de CE jeu,
+  // reconnus à leurs catégories/étiquettes WooCommerce (champ `game` du contrat
+  // produit). Tant qu'un jeu n'a aucun produit en ligne, sa page l'annonce
+  // honnêtement (« pas encore en ligne ») au lieu d'afficher un rayon vide.
+  const GAMES = Object.assign({}, window.LC151.GAMES, { onepiece: 'One Piece Card Game' });
+  const game = GAMES[initialGame] ? initialGame : null;   // jeu inconnu (?game=xyz) → toute la boutique
+  const SHOP = (window.LC151 && window.LC151.SHOP) || {};
 
   React.useEffect(() => { if (initialFilter) setFilter(initialFilter); }, [initialFilter]);
   React.useEffect(() => { setVisibleCount(PAGE_SIZE); }, [filter, query]);   // filtre/recherche → retour en haut de liste
@@ -42,9 +49,16 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   const wp = Store.wpStatus();              // { state: off|loading|ok|error, error }
   const loading = wp.state === 'loading';
   const errored = wp.state === 'error';
+  const GAME_POOL = game ? PRODUCTS.filter((p) => p.game === game) : PRODUCTS;
+  const POOL = rayon ? GAME_POOL.filter((p) => p.cat === rayon) : GAME_POOL;
+  const comingSoon = !!game && !loading && !errored && GAME_POOL.length === 0;
+  // Identifiant WooCommerce numérique (« wp123 » → 123) : le plus grand = le dernier créé.
+  const wpNum = (p) => parseInt(String(p.id).replace(/\D/g, ''), 10) || 0;
   // Respiration : plus d'air entre les rangées qu'entre les colonnes — la grille
   // « respire » verticalement sans écarter les cartes horizontalement.
-  const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(165px, 1fr))', rowGap: 24, columnGap: 18 };
+  const gridStyle = { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 0 };
+  // onglet de filtre : un mot, souligné d'un trait fin quand il est actif
+  const tab = (on) => ({ padding: '11px 0', fontSize: 14.5, fontWeight: on ? 600 : 500, color: on ? 'var(--ink)' : 'var(--ink-2)', boxShadow: on ? 'inset 0 -1px 0 var(--ink)' : 'none', background: 'none', whiteSpace: 'nowrap', cursor: 'pointer' });
   const stateBox = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '72px 24px' };
   // Pastille icône partagée des états (aucun résultat / erreur) — même traitement
   // que le rayon « bientôt disponible » (rond var(--accent-wash)), pour l'homogénéité.
@@ -54,11 +68,12 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
 
   const q = catNormalize(query.trim());
   let list = comingSoon ? [] : filter === 'favs'
-    ? PRODUCTS.filter((p) => favIds.indexOf(p.id) !== -1)
-    : PRODUCTS.filter((p) => filter === 'all' ? true : filter === 'preorder' ? p.preorder : p.type === filter);
+    ? POOL.filter((p) => favIds.indexOf(p.id) !== -1)
+    : POOL.filter((p) => filter === 'all' ? true : filter === 'preorder' ? p.preorder : p.type === filter);
   if (q) list = list.filter((p) => catNormalize((p.name || '') + ' ' + (p.set || '') + ' ' + (p.num || '') + ' ' + (p.cat || '')).includes(q));
   if (sort === 'price-asc') list = [...list].sort((a, b) => a.price - b.price);
   if (sort === 'price-desc') list = [...list].sort((a, b) => b.price - a.price);
+  if (sort === 'new') list = [...list].sort((a, b) => wpNum(b) - wpNum(a));
   const visible = list.slice(0, visibleCount);
   const hiddenCount = list.length - visible.length;
   // Grille : miniature (thumb) si le catalogue en fournit une, sinon l'image
@@ -68,35 +83,36 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
   return (
     <div>
       {/* PAGE HEAD */}
-      <section style={{ borderBottom: '1.5px solid var(--line)', background: 'var(--paper-2)' }}>
-        <div className="container-wide" style={{ padding: '44px 24px 38px' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 14 }}>
-            <a href="#" onClick={(e) => { e.preventDefault(); navigate('home'); }}>Accueil</a> &nbsp;/&nbsp; {comingSoon ? GAMES[game] : 'Boutique'}
+      <section style={{ borderBottom: '1px solid var(--line)' }}>
+        <div className="container-wide" style={{ padding: '36px 24px 30px' }}>
+          <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
+            <a href="#" onClick={(e) => { e.preventDefault(); navigate('home'); }} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Accueil</a> &nbsp;/&nbsp; {game ? GAMES[game] : 'Boutique'}
           </div>
-          <h1 className="display-2" style={{ marginBottom: 10 }}>{comingSoon ? GAMES[game] : 'La boutique'}</h1>
+          <h1 className="display-2" style={{ marginBottom: 8 }}>{game ? GAMES[game] : (sort === 'new' && !rayon ? 'Nouveautés' : 'La boutique')}</h1>
           <p style={{ fontSize: 16, color: 'var(--ink-2)', maxWidth: 560 }}>
             {comingSoon
-              ? 'Rayon ' + GAMES[game] + ' bientôt disponible chez CLUB 151 — singles, scellé et accessoires. Revenez vite ou activez une alerte.'
-              : "Cartes à l'unité, gradées, scellé et accessoires. Les rayons se remplissent — revenez très vite !"}
+              ? 'Le rayon ' + GAMES[game] + ' n’est pas encore en ligne. Passez en boutique ou écrivez-nous pour connaître les disponibilités.'
+              : game
+              ? 'Tout ce que nous avons en ' + GAMES[game] + ', à retirer au magasin ou livré chez vous.'
+              : "Cartes à l'unité, cartes gradées, scellé, accessoires, figurines et goodies, tous jeux confondus."}
           </p>
         </div>
       </section>
 
       {/* TOOLBAR (masquée sur les rayons « bientôt disponibles ») */}
       {!comingSoon && (
-      <div className="lc-cat-toolbar" style={{ position: 'sticky', top: 124, zIndex: 30, background: 'var(--paper-2)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1.5px solid var(--line)' }}>
-        <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 24px', flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {/* La pastille active porte une micro-ombre (--shadow-xs) pour se
-                détacher des inactives : DS.Tag pose son propre style, on enveloppe
-                donc le chip actif d'un span pilulé qui porte l'ombre. */}
-            {CHIPS.map((f) => <ChipShell key={f.key} active={filter === f.key}><DS.Tag active={filter === f.key} onClick={() => setFilter(f.key)}>{f.label}</DS.Tag></ChipShell>)}
-            {showFavChip && <ChipShell active={filter === 'favs'}><DS.Tag active={filter === 'favs'} onClick={() => setFilter('favs')}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><FavRibbon caught={true} size={12} />Ma collection</span></DS.Tag></ChipShell>}
+      <div className="lc-cat-toolbar" style={{ position: 'sticky', top: 114, zIndex: 30, background: 'var(--card)', borderBottom: '1px solid var(--line)' }}>
+        <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '6px 24px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', columnGap: 22, rowGap: 0, flexWrap: 'wrap' }}>
+            {/* Filtres = de simples mots ; l'actif porte un trait fin dessous. */}
+            {CHIPS.map((f) => <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} style={tab(filter === f.key)}>{f.label}</button>)}
+            {/* Rayon précis choisi dans le menu : un filtre qu'on retire d'un clic. */}
+            {rayon && <button type="button" onClick={() => setRayon('')} title="Retirer ce filtre" style={{ ...tab(true), display: 'inline-flex', alignItems: 'center', gap: 7 }}>{rayon.replace(/^Scellé — /, '')}<svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6"></path></svg></button>}
+            {showFavChip && <button type="button" aria-pressed={filter === 'favs'} onClick={() => setFilter('favs')} style={{ ...tab(filter === 'favs'), display: 'inline-flex', alignItems: 'center', gap: 6 }}><FavRibbon caught={true} size={12} />Ma collection</button>}
           </div>
           {/* Groupe tri : séparateur discret + compteur mis en valeur + select stylé. */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span aria-hidden="true" style={{ width: 1.5, height: 22, background: 'var(--line)', borderRadius: 1, alignSelf: 'center' }}></span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.01em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{loading ? '…' : list.length + ' produits'}</span>
+            <span style={{ fontSize: 13.5, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{loading ? '…' : list.length + ' produit' + (list.length > 1 ? 's' : '')}</span>
             <SortSelect value={sort} onChange={setSort} />
           </div>
         </div>
@@ -104,27 +120,30 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
       )}
 
       {/* GRID */}
-      <section className="container-wide" style={{ padding: '36px 24px 80px' }}>
+      <section className="container-wide" style={{ padding: '0 24px 80px' }}>
         {loading ? (
-          <div style={gridStyle} aria-busy="true" aria-label="Chargement du catalogue">
+          <div className="lc-pockets" style={gridStyle} aria-busy="true" aria-label="Chargement du catalogue">
             {/* ~16 squelettes : remplit la 1re page visible pour éviter le saut de mise en page à l'arrivée du catalogue. */}
             {Array.from({ length: 16 }).map((_, i) => <SkeletonCard key={i} index={i} />)}
           </div>
         ) : errored ? (
           <div style={stateBox} role="alert">
             {stateIcon('!')}
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Catalogue momentanément indisponible</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 18, marginBottom: 6 }}>Catalogue momentanément indisponible</div>
             <p style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 16, maxWidth: 440 }}>Le catalogue est momentanément indisponible. Réessayez dans un instant.</p>
             <DS.Button variant="outline" onClick={() => Store.refreshFromWp()}>Réessayer</DS.Button>
           </div>
         ) : comingSoon ? (
           <div style={stateBox}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--accent-wash)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, marginBottom: 18 }}>★</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 24, letterSpacing: '-0.02em', marginBottom: 8 }}>{GAMES[game]} arrive bientôt</div>
-            <p style={{ fontSize: 15, color: 'var(--ink-2)', maxWidth: 460, marginBottom: 22, lineHeight: 1.6 }}>Nous préparons un rayon {GAMES[game]} complet — singles, boosters, displays et accessoires. Laissez-nous votre e-mail pour être prévenu de l'ouverture.</p>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 24, letterSpacing: '-0.02em', marginBottom: 8 }}>{GAMES[game]} : bientôt en ligne</div>
+            <p style={{ fontSize: 15, color: 'var(--ink-2)', maxWidth: 480, marginBottom: 22, lineHeight: 1.6 }}>
+              Ce rayon n'est pas encore ouvert sur le site. Pour savoir ce qu'on a en {GAMES[game]}, passez nous voir{SHOP.street ? ' au ' + SHOP.street + ', à ' + SHOP.city : ' en boutique'} ou écrivez-nous — et laissez votre e-mail pour être prévenu de la mise en ligne.
+            </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
               <DS.Button variant="accent" onClick={() => openModal('newsletter')}>Être prévenu</DS.Button>
-              <DS.Button variant="outline" onClick={() => navigate('catalogue', 'all')}>Voir le rayon Pokémon</DS.Button>
+              <DS.Button variant="outline" onClick={() => openModal('contact')}>Nous écrire</DS.Button>
+              <DS.Button variant="outline" onClick={() => navigate('catalogue', 'all')}>Voir toute la boutique</DS.Button>
             </div>
           </div>
         ) : list.length === 0 ? (
@@ -133,26 +152,26 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame }) {
                sortie propre vers le rayon complet plutôt qu'une grille vide. */
             <div style={stateBox}>
               {stateIcon('⌕')}
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Aucun résultat pour «&nbsp;{query.trim()}&nbsp;» dans ce rayon</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 18, marginBottom: 6 }}>Aucun résultat pour «&nbsp;{query.trim()}&nbsp;» dans ce rayon</div>
               <p style={{ fontSize: 14, color: 'var(--ink-2)', marginBottom: 16, maxWidth: 440 }}>Essayez un autre terme, ou parcourez l'ensemble du rayon.</p>
               <DS.Button variant="outline" onClick={() => setQuery('')}>Voir tout le rayon</DS.Button>
             </div>
           ) : filter === 'favs' ? (
             <div style={stateBox}>
               <div style={{ marginBottom: 16, opacity: 0.9 }}><FavRibbon caught={true} size={40} /></div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Votre collection est vide</div>
+              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 18, marginBottom: 6 }}>Votre collection est vide</div>
               <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Cliquez le marque-page d'une carte pour la retrouver ici.</p>
             </div>
           ) : (
           <div style={stateBox}>
             {stateIcon('★')}
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, marginBottom: 6 }}>Aucun produit pour le moment</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 18, marginBottom: 6 }}>Aucun produit pour le moment</div>
             <p style={{ fontSize: 14, color: 'var(--ink-2)', maxWidth: 440 }}>Les rayons se remplissent — revenez très vite !</p>
           </div>
           )
         ) : (
           <React.Fragment>
-            <div style={gridStyle}>
+            <div className="lc-pockets" style={gridStyle}>
               {visible.map((p) => <StoreCard key={p.id} product={gridProduct(p)} navigate={navigate} />)}
             </div>
             {hiddenCount > 0 && (
@@ -189,13 +208,14 @@ function SortSelect({ value, onChange }) {
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       <select value={value} onChange={(e) => onChange(e.target.value)} aria-label="Trier les produits"
         onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-        style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', padding: '9px 34px 9px 14px', borderRadius: 'var(--radius-pill)', border: '1.5px solid ' + (strong ? 'var(--ink)' : 'var(--line-strong)'), background: 'var(--card)', fontFamily: 'var(--font-body)', fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', cursor: 'pointer', outline: 'none', transition: 'border-color var(--dur-fast) var(--ease-out)' }}>
+        style={{ appearance: 'none', WebkitAppearance: 'none', MozAppearance: 'none', padding: '9px 34px 9px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid ' + (strong ? 'var(--ink)' : 'var(--line-strong)'), background: 'var(--card)', fontFamily: 'var(--font-body)', fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', cursor: 'pointer', outline: 'none', transition: 'border-color var(--dur-fast) var(--ease-out)' }}>
         <option value="feat">En vedette</option>
+        <option value="new">Nouveautés</option>
         <option value="price-asc">Prix croissant</option>
         <option value="price-desc">Prix décroissant</option>
       </select>
       {/* Chevron dessiné (le natif est masqué par appearance:none). */}
-      <span aria-hidden="true" style={{ position: 'absolute', right: 13, top: '50%', width: 8, height: 8, borderRight: '1.5px solid ' + (strong ? 'var(--ink)' : 'var(--muted)'), borderBottom: '1.5px solid ' + (strong ? 'var(--ink)' : 'var(--muted)'), transform: 'translateY(-70%) rotate(45deg)', pointerEvents: 'none', transition: 'border-color var(--dur-fast) var(--ease-out)' }}></span>
+      <span aria-hidden="true" style={{ position: 'absolute', right: 13, top: '50%', width: 8, height: 8, borderRight: '1px solid ' + (strong ? 'var(--ink)' : 'var(--muted)'), borderBottom: '1px solid ' + (strong ? 'var(--ink)' : 'var(--muted)'), transform: 'translateY(-70%) rotate(45deg)', pointerEvents: 'none', transition: 'border-color var(--dur-fast) var(--ease-out)' }}></span>
     </div>
   );
 }
@@ -214,7 +234,7 @@ function SkeletonCard({ index = 0 }) {
   // sous prefers-reduced-motion (déclarée seulement en no-preference).
   return (
     <div className="lc-line-in" style={{ animationDelay: (index * 45) + 'ms' }}>
-      <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden', boxShadow: 'var(--shadow-xs)', animation: 'lcPulse 1.3s ease-in-out infinite' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden', boxShadow: 'var(--shadow-xs)', animation: 'lcPulse 1.3s ease-in-out infinite' }}>
         {/* Zone image + fantôme de badge (coin haut-gauche, comme StoreCard). */}
         <div style={{ position: 'relative', aspectRatio: '1 / 1', background: 'var(--paper-2)' }}>
           <div style={{ position: 'absolute', top: 12, left: 12, width: 48, height: 20, borderRadius: 'var(--radius-pill)', background: 'var(--line)' }}></div>

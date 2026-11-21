@@ -13,10 +13,20 @@
   const FILTERS = [
     { key: 'all', label: 'Tout' },
     { key: 'single', label: "Cartes à l'unité" },
-    { key: 'graded', label: 'Gradées PSA' },
+    { key: 'graded', label: 'Cartes gradées' },
     { key: 'sealed', label: 'Scellé' },
     { key: 'accessory', label: 'Accessoires' },
+    { key: 'goodies', label: 'Figurines et goodies' },
   ];
+
+  // Jeux reconnus (clé `game` du contrat produit → libellé affiché). L'ordre est
+  // celui du menu. Les quatre premiers « autres » ont leur page dédiée (SEO).
+  const GAMES = {
+    pokemon: 'Pokémon', onepiece: 'One Piece', lorcana: 'Disney Lorcana', magic: 'Magic: The Gathering', yugioh: 'Yu-Gi-Oh!',
+    riftbound: 'Riftbound', naruto: 'Naruto', dragonball: 'Dragon Ball', kayou: 'Kayou', rise: 'Rise',
+  };
+  const GAME_URLS = { lorcana: '/lorcana.html', onepiece: '/one-piece.html', magic: '/magic.html', yugioh: '/yugioh.html' };
+  const gameUrl = (g) => GAME_URLS[g] || ('/boutique.html?game=' + encodeURIComponent(g));
 
   const K_OVR = 'lc151_overrides';   // { id: {price, oldPrice, inStock, badge} }
   const K_CUSTOM = 'lc151_custom';   // [ product, ... ]
@@ -32,12 +42,29 @@
   // build.mjs REFUSE de publier sur le domaine de production si une valeur
   // bouche-trou réapparaît ici (numéro en 00 00 00, lien social sans compte).
   const SHOP = {
-    // Le vrai numéro, ex. '04 74 12 34 56'. Vide tant que la ligne n'existe pas.
-    phone: '',
-    // UNIQUEMENT de vrais comptes, ex. :
-    //   [['Instagram', 'https://instagram.com/club151'], ['Facebook', 'https://facebook.com/club151']]
-    // Une URL sans chemin (= accueil de plateforme) est rejetée au build.
-    socials: [],
+    name: 'CLUB 151',
+    // Adresse du magasin = siège social (Kbis / fiche Google « Club151 - Vienne »).
+    street: '28 rue Juiverie',
+    zip: '38200',
+    city: 'Vienne',
+    // Numéro affiché sur la fiche Google de la boutique. Vide = bloc masqué.
+    phone: '06 58 98 81 16',
+    // Horaires de la fiche Google (relevés le 21/11/2026). Fermé le lundi.
+    // `hours` alimente les blocs courts (accueil, footer), `hoursText` les
+    // phrases (à propos, FAQ), `hoursSchema` les données structurées Google.
+    hours: [['Mar–Sam', '10h–19h'], ['Dimanche', '14h–18h']],
+    hoursText: 'du mardi au samedi de 10h à 19h et le dimanche de 14h à 18h (fermé le lundi)',
+    hoursSchema: ['Tu-Sa 10:00-19:00', 'Su 14:00-18:00'],
+    // Position exacte de la boutique (carte de l'accueil + données structurées).
+    geo: { lat: 45.52322, lon: 4.87371 },
+    mapsUrl: 'https://www.google.com/maps/search/?api=1&query=Club151+28+Rue+Juiverie+38200+Vienne',
+    // UNIQUEMENT de vrais comptes. Une URL sans chemin (= accueil de
+    // plateforme) est rejetée au build.
+    socials: [['Instagram', 'https://www.instagram.com/boutiqueclub151/']],
+    // Photos du magasin pour la grande bannière de l'accueil (façade, intérieur…),
+    // ex. ['assets/boutique/facade.webp', 'assets/boutique/interieur.webp'].
+    // Vide = la bannière garde le visuel de cartes. Format conseillé : 2000 × 1100 px, WebP.
+    photos: [],
   };
 
   // Un JSON VALIDE mais du mauvais TYPE (ex. lc151_cart = {"a":1} au lieu d'un
@@ -90,9 +117,30 @@
   function typeFromCategories(cats) {
     const s = (cats || []).map((c) => (c.name || '').toLowerCase()).join(' ');
     if (/grad|psa|bgs|cgc/.test(s)) return 'graded';
-    if (/scell|display|booster|coffret|etb|box|boîte/.test(s)) return 'sealed';
-    if (/accessoir|sleeve|protège|classeur|toploader|tapis|deck box/.test(s)) return 'accessory';
+    // « deck box » est un ACCESSOIRE : retiré avant de tester « box » (cf. lib/serverCatalog.js).
+    if (/scell|display|booster|coffret|etb|box|boîte/.test(s.replace(/deck\s?box/g, ''))) return 'sealed';
+    if (/accessoir|sleeve|protège|classeur|toploader|tapis|deck\s?box/.test(s)) return 'accessory';
+    if (/manga|figurine|peluche|goodies|objet/.test(s)) return 'goodies';
     return 'single';
+  }
+
+  // Jeu (univers) du produit — mêmes règles que lib/serverCatalog.js (gameFromWoo)
+  // et build.mjs (gameOf), à garder synchronisées. null = non précisé.
+  function gameFromWoo(p) {
+    const s = [].concat(p.categories || [], p.tags || [])
+      .map((t) => (((t && t.name) || '') + ' ' + ((t && t.slug) || '')))
+      .join(' ').toLowerCase();
+    if (/lorcana/.test(s)) return 'lorcana';
+    if (/one[\s-]?piece/.test(s)) return 'onepiece';
+    if (/\bmagic\b|\bmtg\b/.test(s)) return 'magic';   // \b : « Magicarpe » n'est pas Magic
+    if (/yu[\s-]?gi[\s-]?oh/.test(s)) return 'yugioh';
+    if (/riftbound/.test(s)) return 'riftbound';
+    if (/naruto/.test(s)) return 'naruto';
+    if (/dragon[\s-]?ball/.test(s)) return 'dragonball';
+    if (/kayou/.test(s)) return 'kayou';
+    if (/\brise\b/.test(s)) return 'rise';
+    if (/pok[ée]mon/.test(s)) return 'pokemon';
+    return null;
   }
 
   // Précommande : une catégorie OU un tag contenant « précommande »/« preorder »
@@ -152,6 +200,7 @@
       set: cat,
       num: p.sku || '—',
       type: typeFromCategories(p.categories),
+      game: gameFromWoo(p),
       price: Math.round(price * 100) / 100,
       oldPrice: onSale ? Math.round(regular * 100) / 100 : null,
       image: (img && img.src) || null,
@@ -852,7 +901,7 @@
   }
 
   window.LC151 = {
-    PRODUCTS, FILTERS, Cart, Store, Auth, Alerts, Orders, Favorites, Recent, FREE_SHIP,
+    PRODUCTS, FILTERS, GAMES, gameUrl, Cart, Store, Auth, Alerts, Orders, Favorites, Recent, FREE_SHIP,
     get: (id) => Store.get(id),
     productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',

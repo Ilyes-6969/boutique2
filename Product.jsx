@@ -24,7 +24,7 @@ function ProductLightbox({ src, name, placeholderSvg, onClose }) {
         onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholderSvg; }}
         style={{ maxWidth: '92vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 'var(--radius-sm)' }} />
       <button type="button" aria-label="Fermer" autoFocus onClick={onClose}
-        style={{ position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid var(--line)', color: 'var(--ink)', fontSize: 16, cursor: 'pointer' }}>✕</button>
+        style={{ position: 'absolute', top: 16, right: 16, width: 40, height: 40, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1px solid var(--line)', color: 'var(--ink)', fontSize: 16, cursor: 'pointer' }}>✕</button>
     </div>
   );
 }
@@ -71,7 +71,7 @@ function Product({ navigate, productId, onCart }) {
     if (!product) return;
     const title = product.name + ' — CLUB 151';
     document.title = title;
-    const desc = String(product.desc || (product.name + ' — disponible chez CLUB 151, boutique de cartes Pokémon à Vienne.')).slice(0, 160);
+    const desc = String(product.desc || (product.name + ' — disponible chez CLUB 151, boutique de cartes à collectionner à Vienne.')).slice(0, 160);
     const url = location.origin + '/produit.html?id=' + encodeURIComponent(product.id);
     const setMeta = (sel, val) => {
       let el = document.head.querySelector(sel);
@@ -94,10 +94,13 @@ function Product({ navigate, productId, onCart }) {
     link.setAttribute('href', url);
     let ld = document.getElementById('lc-product-ld');
     if (!ld) { ld = document.createElement('script'); ld.type = 'application/ld+json'; ld.id = 'lc-product-ld'; document.head.appendChild(ld); }
+    const gameBrand = ((window.LC151 && window.LC151.GAMES) || {})[product.game] || null;
     ld.textContent = JSON.stringify({
       '@context': 'https://schema.org', '@type': 'Product', name: product.name,
       description: desc, image: product.image || undefined,
-      sku: 'LC151-' + product.id.toUpperCase(), brand: { '@type': 'Brand', name: 'Pokémon' },
+      sku: 'LC151-' + product.id.toUpperCase(),
+      // Marque = le jeu reconnu dans les catégories Woo ; rien si non précisé.
+      brand: gameBrand ? { '@type': 'Brand', name: gameBrand } : undefined,
       offers: {
         '@type': 'Offer', price: product.price, priceCurrency: 'EUR',
         availability: product.inStock === false ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
@@ -205,7 +208,7 @@ function Product({ navigate, productId, onCart }) {
   const favBtn = (size) => favs && (
     <button type="button" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Ajouter à ma collection'} title={liked ? 'Dans ma collection' : 'Ajouter à ma collection'}
       onClick={toggleFav}
-      style={{ width: size, height: size, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', cursor: 'pointer', transition: 'border-color 0.2s ease' }}>
+      style={{ width: size, height: size, flexShrink: 0, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', cursor: 'pointer', transition: 'border-color 0.2s ease' }}>
       {/* Micro-pop uniquement à l'AJOUT : la key = compteur d'ajouts remonte le
           span → rejoue .lc-fav-pop (jamais au retrait ; n'anime que sous no-preference). */}
       <span key={favPops} className={favPops > 0 ? 'lc-fav-pop' : undefined} style={{ display: 'flex' }}><FavRibbon caught={liked} size={size >= 36 ? 18 : 15} /></span>
@@ -241,25 +244,35 @@ function Product({ navigate, productId, onCart }) {
   // ni mention absurde — ex. pas de « Rareté / Near Mint » sur un accessoire).
   const ref = 'LC151-' + product.id.toUpperCase();
   const isCard = product.type === 'single' || product.type === 'graded';
+  // RIEN D'INVENTÉ : avec le vrai catalogue (import de la caisse), `set` vaut la
+  // catégorie, `num` vaut le code article de la caisse, et l'état d'une carte
+  // d'occasion n'est connu que s'il est écrit dans son nom. On n'affiche donc
+  //  - « Série » / « Édition » / « Détail » que s'ils apportent autre chose que la catégorie ;
+  //  - « Numéro » que s'il ressemble à un numéro de carte (025/165, TG10…), pas à un code-barres ;
+  //  - « État » que s'il est certain (sous coque, scellé, ou « NM » / « Mint » dans le nom).
+  // Avant, toute carte à l'unité était annoncée « Near Mint » et tout accessoire « Neuf ».
+  const extraSet = product.set && product.set !== product.cat ? product.set : null;
+  const cardNum = /^\d{9,}$/.test(String(product.num || '')) ? null : product.num;
+  const nameCond = /\bNM\b/.test(product.name || '') ? 'Near Mint (NM)' : (/\bmint\b/i.test(product.name || '') ? 'Mint' : null);
   const rawSpecs = isCard
     ? [
-        ['Série', product.set],
-        ['Numéro', product.num],
+        ['Rayon', product.cat],
+        ['Série', extraSet],
+        ['Numéro', cardNum],
         ['Rareté', product.rarity],
-        ['État', product.type === 'graded' ? 'Certifiée — sous coque' : 'Near Mint'],
+        ['État', product.type === 'graded' ? 'Certifiée — sous coque' : nameCond],
         ['Référence', ref],
       ]
     : product.type === 'sealed'
     ? [
         ['Catégorie', product.cat],
-        ['Édition', product.set],
-        ['État', 'Neuf — scellé'],
+        ['Édition', extraSet],
+        ['État', 'Scellé'],
         ['Référence', ref],
       ]
     : [
         ['Catégorie', product.cat],
-        ['Détail', product.set],
-        ['État', 'Neuf'],
+        ['Détail', extraSet],
         ['Référence', ref],
       ];
   const specs = rawSpecs.filter(function (row) { var v = row[1]; return v && String(v).trim() && v !== '—'; });
@@ -310,7 +323,7 @@ function Product({ navigate, productId, onCart }) {
       <section className="container-wide lc-prod-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, padding: '20px 24px 72px', alignItems: 'start' }}>
         {/* GALLERY */}
         <div className="lc-prod-gallery" style={{ position: 'sticky', top: 92 }}>
-          <div style={{ background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
+          <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
             {current ? (
               <button type="button" aria-label="Agrandir l'image"
                 onMouseMove={hoverZoomOn ? handleZoomMove : undefined}
@@ -324,7 +337,7 @@ function Product({ navigate, productId, onCart }) {
                   style={{ maxHeight: 440, maxWidth: '100%', display: 'block', filter: 'drop-shadow(0 22px 36px rgba(26,23,20,0.30))', transition: hoverZoomOn ? 'transform 0.18s ease' : 'none' }} />
               </button>
             ) : (
-              <div style={{ width: '70%' }}><ProductStage glyph={product.glyph} ratio="3 / 4" big /></div>
+              <div style={{ width: '70%' }}><ProductStage glyph={product.glyph} ratio="3 / 4" big kind={window.lcStageKind ? window.lcStageKind(product) : undefined} /></div>
             )}
           </div>
           {gallery.length > 1 && (
@@ -353,29 +366,30 @@ function Product({ navigate, productId, onCart }) {
             {product.badge && <DS.Badge tone={product.badge.tone}>{product.badge.label}</DS.Badge>}
             <DS.Badge tone={product.inStock ? 'stock' : 'oos'}>{product.inStock ? 'En stock' : 'Rupture'}</DS.Badge>
           </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>{product.cat} · {product.set}</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>{product.cat}{product.set && product.set !== product.cat ? ' · ' + product.set : ''}</div>
           <h1 className="display-2" style={{ marginBottom: 18 }}>{product.name}</h1>
           {/* PRIX — plus de présence : filet or fin au-dessus + respiration.
               Le filet code discrètement la valeur (l'or = rareté). */}
-          <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1.5px solid var(--line)', marginBottom: 22 }}>
-            <div style={{ height: 2, width: 34, background: 'var(--yellow-deep)', borderRadius: 2, marginBottom: 14 }} aria-hidden="true"></div>
+          <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1px solid var(--line)', marginBottom: 22 }}>
             <DS.PriceTag price={product.price} oldPrice={product.oldPrice} size="lg" />
           </div>
           <p style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--ink-2)', marginBottom: 28, maxWidth: 520 }}>{product.desc}</p>
 
           {window.LC151.Cart.isUnique(product.id) && (
-            /* SCEAU 1/1 — cachet de rareté doré (fond or lavé, bordure or foncé,
-               texte or foncé, mono) plutôt qu'un encadré rouge pâle générique. */
-            <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 15px', marginBottom: 20, background: 'rgba(224,174,0,0.10)', border: '1.5px solid var(--yellow-deep)', borderRadius: 'var(--radius-sm)', fontSize: 13.5, color: 'var(--ink)' }}>
-              <span style={{ flexShrink: 0, fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13, letterSpacing: '0.08em', color: 'var(--yellow-deep)', padding: '3px 9px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--yellow-deep)', background: 'rgba(224,174,0,0.08)' }}>1 / 1</span>
-              <span style={{ color: 'var(--ink-2)' }}><span style={{ fontWeight: 600, color: 'var(--ink)' }}>Pièce unique</span> — une seule édition disponible en boutique.</span>
+            /* Pièce unique / dernier exemplaire : une ligne de texte entre deux traits. */
+            <div style={{ padding: '11px 0', marginBottom: 20, borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)' }}>
+              {/* « Pièce unique » n'a de sens que pour une carte ; pour un coffret ou un
+                  accessoire dont il reste un exemplaire, on le dit tel quel. */}
+              {isCard
+                ? <span style={{ color: 'var(--ink-2)' }}><span style={{ fontWeight: 600, color: 'var(--ink)' }}>Pièce unique.</span> Nous n'en avons qu'un exemplaire.</span>
+                : <span style={{ color: 'var(--ink-2)' }}><span style={{ fontWeight: 600, color: 'var(--ink)' }}>Dernier exemplaire.</span> Il n'en reste qu'un en stock.</span>}
             </div>
           )}
 
           <div ref={ctaRef} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
             {!window.LC151.Cart.isUnique(product.id) && <DS.QtyStepper value={qty} onChange={setQty} max={Math.min(10, cart.qtyCap(product.id))} />}
             <div style={{ flex: 1 }}>
-              <DS.Button className="lc-press" variant="accent" size="lg" block disabled={!product.inStock || lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
+              <DS.Button className="lc-press" variant="primary" size="lg" block disabled={!product.inStock || lockedUnique} iconLeft={lockedUnique || added ? '✓' : null} onClick={lockedUnique ? undefined : addToCart}>
                 {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : product.inStock ? 'Ajouter au panier' : 'Indisponible')}
               </DS.Button>
             </div>
@@ -383,8 +397,8 @@ function Product({ navigate, productId, onCart }) {
           </div>
           <DS.Button variant="outline" size="lg" block onClick={() => { Cart.add(product.id, qty); onCart(); }} disabled={!product.inStock}>Acheter maintenant</DS.Button>
 
-          <div style={{ marginTop: 18, padding: '12px 16px', background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius-sm)', fontSize: 13.5, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: 'var(--ink)' }}>★</span> Livraison offerte dès {FREE_SHIP} € · expédition protégée sous 48 h
+          <div style={{ marginTop: 16, fontSize: 13.5, color: 'var(--ink-2)' }}>
+            Livraison offerte dès {FREE_SHIP} €, expédition protégée sous 48 h, ou retrait gratuit au magasin.
           </div>
 
           {/* CERTIFICATION « SLAB » — bloc mis en scène, uniquement pour les
@@ -397,15 +411,14 @@ function Product({ navigate, productId, onCart }) {
               <div className="lc-line-in" style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                 {/* Emblème — note chiffrée si grade fiable, sinon sceau « certifié »
                     générique (jamais de « — » ni de fausse note fabriquée). */}
-                <div style={{ flexShrink: 0, minWidth: 78, textAlign: 'center', padding: '10px 14px', border: '1.5px solid var(--yellow-deep)', borderRadius: 'var(--radius-sm)', background: 'rgba(255,203,5,0.06)' }}>
+                <div style={{ flexShrink: 0, minWidth: 78, textAlign: 'center', padding: '10px 14px', border: '1px solid var(--yellow-deep)', borderRadius: 'var(--radius-sm)', background: 'rgba(255,203,5,0.06)' }}>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--yellow)', marginBottom: 2 }}>{cert.generic ? 'Certifié' : 'Grade'}</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: cert.generic ? 30 : 42, lineHeight: 1, color: '#FFFFFF' }}>{cert.generic ? '✓' : cert.grade}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: cert.generic ? 30 : 42, lineHeight: 1, color: '#FFFFFF' }}>{cert.generic ? '✓' : cert.grade}</div>
                 </div>
                 {/* ORGANISME + NOTE (grade fiable) ou titre générique digne */}
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, lineHeight: 1.05, color: '#FFFFFF' }}>{cert.generic ? 'Carte certifiée' : cert.org}</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, lineHeight: 1.05, color: '#FFFFFF' }}>{cert.generic ? 'Carte certifiée' : cert.org}</div>
                   <div style={{ marginTop: 4, fontSize: 13.5, fontWeight: 600, color: 'var(--yellow)', textTransform: cert.generic ? 'none' : 'capitalize' }}>{cert.generic ? 'Sous coque scellée' : cert.seal}</div>
-                  <div style={{ marginTop: 6, height: 2, width: 34, background: 'var(--yellow-deep)', borderRadius: 2 }} aria-hidden="true"></div>
                 </div>
               </div>
               {/* Filet or séparateur + méta (référence interne + millésime) en mono.
@@ -419,7 +432,7 @@ function Product({ navigate, productId, onCart }) {
           )}
 
           {/* SPECS */}
-          <div style={{ marginTop: isGraded ? 16 : 32, border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
+          <div style={{ marginTop: isGraded ? 16 : 32, border: '1px solid var(--line)', borderRadius: 'var(--radius)', overflow: 'hidden' }}>
             {specs.map(([k, v], i) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '13px 18px', background: i % 2 ? 'transparent' : 'var(--paper-2)', fontSize: 14 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)' }}>{k}</span>
@@ -431,7 +444,7 @@ function Product({ navigate, productId, onCart }) {
       </section>
 
       {/* RELATED */}
-      <section style={{ borderTop: '1.5px solid var(--line)' }}>
+      <section style={{ borderTop: '1px solid var(--line)' }}>
         <div className="container-wide" style={{ padding: '56px 24px 80px' }}>
           <h2 className="display-3" style={{ marginBottom: 26 }}>Dans le même rayon</h2>
           <div className="lc-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
@@ -443,7 +456,7 @@ function Product({ navigate, productId, onCart }) {
       {/* VUS RÉCEMMENT — store optionnel (window.LC151.Recent), section masquée
           s'il est absent ou s'il n'y a rien à montrer hors produit courant */}
       {recentProducts.length > 0 && (
-        <section style={{ borderTop: '1.5px solid var(--line)' }}>
+        <section style={{ borderTop: '1px solid var(--line)' }}>
           <div className="container-wide" style={{ padding: '56px 24px 80px' }}>
             <h2 className="display-3" style={{ marginBottom: 26 }}>Vus récemment</h2>
             <div className="lc-grid-auto" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20 }}>
@@ -468,7 +481,7 @@ function Product({ navigate, productId, onCart }) {
               <DS.PriceTag price={product.price} oldPrice={product.oldPrice} size="sm" />
             </div>
             {favBtn(32)}
-            <DS.Button className="lc-press" variant="accent" disabled={lockedUnique} iconLeft={lockedUnique ? '✓' : (added ? '✓' : '＋')} onClick={lockedUnique ? undefined : addToCart}>
+            <DS.Button className="lc-press" variant="primary" disabled={lockedUnique} iconLeft={lockedUnique || added ? '✓' : null} onClick={lockedUnique ? undefined : addToCart}>
               {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : 'Ajouter au panier')}
             </DS.Button>
           </div>

@@ -1,5 +1,65 @@
 # À reprendre — CLUB 151 (mémo pour la prochaine session)
 
+## Point du 21/11/2026 — site aligné sur la vraie boutique
+
+**Fait dans le code**
+- Vraies coordonnées partout, depuis une source unique (`data.js` → `LC151.SHOP`) :
+  28 rue Juiverie, horaires de la fiche Google (mar–sam 10h–19h, dim 14h–18h),
+  téléphone, Instagram, carte centrée sur la boutique, fiche Google `Store` (JSON-LD)
+  générée au build.
+- Pages légales remplies avec les données du registre (SAS Club151, SIRET
+  108 168 311 00018, RCS Vienne, TVA FR78 108168311, capital 1 010 €, président).
+- Le site ne se présente plus comme « boutique Pokémon » seule : TCG, mangas,
+  objets de collection, rachat, tournois. Restes de l'ancienne marque
+  (« leclub151 ») et messages « ouvre bientôt » supprimés.
+- Catalogue multi-jeux : champ `game` lu dans les catégories/étiquettes Woo, pages
+  Lorcana / One Piece / Magic / Yu-Gi-Oh! alimentées automatiquement, nouveau rayon
+  « Mangas & collection » (voir `GUIDE-WOOCOMMERCE.md`, étape 2).
+
+**Constaté en ligne**
+- WooCommerce est branché (`gestion.club151.fr`) mais **0 produit publié** : la
+  boutique en ligne est vide tant que le fichier d'import n'est pas chargé dans wp-admin.
+
+**Catalogue : import de la caisse prêt (21/11/2026, soir)**
+- Export Rezomatic du 21/11 converti : 1 296 articles → 720 en ligne, 576 brouillons
+  (484 ruptures, 53 stocks négatifs, 39 à vérifier). Script : `outils/import-rezomatic/`,
+  mode d'emploi : `GUIDE-WOOCOMMERCE.md`, étape 2 bis.
+- ORDRE À RESPECTER : déployer cette version du site AVANT d'importer. L'ancienne
+  version en ligne ne connaît pas le rayon « Mangas & collection » : peluches et
+  figurines y apparaîtraient comme des « cartes à l'unité ».
+- La fiche produit n'affirme plus rien qu'on ne sait pas : fini le « Near Mint »
+  automatique sur toutes les cartes et le « Neuf » sur tous les accessoires.
+- Corrigé au passage : « Toute la boutique » ne montrait que les produits étiquetés
+  Pokémon (boutique.html forçait `game = 'pokemon'`).
+
+**Refonte (21/11/2026, soir) — étape 1 faite dans le code**
+- Bandeau d'annonce en haut, logo complet dans l'en-tête.
+- Menu PAR JEU (Pokémon, One Piece, Lorcana, Magic, Yu-Gi-Oh!, Autres TCG), sous-menus
+  générés depuis le catalogue réel (rayons en ligne + nombre de produits). Autres TCG
+  reconnus : Riftbound, Naruto, Dragon Ball, Kayou, Rise.
+- Nouvel accueil : grande bannière « magasin » (prête pour les photos : `LC151.SHOP.photos`
+  dans `data.js`), raccourcis magasin / tournois / Instagram, univers avec compteurs,
+  rangées de produits réels, bloc évènements, magasin, newsletter.
+- Vignettes sans photo : pictogramme neutre par rayon (les cartes gardent la tuile « 151 »).
+- HABILLAGE « TRAIT FIN » (demande d'Ilyes : des lignes fines, moins « IA ») : page blanche,
+  structure au trait d'un pixel, angles nets, plus d'ombres ni d'effets au défilement ;
+  titres en Poppins léger, plus de police « machine à écrire » ni de petites capitales ;
+  produits en grille « pochettes » (traits partagés, comme une page de classeur).
+  Jetons dans `tokens/*.css`, grilles et filet dans le dernier bloc de `storefront2.css`.
+  Repris à la main : en-tête, menu, accueil, carte produit, catalogue, haut de fiche produit,
+  pied de page. Le reste (panier, commande, fenêtres, pages légales) suit via les jetons.
+- RESTE POUR L'ÉTAPE 2 : les photos du magasin (bannière + ambiance du site), puis
+  l'habillage général (couleurs, matières) calé sur le lieu.
+
+**Il manque encore (à fournir par toi)**
+- Le **médiateur de la consommation** (nom + site) → `COMPANY.mediator` dans
+  `Legal.jsx`. Obligatoire avant la première vente en ligne ; la CGV l'affiche
+  surligné tant qu'il est vide.
+- Des **photos de la boutique** (façade, intérieur) : aucune n'est sur le site.
+- Confirmer que la boîte **contact@club151.fr** existe et est relevée.
+
+---
+
 _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment Element) est **fonctionnel et en ligne**, en mode **test**. L'argent ira sur Qonto une fois en réel._
 
 ---
@@ -71,6 +131,22 @@ _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment E
 - Admin local (`admin.html`) : une fois WooCommerce connecté, le panneau produits
   passe en **lecture seule** et renvoie vers wp-admin — les modifications locales
   ne changeaient que ton navigateur, jamais le site des visiteurs.
+
+## État du lien WordPress ↔ site (contrôlé de l'extérieur le 21/11/2026, 20h55)
+- **Catalogue : relié.** `club151.fr/api/catalog` renvoie les **720 articles publiés**
+  de `gestion.club151.fr` (7 pages de 100 + 20). Prix identiques à la caisse sur
+  3 articles contrôlés (2,99 / 3,99 / 5,99 €).
+- **Clés WooCommerce : présentes dans Vercel** (`/api/orders/mine` répond
+  `loggedIn:false` au lieu du 503 « pas encore activé »), `SESSION_SECRET` aussi.
+  Le module `lc151/v1` (mu-plugin) est installé sur le WordPress.
+- **Non prouvé de l'extérieur :** que la clé a bien le droit d'écriture. Seul un
+  achat de test le montre (commande dans WooCommerce → Commandes, stock −1), puis
+  passer la commande en « Annulée » pour rendre le stock.
+- **Stripe : encore en mode test** (`pk_test_`) → aucun paiement réel possible.
+- **Site construit avant l'import :** `sitemap.xml` = 11 pages, 0 fiche produit.
+  Un redéploiement génère les fiches. La version en ligne (ancienne) range les 61
+  peluches / figurines / goodies avec les cartes à l'unité et n'a pas les menus
+  par jeu : c'est la nouvelle version (non poussée, accès GitHub refusé) qui corrige.
 
 ## Rappel technique utile
 - Astuce si le site semble « pas à jour » après un push : Vercel/cache. Vérifier dans **Vercel → Deployments** que le **dernier commit** est bien déployé (Ready), sinon re-pousser un petit changement. Côté navigateur : **Ctrl + Maj + R**.

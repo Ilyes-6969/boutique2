@@ -58,6 +58,25 @@ async function fetchWooPage(base, page) {
   }
 }
 
+// Jeu du produit (catégories + étiquettes Woo) — mêmes règles que
+// lib/serverCatalog.js (gameFromWoo) et data.js, à garder synchronisées.
+const GAME_BRANDS = { pokemon: 'Pokémon', lorcana: 'Disney Lorcana', onepiece: 'One Piece Card Game', magic: 'Magic: The Gathering', yugioh: 'Yu-Gi-Oh!', riftbound: 'Riftbound', naruto: 'Naruto', dragonball: 'Dragon Ball Super Card Game', kayou: 'Kayou', rise: 'Rise' };
+function gameOf(p) {
+  const s = [].concat(p.categories || [], p.tags || [])
+    .map((t) => (((t && t.name) || '') + ' ' + ((t && t.slug) || ''))).join(' ').toLowerCase();
+  if (/lorcana/.test(s)) return 'lorcana';
+  if (/one[\s-]?piece/.test(s)) return 'onepiece';
+  if (/\bmagic\b|\bmtg\b/.test(s)) return 'magic';
+  if (/yu[\s-]?gi[\s-]?oh/.test(s)) return 'yugioh';
+  if (/riftbound/.test(s)) return 'riftbound';
+  if (/naruto/.test(s)) return 'naruto';
+  if (/dragon[\s-]?ball/.test(s)) return 'dragonball';
+  if (/kayou/.test(s)) return 'kayou';
+  if (/\brise\b/.test(s)) return 'rise';
+  if (/pok[ée]mon/.test(s)) return 'pokemon';
+  return null;
+}
+
 async function wooProducts() {
   const base = String(process.env.WC_STORE_URL || '').replace(/\/+$/, '');
   if (!base) return null; // pas de WooCommerce configuré → mode démo inchangé
@@ -115,6 +134,7 @@ async function wooProducts() {
     return {
       id: 'wp' + p.id,
       name: p.name,
+      game: gameOf(p),
       price: Math.round(price * 100) / 100,
       desc: strip(p.short_description) || strip(p.description),
       image: (p.images && p.images[0] && p.images[0].src) || null,
@@ -163,6 +183,32 @@ function checkShopContact() {
   vm.runInNewContext(code, sandbox, { filename: 'data.js' });
   if (!w.LC151) throw new Error('data.js n\'a pas exposé window.LC151 — le fichier a changé ?');
   assertShopContactUsable(w.LC151.SHOP);
+  return w.LC151.SHOP || {};
+}
+
+// Fiche « magasin » (schema.org/Store) de l'accueil, générée depuis LC151.SHOP
+// pour que Google lise exactement les coordonnées affichées sur le site. Le bloc
+// statique de index.html sert de repli en développement (sans build).
+function storeJsonLd(shop) {
+  const phone = String(shop.phone || '').replace(/\D/g, '');
+  const ld = {
+    '@context': 'https://schema.org',
+    '@type': 'Store',
+    '@id': SITE + '/#boutique',
+    name: shop.name || 'CLUB 151',
+    url: SITE + '/',
+    image: SITE + '/assets/og-image.png',
+    description: 'Boutique de cartes à collectionner à Vienne (Isère) : Pokémon, One Piece, Lorcana, Magic, Yu-Gi-Oh!, mangas et objets de collection. Cartes à l\'unité, gradées PSA, scellé, accessoires, rachat et tournois.',
+    telephone: /^0\d{9}$/.test(phone) ? '+33' + phone.slice(1) : undefined,
+    address: shop.street ? { '@type': 'PostalAddress', streetAddress: shop.street, postalCode: shop.zip, addressLocality: shop.city, addressCountry: 'FR' }
+      : { '@type': 'PostalAddress', addressLocality: 'Vienne', addressCountry: 'FR' },
+    geo: shop.geo ? { '@type': 'GeoCoordinates', latitude: shop.geo.lat, longitude: shop.geo.lon } : undefined,
+    openingHours: (shop.hoursSchema && shop.hoursSchema.length) ? shop.hoursSchema : undefined,
+    sameAs: (shop.socials || []).map(([, url]) => url).filter(Boolean),
+    areaServed: 'FR',
+  };
+  if (!ld.sameAs.length) delete ld.sameAs;
+  return '<script type="application/ld+json" id="lc-store-ld">' + JSON.stringify(ld) + '</script>';
 }
 
 // Garde anti-données bouche-trou. Les coordonnées vivent dans data.js (LC151.SHOP)
@@ -289,7 +335,7 @@ function productPage(template, p) {
       description: p.desc || undefined,
       image: image || undefined,
       sku: p.id,
-      brand: { '@type': 'Brand', name: 'Pokémon' },
+      brand: GAME_BRANDS[p.game] ? { '@type': 'Brand', name: GAME_BRANDS[p.game] } : undefined,
       offers: {
         '@type': 'Offer',
         url: url,
@@ -308,7 +354,7 @@ function productPage(template, p) {
     + '<p><strong>' + Number(p.price).toFixed(2).replace('.', ',') + ' €</strong>'
     + (p.inStock === false ? ' — épuisé' : '') + '</p>'
     + '<p>' + esc(p.desc || '') + '</p>'
-    + '<p><a href="boutique.html">Voir toute la boutique CLUB 151</a> — cartes Pokémon à Vienne, expédition sous 48 h.</p>'
+    + '<p><a href="boutique.html">Voir toute la boutique CLUB 151</a> — cartes à collectionner à Vienne, expédition sous 48 h.</p>'
     + '</div>\n</noscript>';
   out = out.replace('<div id="root"></div>', '<div id="root"></div>\n' + noscript);
 
@@ -350,7 +396,7 @@ mkdirSync(join(DIST, 'produits'), { recursive: true });
 // Garde anti-coordonnées bouche-trou (téléphone en « 00 00 00 », lien social
 // sans compte). La table de prix serveur n'est plus générée ici : elle vient
 // désormais uniquement de WooCommerce, à l'exécution.
-checkShopContact();
+const SHOP = checkShopContact();
 
 // Design system allégé (ou bundle complet en secours)
 const dsComponents = SLIM_DS_BUNDLE ? extractDsComponents() : null;
@@ -386,7 +432,12 @@ let produitTemplate = '';
 for (const f of readdirSync(ROOT)) {
   if (!f.endsWith('.html')) continue;
   const name = f.replace(/\.html$/, '');
-  const out = transformHtml(readFileSync(join(ROOT, f), 'utf8'), name);
+  let out = transformHtml(readFileSync(join(ROOT, f), 'utf8'), name);
+  if (f === 'index.html') {
+    const re = /<script type="application\/ld\+json" id="lc-store-ld">[\s\S]*?<\/script>/;
+    if (!re.test(out)) throw new Error('index.html : bloc JSON-LD « lc-store-ld » introuvable');
+    out = out.replace(re, () => storeJsonLd(SHOP));
+  }
   writeFileSync(join(DIST, f), out);
   if (f === 'produit.html') produitTemplate = out;
 }

@@ -2,6 +2,8 @@
 
 _Ce guide t'accompagne du « site de démo » au « vrai magasin en ligne » : tes produits, ton stock partagé entre le magasin et le site, les commandes qui décomptent le stock toutes seules. Aucune compétence technique requise — chaque étape est un écran à remplir. Compte une demi-journée pour tout faire tranquillement (hors création des fiches produits)._
 
+> **Où on en est (21/11/2026) :** WordPress + WooCommerce répondent sur `https://gestion.club151.fr` et le site les interroge déjà (`/api/catalog` renvoie `source: woocommerce`), mais le catalogue y est encore **vide**. Le fichier d'import est prêt : il a été fabriqué à partir de l'export de stock de la caisse (Rezomatic, 1 296 articles). Il reste à l'importer — voir « ÉTAPE 2 bis » — puis à vérifier les étapes 3–4 (clés API et variables Vercel).
+
 **Le principe en une phrase :** WordPress + WooCommerce devient ton « arrière-boutique » (produits, prix, stock), et le site CLUB 151 reste ta vitrine — il lit le catalogue tout seul.
 
 ---
@@ -39,11 +41,46 @@ Le site range automatiquement tes produits dans les bons rayons **en lisant le n
 | **Cartes gradées** | `gradée`, `PSA`, `BGS`, `CGC` |
 | **Scellé** | `scellé`, `display`, `booster`, `coffret`, `ETB`, `box`, `boîte` |
 | **Accessoires** | `accessoire`, `sleeve`, `protège`, `classeur`, `toploader`, `tapis`, `deck box` |
+| **Mangas & collection** | `manga`, `figurine`, `peluche`, `goodies`, `objet` |
 | **Cartes à l'unité** | tout le reste (aucun mot-clé requis) |
 
-Exemples de catégories qui marchent : « Cartes gradées PSA », « Scellé — Displays », « Accessoires », « Cartes à l'unité ».
+Exemples de catégories qui marchent : « Cartes gradées PSA », « Scellé — Displays », « Accessoires », « Mangas », « Objets de collection », « Cartes à l'unité ».
+
+### Le jeu : une deuxième catégorie (ou une étiquette) au nom du jeu
+
+Le site a une page par jeu (Lorcana, One Piece, Magic, Yu-Gi-Oh!). Pour qu'un produit y apparaisse, ajoute-lui **en plus** une catégorie **ou** une étiquette qui contient le nom du jeu :
+
+| Page du site | La catégorie ou l'étiquette doit contenir |
+|---|---|
+| Pokémon | `Pokémon` |
+| Disney Lorcana | `Lorcana` |
+| One Piece | `One Piece` |
+| Magic: The Gathering | `Magic` ou `MTG` |
+| Yu-Gi-Oh! | `Yu-Gi-Oh` |
+
+Exemple : un display One Piece → catégories « Scellé — Displays » **et** « One Piece ». Il sort dans le rayon Scellé de la boutique, et sur la page One Piece.
+
+Tant qu'un jeu n'a aucun produit, sa page et sa tuile d'accueil affichent « Bientôt en ligne » ; dès le premier produit publié, elles basculent toutes seules sur le vrai rayon. Un produit sans nom de jeu (manga, classeur neutre…) reste visible dans « Toute la boutique », simplement sans page de jeu.
 
 **Précommandes :** ajoute au produit une catégorie **ou** une étiquette contenant le mot « **Précommande** » — le site l'affichera dans le rayon Précommandes avec le bon libellé.
+
+## ÉTAPE 2 bis — Importer d'un coup tout le stock de la caisse (Rezomatic)
+
+Plutôt que de créer 1 000 fiches à la main, on convertit l'export de la caisse en fichier d'import WooCommerce.
+
+1. **Dans Rezomatic** : « Gestion du stock produits » → imprimer en PDF.
+2. **Conversion** : `python3 outils/import-rezomatic/convertir.py stock.pdf import-woocommerce.csv` (ou demande à Claude de le faire à partir du PDF).
+3. **Dans wp-admin** : **Produits → Tous les produits → Importer** → choisis le fichier CSV → **Continuer**. Les colonnes se reconnaissent toutes seules → **Lancer l'importation**.
+4. Pour une **mise à jour** (nouveau stock, nouveaux prix) : même chose avec un nouvel export, en cochant **« Mettre à jour les produits existants »**. Les fiches sont retrouvées par leur **UGS = code article de la caisse** ; les photos et descriptions déjà ajoutées dans WooCommerce sont conservées.
+
+Ce que fait la conversion :
+
+- **Prix** = « Vente TTC » de la caisse. Les prix d'achat et les marges ne sortent jamais du PDF.
+- **Catégorie** = rayon du site, **étiquette** = jeu (règles ci-dessus, appliquées d'après le nom de l'article).
+- **En ligne** uniquement si : stock > 0, prix > 0, prix ≥ prix d'achat, et nom précis. Le reste arrive en **brouillon** (invisible sur le site) : ruptures, stocks négatifs, prix à 0, prix sous le coût, lignes « bac » du type « Carte DP » ou « Commune Bloc EX ». Un brouillon se publie en un clic une fois corrigé.
+- ⚠️ **N'ouvre pas le CSV dans Excel avant de l'importer** : Excel supprime les zéros en tête des codes article (`0000008611017` deviendrait `8611017`) et les mises à jour ne retrouveraient plus les fiches.
+- ⚠️ **Après l'import, vérifie un prix au hasard sur le site** : il doit être identique à celui de la caisse. S'il est 20 % plus haut ou plus bas, c'est le réglage TVA de WooCommerce (WooCommerce → Réglages → TVA : les prix doivent être déclarés comme saisis TTC).
+- Les fiches arrivent **sans photo** (le PDF n'en contient pas) : le site affiche une vignette neutre. À compléter depuis l'app mobile WooCommerce, en commençant par les pièces les plus chères.
 
 ### Le stock : à activer sur CHAQUE produit
 

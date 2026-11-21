@@ -12,7 +12,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://club151.fr/index.html">
-<meta name="description" content="CLUB 151, boutique de cartes Pokémon à Vienne (Isère) : cartes à l'unité, cartes gradées PSA, displays et coffrets scellés (ETB), boosters et accessoires. Produits authentifiés, expédiés sous 48 h ou retrait en boutique.">
+<meta name="description" content="CLUB 151, boutique TCG au 28 rue Juiverie à Vienne (Isère) : cartes Pokémon à l'unité et gradées PSA, displays et coffrets scellés, One Piece, Lorcana, Magic, Yu-Gi-Oh!, mangas et accessoires. Rachat de cartes, tournois, retrait en boutique ou livraison sous 48 h.">
 <meta name="robots" content="index,follow">
 <meta name="theme-color" content="#1E3265">
 <link rel="preconnect" href="https://unpkg.com" crossorigin>
@@ -21,17 +21,18 @@
 <meta property="og:site_name" content="CLUB 151">
 <meta property="og:locale" content="fr_FR">
 <meta property="og:image" content="https://club151.fr/assets/og-image.png">
-<meta property="og:title" content="CLUB 151 — boutique de cartes Pokémon">
-<meta property="og:description" content="Cartes Pokémon à l'unité, gradées PSA, scellé et accessoires. Authentifiés, expédiés sous 48 h ou retrait en boutique à Vienne.">
+<meta property="og:url" content="https://club151.fr/">
+<meta property="og:title" content="CLUB 151 — boutique TCG à Vienne (38)">
+<meta property="og:description" content="Cartes Pokémon à l'unité, gradées PSA, scellé, autres TCG, mangas et accessoires. 28 rue Juiverie, Vienne — retrait en boutique ou livraison sous 48 h.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://club151.fr/assets/og-image.png">
-<meta name="twitter:title" content="CLUB 151 — boutique de cartes Pokémon">
-<meta name="twitter:description" content="Cartes Pokémon à l'unité, gradées PSA, scellé et accessoires. Authentifiés, expédiés sous 48 h ou retrait en boutique.">
-<title>CLUB 151 — boutique de cartes Pokémon à Vienne</title>
+<meta name="twitter:title" content="CLUB 151 — boutique TCG à Vienne (38)">
+<meta name="twitter:description" content="Cartes Pokémon à l'unité, gradées PSA, scellé, autres TCG, mangas et accessoires. 28 rue Juiverie, Vienne.">
+<title>CLUB 151 — boutique de cartes Pokémon & TCG à Vienne (38)</title>
 <link rel="icon" type="image/svg+xml" href="assets/brand/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
 <link rel="preload" as="image" href="assets/hero-cards.webp">
 <link rel="stylesheet" href="/styles.css">
 <link rel="stylesheet" href="storefront2.css">
@@ -40,13 +41,22 @@
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 <script src="/_ds_bundle.js"></script>
-<script type="application/ld+json">
+<!-- Fiche « magasin » pour Google. Régénérée au build depuis data.js (LC151.SHOP) :
+     modifie les coordonnées LÀ-BAS, ce bloc suivra. -->
+<script type="application/ld+json" id="lc-store-ld">
 {
   "@context": "https://schema.org",
   "@type": "Store",
+  "@id": "https://club151.fr/#boutique",
   "name": "CLUB 151",
-  "description": "Boutique de cartes à collectionner (Pokémon, et bientôt Lorcana, One Piece, Magic, Yu-Gi-Oh!) à Vienne. Cartes à l'unité, gradées PSA, scellé et accessoires.",
-  "address": { "@type": "PostalAddress", "addressLocality": "Vienne", "addressCountry": "FR" },
+  "url": "https://club151.fr/",
+  "image": "https://club151.fr/assets/og-image.png",
+  "description": "Boutique de cartes à collectionner à Vienne (Isère) : Pokémon, One Piece, Lorcana, Magic, Yu-Gi-Oh!, mangas et objets de collection. Cartes à l'unité, gradées PSA, scellé, accessoires, rachat et tournois.",
+  "telephone": "+33658988116",
+  "address": { "@type": "PostalAddress", "streetAddress": "28 rue Juiverie", "postalCode": "38200", "addressLocality": "Vienne", "addressCountry": "FR" },
+  "geo": { "@type": "GeoCoordinates", "latitude": 45.52322, "longitude": 4.87371 },
+  "openingHours": ["Tu-Sa 10:00-19:00", "Su 14:00-18:00"],
+  "sameAs": ["https://www.instagram.com/boutiqueclub151/"],
   "areaServed": "FR"
 }
 </script>
@@ -55,8 +65,9 @@
 <div id="root"></div>
 <noscript>
   <div style="max-width:720px;margin:40px auto;padding:0 20px;font-family:system-ui,sans-serif;line-height:1.6">
-    <h1>CLUB 151 — boutique de cartes Pokémon</h1>
-    <p>Cartes Pokémon à l'unité, cartes gradées PSA, displays et coffrets scellés (ETB), boosters et accessoires. Produits authentifiés, expédiés sous 48&nbsp;h ou retrait en boutique à Vienne.</p>
+    <h1>CLUB 151 — boutique TCG à Vienne</h1>
+    <p>Cartes Pokémon à l'unité, cartes gradées PSA, displays et coffrets scellés (ETB), boosters, autres jeux de cartes à collectionner, mangas et accessoires. Produits authentifiés, expédiés sous 48&nbsp;h ou retrait en boutique.</p>
+    <p>28 rue Juiverie, 38200 Vienne — du mardi au samedi 10h–19h, dimanche 14h–18h.</p>
     <p>Ce site a besoin de JavaScript pour afficher le catalogue interactif. Merci de l'activer.</p>
     <p><a href="boutique.html">Voir la boutique</a></p>
   </div>

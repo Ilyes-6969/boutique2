@@ -2,28 +2,35 @@
    Mentions légales · CGV · Politique de confidentialité.
    ⚠️ Gabarit informatif, non contractuel : fais-le valider par un juriste.
 
-   👉 REMPLIS UNE SEULE FOIS l'objet COMPANY ci-dessous : ses valeurs se
-      propagent automatiquement aux trois pages. Tout champ laissé vide ('')
-      s'affiche surligné « à compléter » pour que rien ne soit oublié. */
+   L'objet COMPANY ci-dessous alimente les trois pages. Tout champ laissé
+   vide ('') s'affiche surligné « à compléter » pour que rien ne soit oublié. */
 
+// Coordonnées du magasin : source unique dans data.js (LC151.SHOP).
+const LC_SHOP = (window.LC151 && window.LC151.SHOP) || {};
+const LC_SHOP_ADDRESS = LC_SHOP.street ? LC_SHOP.street + ', ' + LC_SHOP.zip + ' ' + LC_SHOP.city : '';
+
+// Sources : extrait d'immatriculation (Infogreffe / RNE, SIREN 108 168 311),
+// relevé le 21/11/2026. Reste À COMPLÉTER : le médiateur de la consommation.
 const COMPANY = {
-  name: '',                 // Raison sociale, ex. "CLUB 151 SAS"
-  legalForm: '',            // EI / EURL / SASU…
-  capital: '',              // Capital social, ex. "1 000 €"
-  siret: '',                // ex. "000 000 000 00000"
-  rcs: '',                  // RCS / RM, ex. "Vienne 000 000 000"
-  vat: '',                  // TVA intracom., ex. "FR00 000000000"
-  address: '',              // ex. "12 rue de la République, 38200 Vienne"
+  name: 'Club151',          // Dénomination sociale (enseigne : CLUB 151)
+  legalForm: 'SAS (société par actions simplifiée)',
+  capital: '1 010 €',
+  siret: '108 168 311 00018',
+  rcs: 'Vienne 108 168 311',
+  vat: 'FR78 108168311',
+  address: LC_SHOP_ADDRESS, // siège social = adresse du magasin
   email: 'contact@club151.fr',
-  phone: '',                // ex. "04 00 00 00 00"
-  director: '',             // Directeur de la publication (Prénom Nom)
-  directorRole: '',         // gérant / président…
+  phone: LC_SHOP.phone || '',
+  director: 'Rabah Bennacer', // Directeur de la publication
+  directorRole: 'président',
   host: { name: 'Vercel Inc.', address: '440 N Barranca Ave #4133, Covina, CA 91723, USA', contact: 'vercel.com' },
-  mediator: '',             // Médiateur de la consommation (nom + URL)
+  mediator: '',             // Médiateur de la consommation (nom + URL) — OBLIGATOIRE avant la 1re vente en ligne
   jurisdiction: 'Vienne',
-  hours: '',                // Horaires boutique, ex. "Mar–Sam · 10h–19h"
+  hours: LC_SHOP.hoursText || '',
   returnCost: 'du client',  // frais de retour : "du client" ou "du vendeur"
 };
+// Date de dernière révision des pages légales (à actualiser à chaque modification).
+const LEGAL_UPDATED = '21/11/2026';
 
 function LegalPage({ navigate, kind }) {
   const F = ({ children }) => (
@@ -31,7 +38,7 @@ function LegalPage({ navigate, kind }) {
   );
   // Affiche la vraie valeur si renseignée, sinon un placeholder surligné.
   const V = ({ v, ph }) => (v ? <span>{v}</span> : <F>{ph}</F>);
-  const H = ({ children }) => <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 20, letterSpacing: '-0.01em', margin: '34px 0 12px' }}>{children}</h2>;
+  const H = ({ children }) => <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 20, letterSpacing: '-0.01em', margin: '34px 0 12px' }}>{children}</h2>;
   const P = ({ children }) => <p style={{ fontSize: 15, lineHeight: 1.7, color: 'var(--ink-soft)', margin: '0 0 12px' }}>{children}</p>;
   const LI = ({ children }) => <li style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-soft)', marginBottom: 7, paddingLeft: 20, position: 'relative' }}><span style={{ position: 'absolute', left: 2, top: 9, width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }}></span>{children}</li>;
   const UL = ({ children }) => <ul style={{ listStyle: 'none', margin: '0 0 14px', padding: 0 }}>{children}</ul>;
@@ -47,19 +54,19 @@ function LegalPage({ navigate, kind }) {
 
   return (
     <div>
-      <section style={{ borderBottom: '1.5px solid var(--line)', background: 'var(--paper-2)' }}>
+      <section style={{ borderBottom: '1px solid var(--line)', background: 'var(--paper-2)' }}>
         <div style={{ maxWidth: 880, margin: '0 auto', padding: '40px 24px 34px' }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 14 }}>
             <a href="index.html">Accueil</a> &nbsp;/&nbsp; {meta.crumb}
           </div>
           <h1 className="display-2">{meta.title}</h1>
-          <p style={{ fontSize: 13.5, color: 'var(--muted)', marginTop: 10, fontFamily: 'var(--font-mono)' }}>Dernière mise à jour : <F>JJ/MM/AAAA</F></p>
+          <p style={{ fontSize: 13.5, color: 'var(--muted)', marginTop: 10, fontFamily: 'var(--font-mono)' }}>Dernière mise à jour : {LEGAL_UPDATED}</p>
         </div>
       </section>
 
       <section style={{ maxWidth: 880, margin: '0 auto', padding: '8px 24px 72px' }}>
         {isLegal && !COMPANY.name && (
-        <div style={{ background: 'var(--accent-wash)', border: '1.5px solid var(--accent-soft)', borderRadius: 'var(--radius)', padding: '14px 18px', margin: '24px 0 8px', fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
+        <div style={{ background: 'var(--accent-wash)', border: '1px solid var(--accent-soft)', borderRadius: 'var(--radius)', padding: '14px 18px', margin: '24px 0 8px', fontSize: 13.5, color: 'var(--ink-soft)', lineHeight: 1.55 }}>
           <strong style={{ color: 'var(--ink)' }}>Gabarit à compléter.</strong> Renseigne l'objet <code>COMPANY</code> en haut de <code>Legal.jsx</code> : les champs <F>surlignés</F> se rempliront automatiquement ici. Ce modèle est fourni à titre informatif — fais-le relire par un professionnel du droit avant mise en ligne.
         </div>
         )}
@@ -86,7 +93,7 @@ function LegalPage({ navigate, kind }) {
               <LI>Contact : <V v={COMPANY.host.contact} ph="Téléphone / site de l'hébergeur" /></LI>
             </UL>
             <H>4. Propriété intellectuelle</H>
-            <P>« Pokémon », les noms de personnages, séries et logos sont des marques déposées de Nintendo, Creatures Inc. et GAME FREAK inc. <strong>CLUB 151 n'est ni affilié, ni sponsorisé, ni approuvé par The Pokémon Company.</strong> Les produits proposés sont des articles authentiques revendus dans le cadre de l'épuisement des droits. Les visuels, textes et éléments graphiques propres au site sont la propriété de <V v={COMPANY.name} ph="Nom de l'entreprise" />.</P>
+            <P>« Pokémon », les noms de personnages, séries et logos sont des marques déposées de Nintendo, Creatures Inc. et GAME FREAK inc. <strong>CLUB 151 n'est ni affilié, ni sponsorisé, ni approuvé par The Pokémon Company.</strong> Les autres jeux et licences cités sur le site (One Piece Card Game, Disney Lorcana, Magic: The Gathering, Yu-Gi-Oh!…) sont la propriété de leurs éditeurs respectifs. Les produits proposés sont des articles authentiques revendus dans le cadre de l'épuisement des droits. Les visuels, textes et éléments graphiques propres au site sont la propriété de <V v={COMPANY.name} ph="Nom de l'entreprise" />.</P>
             <H>5. Données personnelles & cookies</H>
             <P>Le traitement des données est décrit dans notre <a href="confidentialite.html" style={{ color: 'var(--accent)', fontWeight: 600 }}>politique de confidentialité</a>.</P>
           </React.Fragment>
@@ -95,7 +102,7 @@ function LegalPage({ navigate, kind }) {
         {kind === 'cgv' && (
           <React.Fragment>
             <H>Article 1 — Objet</H>
-            <P>Les présentes conditions générales de vente (CGV) régissent les ventes de cartes et produits Pokémon réalisées sur le site CLUB 151 entre <V v={COMPANY.name} ph="Nom de l'entreprise" /> (le vendeur) et tout acheteur particulier (le client).</P>
+            <P>Les présentes conditions générales de vente (CGV) régissent les ventes de cartes à collectionner, produits scellés, mangas, accessoires et objets de collection réalisées sur le site CLUB 151 entre <V v={COMPANY.name} ph="Nom de l'entreprise" /> (le vendeur) et tout acheteur particulier (le client).</P>
             <H>Article 2 — Produits</H>
             <P>Les produits sont des articles <strong>authentiques</strong> (cartes à l'unité, cartes gradées, produits scellés, accessoires). Les cartes à l'unité et gradées sont des <strong>pièces uniques</strong> : une fois vendues, elles ne sont plus disponibles. Les photographies sont les plus fidèles possibles ; de légères variations d'état peuvent exister et sont précisées dans la fiche produit.</P>
             <H>Article 3 — Prix</H>
@@ -146,7 +153,7 @@ function LegalPage({ navigate, kind }) {
 
         {kind === 'apropos' && (
           <React.Fragment>
-            <P style={{ marginTop: 24 }}>CLUB 151 est une boutique de cartes à collectionner installée à <strong>Vienne, en Isère</strong>. Pokémon est notre cœur de métier — du Set de Base de 1999 aux dernières sorties — avec une sélection de cartes à l'unité, de pièces gradées, de produits scellés et d'accessoires.</P>
+            <P style={{ marginTop: 24 }}>CLUB 151 est une boutique de cartes à collectionner, de mangas et d'objets de collection installée au cœur de <strong>Vienne, en Isère</strong> — au {LC_SHOP.street || 'centre-ville'}, depuis le 2 octobre 2026. Pokémon est notre cœur de métier, du Set de Base de 1999 aux dernières sorties, et on fait aussi vivre One Piece, Disney Lorcana, Magic et Yu-Gi-Oh! : cartes à l'unité, pièces gradées, produits scellés et accessoires.</P>
             <H>Notre métier</H>
             <P>On déniche, on authentifie et on conseille. Chaque carte de valeur passe entre nos mains avant d'être proposée : état, centrage, authenticité. L'idée est simple — que vous achetiez une pièce de collection en confiance, comme si vous étiez au comptoir.</P>
             <H>Nos engagements</H>
@@ -155,9 +162,10 @@ function LegalPage({ navigate, kind }) {
               <LI><strong>Expédition protégée</strong> sous 48 h ouvrées, en envoi suivi, ou retrait gratuit en boutique.</LI>
               <LI><strong>Conseil</strong> — débutant ou collectionneur aguerri, on prend le temps de répondre.</LI>
               <LI><strong>Rachat & estimation</strong> de cartes et de collections en boutique.</LI>
+              <LI><strong>Un lieu pour jouer</strong> — des tournois chaque semaine en boutique, et un rayon manga.</LI>
             </UL>
             <H>Venez nous voir</H>
-            <P>La boutique est ouverte <V v={COMPANY.hours} ph="Mar–Sam · 10h–19h" /> — <V v={COMPANY.address} ph="adresse à compléter, 38200 Vienne" />. Une question, une recherche précise, une collection à estimer ? <a href="index.html#contact" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'var(--accent)', fontWeight: 600 }}>Écrivez-nous</a> ou passez directement.</P>
+            <P>La boutique vous accueille au <strong><V v={COMPANY.address} ph="adresse à compléter, 38200 Vienne" /></strong>, <V v={COMPANY.hours} ph="Mar–Sam · 10h–19h" />.{LC_SHOP.mapsUrl ? <React.Fragment> <a href={LC_SHOP.mapsUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600 }}>Voir l'itinéraire</a>.</React.Fragment> : null} Une question, une recherche précise, une collection à estimer ? <a href="index.html#contact" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'var(--accent)', fontWeight: 600 }}>Écrivez-nous</a> ou passez directement.</P>
             <P style={{ fontSize: 12.5, color: 'var(--muted)', marginTop: 18 }}>« Pokémon » est une marque déposée de Nintendo, Creatures Inc. et GAME FREAK inc. CLUB 151 n'est ni affilié ni approuvé par The Pokémon Company.</P>
           </React.Fragment>
         )}
@@ -178,12 +186,18 @@ function LegalPage({ navigate, kind }) {
             <P>Les produits en précommande sont expédiés à leur date de sortie, indiquée sur la fiche. Vous pouvez activer une <strong>alerte</strong> depuis votre compte pour être prévenu des nouveautés et retours en stock.</P>
             <H>Faut-il un compte pour commander ?</H>
             <P>Non — vous pouvez commander sans compte, en « commande invité ». La création d'un compte client (gratuit) est facultative : elle permet de suivre vos commandes et d'enregistrer vos adresses pour vos prochains achats.</P>
+            <H>Où se trouve la boutique et quand est-elle ouverte ?</H>
+            <P>Au <strong><V v={COMPANY.address} ph="adresse, 38200 Vienne" /></strong>, <V v={COMPANY.hours} ph="horaires" />.{LC_SHOP.phone ? <React.Fragment> Vous pouvez aussi nous appeler au <a href={'tel:' + LC_SHOP.phone.replace(/\s/g, '')} style={{ color: 'var(--accent)', fontWeight: 600 }}>{LC_SHOP.phone}</a>.</React.Fragment> : null}</P>
+            <H>Rachetez-vous des cartes ou des collections ?</H>
+            <P>Oui. Passez en boutique avec vos cartes : on les estime sur place et on vous fait une proposition de rachat. Pour une grosse collection, <a href="index.html#contact" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'var(--accent)', fontWeight: 600 }}>écrivez-nous</a> avant de venir, pour qu'on prenne le temps de la regarder.</P>
+            <H>Organisez-vous des tournois ?</H>
+            <P>Oui, chaque semaine en boutique. Le programme (jeu, date, inscription) est annoncé sur notre Instagram{(LC_SHOP.socials || []).filter(([n]) => n === 'Instagram').map(([n, url]) => <React.Fragment key={n}> <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600 }}>@boutiqueclub151</a></React.Fragment>)}.</P>
             <H>Une autre question ?</H>
             <P><a href="index.html#contact" onClick={(e) => { e.preventDefault(); openModal('contact'); }} style={{ color: 'var(--accent)', fontWeight: 600 }}>Contactez-nous</a> — on répond sous 24 h.</P>
           </React.Fragment>
         )}
 
-        <div style={{ marginTop: 40, paddingTop: 22, borderTop: '1.5px solid var(--line)', display: 'flex', gap: 16, flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: 12.5 }}>
+        <div style={{ marginTop: 40, paddingTop: 22, borderTop: '1px solid var(--line)', display: 'flex', gap: 16, flexWrap: 'wrap', fontFamily: 'var(--font-mono)', fontSize: 12.5 }}>
           <a href="mentions-legales.html" style={{ color: kind === 'mentions' ? 'var(--accent)' : 'var(--ink-2)', fontWeight: 600 }}>Mentions légales</a>
           <a href="cgv.html" style={{ color: kind === 'cgv' ? 'var(--accent)' : 'var(--ink-2)', fontWeight: 600 }}>CGV</a>
           <a href="confidentialite.html" style={{ color: kind === 'confidentialite' ? 'var(--accent)' : 'var(--ink-2)', fontWeight: 600 }}>Confidentialité</a>

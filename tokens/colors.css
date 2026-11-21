@@ -35,11 +35,11 @@
   --muted: #626A88;           /* tertiary / meta / placeholder — AA sur blanc (5.3:1) */
 
   /* ---- PAPER — cool white & light blue-greys ---- */
-  --paper: #EEF1F8;           /* page background — light cool grey */
-  --paper-2: #E3E8F3;         /* sunken / alt band / image stage */
+  --paper: #FFFFFF;           /* page : blanc franc, la structure vient des traits */
+  --paper-2: #F4F5F8;         /* fond neutre des visuels produits */
   --card: #FFFFFF;            /* card / raised surface — white */
-  --line: #D7DEEC;            /* borders, dividers */
-  --line-strong: #BFC8DD;     /* stronger hairline / input border */
+  --line: #D9DDE8;            /* trait fin : navy à ~15 % */
+  --line-strong: #AEB5C8;     /* trait appuyé : champs, boutons contour */
 
   /* ---- STATUS ---- */
   --green: #1F9D57;           /* in stock, success */

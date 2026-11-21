@@ -272,14 +272,14 @@ function ThemeToggle({ light }) {
   };
   return (
     <button onClick={toggle} aria-label="Basculer le thème"
-      style={{ width: 38, height: 38, borderRadius: 'var(--radius-sm)', border: light ? '1.5px solid rgba(255,255,255,0.25)' : '1.5px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: light ? '#EAEFFB' : 'var(--ink)', background: 'transparent' }}>
+      style={{ width: 38, height: 38, borderRadius: 'var(--radius-sm)', border: light ? '1px solid rgba(255,255,255,0.25)' : '1px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: light ? '#EAEFFB' : 'var(--ink)', background: 'transparent' }}>
       {dark ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="12" cy="12" r="4"></circle>
           <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
         </svg>
       ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
         </svg>
       )}
@@ -362,20 +362,19 @@ function SearchBox({ compact }) {
 
   return (
     <div ref={boxRef} style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: compact ? '0 6px 0 14px' : '0 6px 0 16px', height: compact ? 42 : 44, borderRadius: 'var(--radius-pill)', border: '1.5px solid ' + (focused ? 'var(--accent)' : 'transparent'), background: 'var(--card)', transition: 'border-color 0.15s ease' }}>
-        <span style={{ display: 'flex', color: 'var(--muted)' }} aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path></svg></span>
+      <div className="lc-searchbox" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '0 12px 0 4px', height: compact ? 42 : 40, borderRadius: 'var(--radius-sm)', border: '1px solid ' + (focused ? '#fff' : 'rgba(255,255,255,0.4)'), background: 'transparent' }}>
+        <button type="button" onClick={runSearch} aria-label="Lancer la recherche" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, color: '#fff' }}><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7.5"></circle><path d="M20.5 20.5l-4.2-4.2"></path></svg></button>
         <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={onKeyDown}
           onFocus={() => { setFocused(true); if (query.trim().length >= 2 && sugg.length) setOpen(true); }}
           onBlur={() => setFocused(false)}
           placeholder={t('search_ph')} aria-label={t('search_ph')}
           role="combobox" aria-expanded={open} aria-controls={listId} aria-autocomplete="list" autoComplete="off"
           aria-activedescendant={open && sel >= 0 ? idBase + '-' + sel : undefined}
-          style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--ink)', width: '100%' }} />
-        <button onClick={runSearch} className="lc-press" style={{ height: compact ? 32 : 34, padding: compact ? '0 14px' : '0 16px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: compact ? 11 : 11.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('ok')}</button>
+          style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 14.5, color: '#fff', width: '100%' }} />
       </div>
       {open && (
         <div role="listbox" id={listId} aria-label="Suggestions de recherche"
-          style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', overflow: 'hidden', zIndex: 70 }}>
+          style={{ position: 'absolute', top: 'calc(100% + 6px)', left: 0, right: 0, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow)', overflow: 'hidden', zIndex: 70 }}>
           {sugg.length === 0 && <div style={{ padding: '12px 14px', fontSize: 13, color: 'var(--muted)' }}>Aucune correspondance directe.</div>}
           {sugg.map((p, i) => (
             <a key={p.id} id={idBase + '-' + i} role="option" aria-selected={sel === i} tabIndex={-1}
@@ -386,7 +385,7 @@ function SearchBox({ compact }) {
                   onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = LC_THUMB_FALLBACK; }}
                   style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </span>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
+              <span style={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</span>
               <span style={{ flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{fmt(p.price)}&nbsp;€</span>
             </a>
           ))}
@@ -424,30 +423,35 @@ function Header({ navigate, active, onCart }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [drawerOpen]);
   return (
-    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--header-bg)', borderBottom: '3px solid var(--accent)' }}>
+    <React.Fragment>
+    <TopBar />
+    <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'var(--header-bg)' }}>
       {/* main row */}
-      <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 24, height: 76 }}>
-        <Logo onClick={() => navigate('home')} size={26} mark />
+      <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 24, height: 68 }}>
+        {/* Logo complet (pastille + nom) sur grand écran ; pastille seule au téléphone
+            pour laisser la place à la recherche et au panier (storefront2.css). */}
+        <span className="lc-logo-full"><Logo onClick={() => navigate('home')} size={22} /></span>
+        <span className="lc-logo-mark"><Logo onClick={() => navigate('home')} size={26} mark /></span>
         <div className="lc-search" style={{ flex: 1, maxWidth: 540, marginLeft: 12 }}>
           <SearchBox />
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
           <ThemeToggle light />
           <a href="#" onClick={(e) => { e.preventDefault(); openModal('account'); }} title={loggedIn ? ('Mon compte · ' + auth.user().name) : 'Mon compte'} aria-label="Mon compte"
-            style={{ width: 40, height: 40, borderRadius: 'var(--radius-sm)', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: loggedIn ? 'var(--on-accent)' : '#EAEFFB', background: loggedIn ? 'var(--accent)' : 'transparent' }}>
+            style={{ width: 40, height: 40, borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: loggedIn ? 'var(--on-accent)' : '#EAEFFB', background: loggedIn ? 'var(--accent)' : 'transparent' }}>
             {loggedIn ? (
               <span style={{ fontSize: 14, fontWeight: 700, textTransform: 'uppercase' }}>{(auth.user().name || 'C')[0]}</span>
             ) : (
-              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
             )}
           </a>
           <button onClick={handleCart} aria-label="Panier" data-cart-btn="1" className="lc-press"
-            style={{ position: 'relative', height: 40, padding: '0 18px 0 16px', display: 'flex', alignItems: 'center', gap: 9, borderRadius: 'var(--radius-sm)', background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 600 }}>
+            style={{ position: 'relative', height: 40, padding: '0 14px 0 16px', display: 'flex', alignItems: 'center', gap: 10, borderRadius: 'var(--radius-sm)', border: '1px solid rgba(255,255,255,0.4)', background: 'transparent', color: '#fff', fontSize: 14, fontWeight: 500 }}>
             {t('h_cart')}
-            <span key={count} className={count > 0 ? 'lc-bump' : undefined} style={{ minWidth: 20, height: 20, padding: '0 5px', borderRadius: 'var(--radius-pill)', background: 'var(--on-accent)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11.5, fontWeight: 700 }}>{count}</span>
+            <span key={count} className={count > 0 ? 'lc-bump' : undefined} style={{ minWidth: 20, height: 20, padding: '0 5px', borderRadius: 'var(--radius-pill)', background: count > 0 ? 'var(--yellow)' : 'rgba(255,255,255,0.16)', color: count > 0 ? 'var(--on-yellow)' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{count}</span>
           </button>
         </div>
       </div>
@@ -465,97 +469,110 @@ function Header({ navigate, active, onCart }) {
         document.body
       )}
     </header>
+    </React.Fragment>
   );
 }
 
+/* MENU PAR JEU — même logique qu'en magasin : on entre par l'univers
+   (Pokémon, One Piece…), puis par le rayon. Les sous-menus ne sont PAS écrits en
+   dur : ils listent les rayons (catégories WooCommerce) réellement en ligne pour
+   ce jeu, avec leur nombre de produits. Un jeu sans produit affiche « Bientôt en
+   ligne » au lieu d'un rayon vide. */
 const NAV = [
-  { key: 'home', label: 'Accueil' },
-  { key: 'single', label: "Cartes à l'unité", cols: [
-    { title: 'Par série', items: ['Wizards (WOTC)', 'Bloc EX', 'Diamant & Perle', 'Platine', 'HeartGold SoulSilver', 'Noir & Blanc', 'XY', 'Soleil & Lune', 'Épée & Bouclier', 'Écarlate & Violet', 'Méga-Évolution', 'Promo'] },
-    { title: 'Populaire', items: ['Dernière série', 'Meilleures ventes', 'Cartes Holo', 'Cartes rares', 'Édition 1ère'] },
-  ] },
-  { key: 'graded', label: 'Cartes gradées', cols: [
-    { title: 'Certification', items: ['PSA', 'BGS', 'CGC'] },
-    { title: 'Par série', items: ['Wizards', 'Bloc EX', 'XY', 'Soleil & Lune', 'Épée & Bouclier', 'Écarlate & Violet', 'Méga-Évolution'] },
-  ] },
-  { key: 'sealed', label: 'Scellé', cols: [
-    { title: 'Type de produit', items: ['Display / Boîte de boosters', 'ETB — Dresseur d’Élite', 'Coffret', 'Booster', 'Pokébox', 'Tripack / Duopack', 'Deck'] },
-    { title: 'Séries récentes', items: ['Méga-Évolution', 'Aventures Ensemble', 'Écarlate & Violet', 'Pokémon Japonais'] },
-  ] },
-  { key: 'accessory', label: 'Accessoires', cols: [
-    { title: 'Protection', items: ['Protège-cartes', 'Classeurs', 'Folio / Binder', 'Deck Box', 'Toploaders', 'Tapis / Playmat'] },
-    { title: 'Marques', items: ['Ultra Pro', 'Ultimate Guard', 'Dragon Shield', 'Gamegenic'] },
-  ] },
-  { key: 'preorder', label: 'Précommande' },
-  { key: 'univers', label: 'Autres jeux', games: [['Pokémon', 'boutique.html'], ['Disney Lorcana', 'lorcana.html'], ['One Piece', 'one-piece.html'], ['Magic: The Gathering', 'magic.html'], ['Yu-Gi-Oh!', 'yugioh.html']] },
-  { key: 'catalogue', label: 'Toute la boutique' },
+  { key: 'home', label: 'Accueil', href: '/index.html' },
+  { key: 'new', label: 'Nouveautés', href: '/boutique.html?tri=nouveau' },
+  { key: 'pokemon', label: 'Pokémon', game: 'pokemon' },
+  { key: 'onepiece', label: 'One Piece', game: 'onepiece' },
+  { key: 'lorcana', label: 'Lorcana', game: 'lorcana' },
+  { key: 'magic', label: 'Magic', game: 'magic' },
+  { key: 'yugioh', label: 'Yu-Gi-Oh!', game: 'yugioh' },
+  { key: 'others', label: 'Autres TCG', games: ['riftbound', 'naruto', 'dragonball', 'kayou', 'rise'] },
+  { key: 'accessory', label: 'Accessoires', href: '/boutique.html?cat=accessory' },
+  { key: 'goodies', label: 'Figurines & goodies', href: '/boutique.html?cat=goodies' },
+  { key: 'shop', label: 'Le magasin', href: '/index.html#la-boutique' },
 ];
 
-/* Libellés du méga-menu trop génériques pour pré-remplir la recherche (?q) :
-   pour ceux-là, le lien pointe vers le rayon complet (?cat seul). */
-const LC_MEGA_GENERIC = ['Dernière série', 'Meilleures ventes'];
+/* Onglet actif, déduit de l'adresse (les pages ne passent que « home » ou « catalogue »). */
+function lcNavCurrent(active) {
+  if (active === 'home') return 'home';
+  const loc = window.location;
+  const sp = new URLSearchParams(loc.search);
+  const pageGame = ({ '/lorcana.html': 'lorcana', '/one-piece.html': 'onepiece', '/magic.html': 'magic', '/yugioh.html': 'yugioh' })[loc.pathname] || sp.get('game');
+  if (pageGame) return NAV.some((n) => n.game === pageGame) ? pageGame : 'others';
+  if (sp.get('cat') === 'accessory') return 'accessory';
+  if (sp.get('cat') === 'goodies') return 'goodies';
+  if (sp.get('tri') === 'nouveau') return 'new';
+  return null;
+}
 
 function MegaNav({ navigate, active }) {
   const [open, setOpen] = React.useState(null);
-  const t = useLang();
-  const go = (item) => { setOpen(null); navigate(item.key === 'home' ? 'home' : 'catalogue', item.key === 'home' ? undefined : item.key === 'catalogue' ? 'all' : item.key); };
+  const navStore = useStore();
+  const L = window.LC151 || {};
+  const GAMES = L.GAMES || {};
+  const gameUrl = L.gameUrl || ((g) => '/boutique.html?game=' + g);
+  const all = navStore.all();
+  const countGame = (g) => all.filter((p) => p.game === g).length;
+  // Rayons en ligne pour un jeu : [[nom de la catégorie, nombre]], triés par nom.
+  const rayonsOf = (g) => {
+    const m = new Map();
+    all.forEach((p) => { if (p.game === g && p.cat) m.set(p.cat, (m.get(p.cat) || 0) + 1); });
+    return Array.from(m.entries()).sort((a, b) => a[0].localeCompare(b[0], 'fr'));
+  };
+  const cur = lcNavCurrent(active);
+  const linkStyle = (on) => ({ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', fontSize: 14, fontWeight: on ? 600 : 500, color: on ? 'var(--ink)' : 'var(--ink-2)', boxShadow: on ? 'inset 0 -2px 0 var(--ink)' : 'none', whiteSpace: 'nowrap' });
+  // Sous-menu = une liste réglée : une ligne fine sous chaque rayon, le nombre à droite.
+  const panelLink = { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 14, padding: '11px 2px', borderBottom: '1px solid var(--line)', color: 'var(--ink)', fontSize: 14.5, fontWeight: 500 };
+  const count = (n) => <span style={{ fontSize: 13, color: 'var(--muted)', fontVariantNumeric: 'tabular-nums' }}>{n}</span>;
   return (
-    <nav style={{ borderTop: '1px solid rgba(255,255,255,0.12)', position: 'relative', background: 'var(--header-2)' }} onMouseLeave={() => setOpen(null)} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(null); }}>
-      <div className="container-wide lc-nav-scroll" style={{ display: 'flex', gap: 2, height: 48, alignItems: 'stretch' }}>
+    <nav aria-label="Rayons" style={{ position: 'relative', background: 'var(--card)', borderBottom: '1px solid var(--line)' }} onMouseLeave={() => setOpen(null)} onKeyDown={(e) => { if (e.key === 'Escape') setOpen(null); }}>
+      <div className="container-wide lc-nav-scroll" style={{ display: 'flex', gap: 2, height: 46, alignItems: 'stretch' }}>
         {NAV.map((c) => {
-          const on = active === c.key || (c.key === 'home' && active === 'home');
-          const hasPanel = !!(c.cols || c.games);
+          const hasPanel = !!(c.game || c.games);
+          const href = c.href || (c.game ? gameUrl(c.game) : '#');
           return (
             <React.Fragment key={c.key}>
-            <a href="#" className="lc-nav-link" onMouseEnter={() => setOpen(hasPanel ? c.key : null)}
-              onFocus={() => setOpen(hasPanel ? c.key : null)}
-              aria-haspopup={hasPanel ? 'true' : undefined} aria-expanded={hasPanel ? open === c.key : undefined}
-              onClick={(e) => { e.preventDefault(); if (c.cols) { if (open === c.key) { go(c); } else { setOpen(c.key); } } else if (c.games) { setOpen(open === c.key ? null : c.key); } else { go(c); } }}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 15px', fontSize: 13.5, fontWeight: 600, color: on ? '#fff' : 'rgba(234,239,251,0.72)', borderBottom: '3px solid', borderColor: on ? 'var(--yellow)' : 'transparent', whiteSpace: 'nowrap' }}>
-              {(window.lcI18n && window.lcI18n.t('nav_' + c.key) !== 'nav_' + c.key) ? t('nav_' + c.key) : c.label}{hasPanel && <span style={{ fontSize: 9, opacity: 0.6 }}>▾</span>}
-            </a>
-            {/* panneau rendu juste après son onglet dans le DOM : atteignable au Tab (position absolute → hors du flux flex, échappe à l'overflow de .lc-nav-scroll car rattaché au <nav> relatif) */}
-            {hasPanel && open === c.key ? (
-          <div className="lc-mega-panel" onMouseEnter={() => setOpen(c.key)}
-            style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card)', borderTop: '1.5px solid var(--line)', borderBottom: '1.5px solid var(--line)', boxShadow: 'var(--shadow)', zIndex: 60 }}>
-            {c.games ? (
-              <div className="container-wide lc-mega-games" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, padding: '22px 24px 26px' }}>
-                {c.games.map(([label, href]) => (
-                  <a key={href} href={href}
-                    style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 16px', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', color: 'var(--ink)' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--line)'; }}>
-                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>{label}</span>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.06em', textTransform: 'uppercase', color: href === 'boutique.html' ? 'var(--accent)' : 'var(--muted)' }}>{href === 'boutique.html' ? 'Explorer' : 'Bientôt'}</span>
-                  </a>
-                ))}
-              </div>
-            ) : (
-            <div className="container-wide lc-mega-cols" style={{ display: 'flex', gap: 56, padding: '26px 24px 30px' }}>
-              {c.cols.map((col) => (
-                <div key={col.title}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: 14 }}>{col.title}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: col.items.length > 6 ? '1fr 1fr' : '1fr', gap: '9px 36px' }}>
-                    {col.items.map((it) => (
-                      /* boutique.html lit ?q et le passe à Catalogue (initialQuery) :
-                         chaque sous-lien pré-filtre son rayon, sauf libellés génériques. */
-                      <a key={it} href={'/boutique.html?cat=' + encodeURIComponent(c.key) + (LC_MEGA_GENERIC.indexOf(it) !== -1 ? '' : '&q=' + encodeURIComponent(it))}
-                        style={{ fontSize: 14, color: 'var(--ink-2)', whiteSpace: 'nowrap' }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--ink)'; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-2)'; }}>{it}</a>
-                    ))}
+              <a href={href} className="lc-nav-link" style={linkStyle(cur === c.key)}
+                onMouseEnter={() => setOpen(hasPanel ? c.key : null)} onFocus={() => setOpen(hasPanel ? c.key : null)}
+                aria-haspopup={hasPanel ? 'true' : undefined} aria-expanded={hasPanel ? open === c.key : undefined}
+                onClick={(e) => {
+                  // Avec sous-menu : 1er clic (ou tap) = ouvrir, 2e = aller au rayon complet.
+                  if (hasPanel && open !== c.key) { e.preventDefault(); setOpen(c.key); }
+                  else if (c.games) { e.preventDefault(); setOpen(null); }
+                }}>
+                {c.label}{hasPanel && <svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ opacity: 0.7 }}><path d="M2 3.5l3 3 3-3"></path></svg>}
+              </a>
+              {hasPanel && open === c.key ? (
+                <div onMouseEnter={() => setOpen(c.key)}
+                  style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card)', borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', boxShadow: 'var(--shadow)', zIndex: 60 }}>
+                  <div className="container-wide" style={{ padding: '14px 24px 26px' }}>
+                    {c.game ? (() => {
+                      const rayons = rayonsOf(c.game);
+                      const total = countGame(c.game);
+                      return total === 0 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 15, color: 'var(--ink)' }}>{GAMES[c.game] || c.label} n'est pas encore en ligne.</span>
+                          <a href={href} style={{ fontSize: 14.5, fontWeight: 500, color: 'var(--accent)', textDecoration: 'underline', textUnderlineOffset: 3 }}>En savoir plus</a>
+                        </div>
+                      ) : (
+                        <div className="lc-mega-games" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', columnGap: 40, rowGap: 0 }}>
+                          <a href={href} style={{ ...panelLink, fontWeight: 600 }}>Tout {GAMES[c.game] || c.label}{count(total)}</a>
+                          {rayons.map(([name, n]) => (
+                            <a key={name} href={'/boutique.html?game=' + c.game + '&rayon=' + encodeURIComponent(name)} style={panelLink}>{name.replace(/^Scellé — /, '')}{count(n)}</a>
+                          ))}
+                        </div>
+                      );
+                    })() : (
+                      <div className="lc-mega-games" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', columnGap: 40, rowGap: 0 }}>
+                        {c.games.map((g) => {
+                          const n = countGame(g);
+                          return <a key={g} href={gameUrl(g)} style={{ ...panelLink, color: n ? 'var(--ink)' : 'var(--muted)' }}>{GAMES[g] || g}{n ? count(n) : <span style={{ fontSize: 13, color: 'var(--muted)' }}>bientôt</span>}</a>;
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-              <div className="lc-mega-rail" style={{ marginLeft: 'auto', alignSelf: 'stretch', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8, paddingLeft: 40, borderLeft: '1.5px solid var(--line)', minWidth: 200 }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 17 }}>{c.label}</div>
-                <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>Parcourez tout le rayon et filtrez par série, état et prix.</div>
-                <a href="#" onClick={(e) => { e.preventDefault(); go(c); }} style={{ marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tout voir →</a>
-              </div>
-            </div>
-            )}
-          </div>
-            ) : null}
+              ) : null}
             </React.Fragment>
           );
         })}
@@ -565,13 +582,56 @@ function MegaNav({ navigate, active }) {
   );
 }
 
-/* Beige placeholder stage for sealed/accessory products (no card art). */
-function ProductStage({ glyph, label, ratio = '1 / 1', big }) {
+/* BANDEAU D'ANNONCE — une ligne tout en haut, au-dessus de l'en-tête (elle défile
+   avec la page, l'en-tête seul reste collé). Les deux promesses viennent des
+   réglages du site : seuil de livraison offerte (FREE_SHIP) et adresse du magasin. */
+function TopBar() {
+  const L = window.LC151 || {};
+  const shop = L.SHOP || {};
+  return (
+    <div className="lc-topbar" style={{ background: 'var(--header-2)', color: 'rgba(255,255,255,0.86)', textAlign: 'center', padding: '6px 16px', fontSize: 12.5, fontWeight: 500, lineHeight: 1.4, borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
+      Livraison offerte dès {L.FREE_SHIP || 100} €, retrait gratuit en magasin{shop.street ? <span className="lc-topbar-extra">{' au ' + shop.street + ', ' + shop.city}</span> : null}
+    </div>
+  );
+}
+
+/* VIGNETTE SANS PHOTO — fond neutre + pictogramme générique selon le rayon.
+   Les cartes gardent la tuile « 151 » ; le scellé, les accessoires et les goodies
+   ont chacun leur silhouette (booster, boîte, protection, figurine, peluche,
+   cadeau) pour qu'une rangée sans photo reste lisible d'un coup d'œil. Aucun
+   visuel de marque : de simples tracés. */
+function lcStageKind(p) {
+  if (!p) return 'card';
+  const c = String(p.cat || '').toLowerCase();
+  if (p.type === 'single' || p.type === 'graded') return 'card';
+  if (/booster|blister/.test(c)) return 'pack';
+  if (p.type === 'sealed') return 'box';
+  if (/peluche/.test(c)) return 'plush';
+  if (/figurine|pop/.test(c)) return 'figure';
+  if (p.type === 'accessory') return 'shield';
+  if (p.type === 'goodies') return 'gift';
+  return 'card';
+}
+const LC_STAGE_ICONS = {
+  pack: <React.Fragment><path d="M9 6l2-2 2 2 2-2 2 2 2-2 2 2 2-2 2 2v28l-2 2-2-2-2 2-2-2-2 2-2-2-2 2-2-2z"></path><path d="M9 11h16M9 29h16"></path><circle cx="17" cy="20" r="4"></circle></React.Fragment>,
+  box: <React.Fragment><path d="M4 12l14-7 14 7v16l-14 7-14-7z"></path><path d="M4 12l14 7 14-7M18 19v16"></path><path d="M11 8.5l14 7"></path></React.Fragment>,
+  shield: <React.Fragment><rect x="8" y="5" width="20" height="28" rx="2.5"></rect><rect x="12" y="9" width="12" height="16" rx="1.5"></rect><path d="M12 29h12"></path></React.Fragment>,
+  figure: <React.Fragment><circle cx="18" cy="11" r="6"></circle><path d="M10 34v-6a8 8 0 0 1 16 0v6z"></path><path d="M7 34h22"></path></React.Fragment>,
+  plush: <React.Fragment><circle cx="10" cy="10" r="4"></circle><circle cx="26" cy="10" r="4"></circle><circle cx="18" cy="20" r="11"></circle><circle cx="14" cy="18" r="1"></circle><circle cx="22" cy="18" r="1"></circle><path d="M15 24q3 2.5 6 0"></path></React.Fragment>,
+  gift: <React.Fragment><rect x="5" y="14" width="26" height="19" rx="2"></rect><path d="M3 14h30v-5H3zM18 9v24"></path><path d="M18 9c-2-6-9-5-7-1 1 2 5 1 7 1zm0 0c2-6 9-5 7-1-1 2-5 1-7 1z"></path></React.Fragment>,
+};
+function ProductStage({ glyph, label, ratio = '1 / 1', big, kind }) {
+  const icon = LC_STAGE_ICONS[kind];
   return (
     <div style={{ position: 'relative', aspectRatio: ratio, background: 'var(--paper-2)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, overflow: 'hidden' }}>
-      <div style={{ width: big ? 96 : 64, height: big ? 132 : 88, borderRadius: 6, border: '2px solid var(--line-strong)', background: 'repeating-linear-gradient(135deg, transparent 0 9px, rgba(26,23,20,0.04) 9px 18px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: big ? 22 : 15, color: 'var(--muted)' }}>151</span>
-      </div>
+      {icon ? (
+        <svg width={big ? 96 : 60} height={big ? 100 : 63} viewBox="0 0 36 38" fill="none" stroke="var(--line-strong)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{icon}</svg>
+      ) : (
+        /* carte : un simple contour aux proportions d'une carte (63 × 88) */
+        <div style={{ width: big ? 96 : 60, height: big ? 134 : 84, borderRadius: big ? 7 : 5, border: '1px solid var(--line-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: big ? 22 : 15, color: 'var(--muted)' }}>151</span>
+        </div>
+      )}
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--muted)' }}>{glyph || label}</span>
     </div>
   );
@@ -599,7 +659,7 @@ function LangSelect() {
         <span style={{ fontSize: 15 }}>{sel[2]}</span> {sel[1]} <span style={{ fontSize: 10, opacity: 0.7, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.18s' }}>▾</span>
       </button>
       {open && (
-        <div role="listbox" style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 6, minWidth: 180, background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', zIndex: 30 }}>
+        <div role="listbox" style={{ position: 'absolute', bottom: '100%', right: 0, marginBottom: 6, minWidth: 180, background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', zIndex: 30 }}>
           {langs.map(([code, name, flag]) => (
             <button key={code} role="option" aria-selected={code === cur} onClick={() => pick(code)}
               style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: code === cur ? 'var(--accent-wash)' : 'transparent', color: 'var(--ink)', fontSize: 14, fontWeight: code === cur ? 700 : 500, cursor: 'pointer', textAlign: 'left', borderBottom: '1px solid var(--line)' }}>
@@ -645,6 +705,7 @@ function Footer({ navigate }) {
   const socials = ((((window.LC151 || {}).SHOP || {}).socials) || [])
     .filter(([name, url]) => SOCIAL_ICONS[name] && url);
   const appBadge = null;
+  const shop = (window.LC151 || {}).SHOP || {};
   // Icônes SVG du bandeau de réassurance (mêmes tracés que ReassureIcon de Home.jsx,
   // dupliqués ici car Home.jsx n'est chargé que sur l'accueil).
   const footIcon = (name) => {
@@ -654,23 +715,20 @@ function Footer({ navigate }) {
       bouclier: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>,
     };
     return (
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         {shapes[name]}
       </svg>
     );
   };
   return (
     <footer style={{ background: 'var(--footer-bg)', color: 'var(--footer-text)', marginTop: 0 }}>
-      {/* reassurance strip */}
-      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
-        <div className="container-wide lc-foot-reassure" style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 56, padding: '26px 24px' }}>
-          {[['check', t('r_auth_t'), t('r_auth_s')], ['truck', t('r_ship_t'), t('r_ship_s')], ['bouclier', t('r_pay_t'), t('r_pay_s')]].map(([ic, ti, s]) => (
-            <div key={ti} className="lc-reassure" style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-              <span className="lc-reassure-ic" style={{ width: 40, height: 40, flexShrink: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>{footIcon(ic)}</span>
-              <div>
-                <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14.5 }}>{ti}</div>
-                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.55)' }}>{s}</div>
-              </div>
+      {/* Trois engagements, en colonnes séparées par un trait — sans pictogramme. */}
+      <div style={{ borderBottom: '1px solid rgba(255,255,255,0.14)' }}>
+        <div className="container-wide lc-foot-reassure" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', padding: 0 }}>
+          {[[t('r_auth_t'), t('r_auth_s')], [t('r_ship_t'), t('r_ship_s')], [t('r_pay_t'), t('r_pay_s')]].map(([ti, sub], n) => (
+            <div key={ti} style={{ padding: '22px 24px', borderLeft: n ? '1px solid rgba(255,255,255,0.14)' : 'none' }}>
+              <div style={{ fontSize: 15, fontWeight: 500 }}>{ti}</div>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 2 }}>{String(sub).replace(/ · /g, ', ')}</div>
             </div>
           ))}
         </div>
@@ -687,8 +745,17 @@ function Footer({ navigate }) {
               ))}
             </div>
             <p style={{ fontSize: 14, lineHeight: 1.6, color: 'rgba(255,255,255,0.6)', maxWidth: 320 }}>
-              La boutique des collectionneurs Pokémon, à Vienne. On déniche, on authentifie et on conseille.
+              La boutique TCG de Vienne : cartes à collectionner, mangas et objets de collection. On déniche, on authentifie et on conseille.
             </p>
+            {/* Coordonnées du magasin — LC151.SHOP (source unique). Rien n'est
+                affiché tant que l'adresse n'est pas renseignée. */}
+            {shop.street && (
+              <address style={{ fontStyle: 'normal', fontSize: 13.5, lineHeight: 1.7, color: 'rgba(255,255,255,0.72)', marginTop: 14, maxWidth: 320 }}>
+                <a href={shop.mapsUrl || 'index.html#la-boutique'} target={shop.mapsUrl ? '_blank' : undefined} rel="noopener noreferrer" className="lc-foot-link" style={{ color: 'rgba(255,255,255,0.86)', fontWeight: 600 }}>{shop.street}, {shop.zip} {shop.city}</a>
+                {(shop.hours || []).map(([d, h]) => <div key={d}>{d} : {h}</div>)}
+                {shop.phone && <a href={'tel:' + shop.phone.replace(/\s/g, '')} className="lc-foot-link" style={{ color: 'rgba(255,255,255,0.86)' }}>{shop.phone}</a>}
+              </address>
+            )}
           </div>
           {col(t('f_buy'), [
             { label: t('nav_home'), href: 'index.html' },
@@ -699,7 +766,7 @@ function Footer({ navigate }) {
             { label: t('f_preorders'), onClick: () => navigate('catalogue', 'preorder') },
           ])}
           {col(t('f_house'), [
-            { label: t('f_boutique'), onClick: () => openModal('contact') },
+            { label: t('f_boutique'), href: 'index.html#la-boutique' },
             { label: t('f_about'), href: 'apropos.html' },
             { label: 'FAQ', href: 'faq.html' },
             { label: t('f_auth'), onClick: () => openModal('contact') },
@@ -763,7 +830,7 @@ function FavRibbon({ caught, size = 18 }) {
     <svg width={size} height={size} viewBox="0 0 24 24"
       fill={caught ? 'var(--accent)' : 'none'}
       stroke={caught ? 'var(--accent)' : 'currentColor'}
-      strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round"
+      strokeWidth="1.4" strokeLinejoin="round" strokeLinecap="round"
       aria-hidden="true" style={{ display: 'block' }}>
       <path d="M6 3h12v18l-6-4-6 4Z" />
     </svg>
@@ -772,13 +839,13 @@ function FavRibbon({ caught, size = 18 }) {
 
 function lcBadgeStyle(tone) {
   const map = {
-    sale: { background: 'var(--ink)', color: 'var(--on-ink)', border: '1.5px solid var(--ink)' },
-    new: { background: 'var(--accent)', color: 'var(--on-accent)', border: '1.5px solid var(--accent)' },
-    graded: { background: 'var(--ink)', color: 'var(--yellow)', border: '1.5px solid var(--yellow-deep)' },
+    sale: { background: 'var(--ink)', color: 'var(--on-ink)', border: '1px solid var(--ink)' },
+    new: { background: 'var(--card)', color: 'var(--ink)', border: '1px solid var(--ink)' },
+    graded: { background: 'var(--card)', color: 'var(--ink)', border: '1px solid var(--ink)' },
     // --red-ink et non --red : le rouge vif ne tient que 4.18:1 sur --red-soft (AA rate).
-    oos: { background: 'var(--red-soft)', color: 'var(--red-ink)', border: '1.5px solid transparent' },
+    oos: { background: 'var(--red-soft)', color: 'var(--red-ink)', border: '1px solid transparent' },
   };
-  return { display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 'var(--radius-xs)', fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', lineHeight: 1.4, whiteSpace: 'nowrap', ...(map[tone] || map.new) };
+  return { display: 'inline-flex', alignItems: 'center', padding: '2px 7px', borderRadius: 'var(--radius-xs)', fontSize: 11.5, fontWeight: 600, lineHeight: 1.5, ...(map[tone] || map.new) };
 }
 
 /* Grade gradé robuste (BUG #5) : WooCommerce ne peuple pas toujours badge.label
@@ -826,93 +893,102 @@ function StoreCard({ product, navigate }) {
   const gradeBadge = (isGraded && !product.badge) ? lcDeriveGrade(product) : null;
 
   // Conteneur en <div> et non <a> : un <a> ne peut pas contenir de <button>
-  // (favori + ajout panier) — interactif-dans-interactif, HTML invalide qui fait
-  // double-annoncer la carte aux lecteurs d'écran. Le vrai lien focusable est
-  // désormais le TITRE ; le onClick du conteneur reste un confort souris (clic
-  // n'importe où), doublé par le lien clavier — aucune régression.
+  // (favori + ajout panier). Le vrai lien focusable est le TITRE ; le onClick du
+  // conteneur reste un confort souris.
+  //
+  // HABILLAGE « POCHETTE » : la carte n'a ni cadre ni ombre à elle — ce sont les
+  // traits de la grille (.lc-pockets / .lc-pocket-row) qui la délimitent, comme
+  // les pochettes d'une page de classeur. Au survol, rien ne bouge : le fond du
+  // visuel fonce d'un ton. L'ajout au panier est un petit bouton au trait, à
+  // droite du prix ; l'état du stock n'est écrit que s'il dit quelque chose
+  // (rupture, dernier exemplaire, précommande).
+  const canAdd = product.inStock && !lockedUnique;
+  // Une carte à l'unité ou gradée est presque toujours une pièce unique : l'écrire sur
+  // chacune n'apprend rien. « Dernier exemplaire » ne s'affiche donc que hors cartes.
+  const isCardType = product.type === 'single' || product.type === 'graded';
+  const note = !product.inStock ? 'Rupture' : product.preorder ? 'Précommande' : (unique && !isCardType) ? 'Dernier exemplaire' : (low && !unique) ? ('Plus que ' + product.stockLeft) : '';
+  const rayonCourt = ({ "Cartes à l'unité": 'Carte', 'Cartes gradées': 'Carte gradée' })[product.cat] || String(product.cat || '').replace(/^(Scellé|Accessoires) — /, '');
   return (
-    <div className={'lc-card' + (isGraded ? ' lc-graded' : '')} onClick={() => open()}
+    <div className={'lc-card lc-pocket' + (isGraded ? ' lc-graded' : '')} onClick={() => open()}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
-      style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', background: 'var(--card)', border: '1.5px solid', borderColor: isGraded ? 'var(--yellow-deep)' : (hover ? 'var(--line-strong)' : 'var(--line)'), borderRadius: 'var(--radius)', overflow: 'hidden', transition: 'all 0.2s ease', transform: hover ? 'translateY(-4px)' : 'none', boxShadow: isGraded ? undefined : (hover ? 'var(--shadow-lg)' : 'var(--shadow-xs)'), color: 'var(--ink)' }}>
+      style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--card)', padding: 14, opacity: product.inStock ? 1 : 0.62 }}>
       <div style={{ position: 'relative' }}>
-        <span style={{ position: 'absolute', top: 12, left: 12, zIndex: 2, display: 'flex', gap: 6 }}>
+        <span style={{ position: 'absolute', top: 8, left: 8, zIndex: 2, display: 'flex', gap: 6 }}>
           {pct > 0 && <span style={lcBadgeStyle('sale')}>−{pct}%</span>}
           {product.badge
             ? <span style={lcBadgeStyle(product.badge.tone)}>{product.badge.label}</span>
             : (gradeBadge && <span style={lcBadgeStyle('graded')}>{gradeBadge}</span>)}
         </span>
-        {!product.inStock && <span style={{ position: 'absolute', top: 12, right: 12, zIndex: 2 }}><span style={lcBadgeStyle('oos')}>Rupture</span></span>}
         {favs && product.inStock && (
           <button type="button" className="lc-card-fav" aria-pressed={liked} aria-label={liked ? 'Retirer de ma collection' : 'Ajouter à ma collection'} title={liked ? 'Dans ma collection' : 'Ajouter à ma collection'}
             onClick={toggleFav}
             onFocus={() => setHeartFocus(true)} onBlur={() => setHeartFocus(false)}
-            style={{ position: 'absolute', top: 10, right: 10, zIndex: 2, width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1.5px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', opacity: hover || liked || heartFocus || lcCoarsePointer ? 1 : 0, transition: 'opacity 0.2s ease, border-color 0.2s ease' }}><span key={favPops} className={favPops > 0 ? 'lc-fav-pop' : undefined} style={{ display: 'flex', lineHeight: 0 }}><FavRibbon caught={liked} size={16} /></span></button>
+            style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--card)', border: '1px solid ' + (liked ? 'var(--accent)' : 'var(--line)'), color: 'var(--muted)', opacity: hover || liked || heartFocus || lcCoarsePointer ? 1 : 0, transition: 'opacity 0.15s ease' }}>
+            <span key={favPops} className={favPops > 0 ? 'lc-fav-pop' : undefined} style={{ display: 'inline-flex' }}><FavRibbon caught={liked} size={14} /></span>
+          </button>
         )}
-        {product.image ? (
-          <div className={isGraded ? 'lc-stage-lux' : undefined} style={{ position: 'relative', aspectRatio: '1 / 1', background: 'var(--paper-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 22, overflow: 'hidden' }}>
-            <img src={product.image} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 140'%3E%3Crect width='100' height='140' rx='8' fill='%23efe9da'/%3E%3Ctext x='50' y='80' font-family='sans-serif' font-size='28' font-weight='bold' fill='%23b9ad95' text-anchor='middle'%3E151%3C/text%3E%3C/svg%3E"; }} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', filter: 'drop-shadow(0 12px 20px rgba(0,0,0,0.18))', transition: 'transform 0.35s cubic-bezier(0.2,0.8,0.2,1)', transform: hover ? 'scale(1.06)' : 'scale(1)' }} />
-          </div>
-        ) : <ProductStage glyph={product.glyph} />}
+        {/* Visuel : fond neutre, coins arrondis comme une carte sous pochette. */}
+        <div style={{ borderRadius: 8, overflow: 'hidden', background: 'var(--paper-2)', filter: hover ? 'brightness(0.975)' : 'none', transition: 'filter 0.15s ease' }}>
+          {product.image ? (
+            <div style={{ position: 'relative', aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+              <img src={product.image} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.visibility = 'hidden'; }}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+            </div>
+          ) : <ProductStage glyph={product.glyph} kind={lcStageKind(product)} />}
+        </div>
       </div>
-      <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 5, flex: 1 }}>
-        <div style={{ fontFamily: 'var(--font-body)', fontSize: 12.5, fontWeight: 600, color: 'var(--muted)' }}>{product.cat}</div>
+      <div style={{ paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
         <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); open(); }}
-          style={{ textDecoration: 'none', color: 'inherit', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16.5, lineHeight: 1.22, letterSpacing: '-0.01em', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', minHeight: 40 }}>{product.name}</a>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
-          {product.oldPrice > product.price && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--muted)', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>{fmt(product.oldPrice)}&nbsp;€</span>}
-          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 18, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.01em' }}>{fmt(product.price)}&nbsp;€</span>
-          {pct > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--green)' }}>−{fmt(product.oldPrice - product.price)}&nbsp;€</span>}
+          style={{ textDecoration: 'none', color: 'var(--ink)', fontSize: 15, fontWeight: 500, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.name}</a>
+        <div style={{ fontSize: 12.5, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rayonCourt}{note ? <span style={{ color: product.inStock ? 'var(--ink-2)' : 'var(--red-ink)' }}>{', ' + note.toLowerCase()}</span> : null}</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 'auto', paddingTop: 10 }}>
+          <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
+            <span style={{ fontWeight: 600, fontSize: 16.5, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{fmt(product.price)}&nbsp;€</span>
+            {product.oldPrice > product.price && <span style={{ fontSize: 13, color: 'var(--muted)', textDecoration: 'line-through', fontVariantNumeric: 'tabular-nums' }}>{fmt(product.oldPrice)}&nbsp;€</span>}
+          </span>
+          <button type="button" className="lc-press lc-add" disabled={!canAdd}
+            aria-label={!product.inStock ? (product.name + ' — indisponible')
+              : lockedUnique ? (product.name + ' — déjà dans le panier')
+              : ((product.preorder ? 'Précommander' : 'Ajouter au panier') + ' — ' + product.name)}
+            title={lockedUnique ? 'Déjà dans le panier' : (product.inStock ? (product.preorder ? 'Précommander' : 'Ajouter au panier') : 'Indisponible')}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (canAdd) { cart.add(product.id); lcFlyToCart(e.currentTarget); } }}
+            style={{ flexShrink: 0, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', border: '1px solid ' + (lockedUnique ? 'var(--green)' : canAdd ? 'var(--ink)' : 'var(--line)'), background: lockedUnique ? 'var(--green-soft)' : 'transparent', color: lockedUnique ? 'var(--green)' : canAdd ? 'var(--ink)' : 'var(--muted)', cursor: canAdd ? 'pointer' : 'not-allowed' }}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              {lockedUnique ? <path d="M3 8.5l3.2 3L13 4.5"></path> : <path d="M8 2.5v11M2.5 8h11"></path>}
+            </svg>
+          </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.04em', color: product.inStock ? (low ? 'var(--ink)' : 'var(--green)') : 'var(--muted)', fontWeight: low ? 600 : 400 }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: product.inStock ? (low ? 'var(--accent)' : 'var(--green)') : 'var(--line-strong)' }}></span>
-          {product.inStock ? (product.preorder ? 'Précommande · à la sortie' : low ? `Plus que ${product.stockLeft} en stock` : 'En stock · expédié sous 48 h') : 'Bientôt de retour'}
-        </div>
-        <button type="button" className="lc-press" disabled={!product.inStock || lockedUnique}
-          aria-label={!product.inStock ? (product.name + ' — indisponible')
-            : lockedUnique ? (product.name + ' — déjà dans le panier')
-            : ((product.preorder ? 'Précommander' : 'Ajouter au panier') + ' — ' + product.name)}
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (product.inStock && !lockedUnique) { cart.add(product.id); lcFlyToCart(e.currentTarget); } }}
-          style={{ marginTop: 12, width: '100%', height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 'var(--radius-sm)', fontFamily: 'var(--font-body)', fontWeight: 600, fontSize: 14, cursor: (product.inStock && !lockedUnique) ? 'pointer' : 'not-allowed', transition: 'all 0.18s ease', border: '1.5px solid', borderColor: lockedUnique ? 'var(--green)' : (product.inStock ? 'var(--ink)' : 'var(--line)'), background: lockedUnique ? 'var(--green-soft)' : (!product.inStock ? 'transparent' : hover ? 'var(--accent)' : 'var(--ink)'), color: lockedUnique ? 'var(--green)' : (!product.inStock ? 'var(--muted)' : (hover ? 'var(--on-accent)' : 'var(--on-ink)')), boxShadow: product.inStock && hover && !lockedUnique ? 'var(--shadow-accent)' : 'none' }}>
-          {lockedUnique ? <React.Fragment><span aria-hidden="true" style={{ fontSize: 15 }}>✓</span> Dans le panier (1/1)</React.Fragment> : (product.inStock ? <React.Fragment><span aria-hidden="true" style={{ fontSize: 16 }}>＋</span> {product.preorder ? 'Précommander' : 'Ajouter au panier'}</React.Fragment> : 'Indisponible')}
-        </button>
       </div>
     </div>
   );
 }
-
-/* ProductRow — a titled horizontal carousel of StoreCards (shop rayon). */
 function ProductRow({ eyebrow, title, products, navigate, onSeeAll }) {
   const ref = React.useRef(null);
   const scroll = (dir) => { if (ref.current) ref.current.scrollBy({ left: dir * 560, behavior: 'smooth' }); };
   if (!products.length) return null;
+  const arrow = (d) => (
+    <button key={d} onClick={() => scroll(d)} aria-label={d < 0 ? 'Précédent' : 'Suivant'}
+      style={{ width: 34, height: 34, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)' }}>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d < 0 ? 'M7.5 2L3.5 6l4 4' : 'M4.5 2l4 4-4 4'}></path></svg>
+    </button>
+  );
   return (
-    <section style={{ marginBottom: 8 }}>
-      {/* flexWrap : titre (26px fixes) + « Tout voir » + les deux flèches
-          totalisaient ~380px de min-content et débordaient la page sous 340px
-          (iPhone SE). Le titre devient fluide et le groupe de droite passe à la
-          ligne au lieu de pousser le document. */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 18, gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 0 }}>
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'clamp(21px, 5vw, 26px)', letterSpacing: '-0.02em' }}>{title}</h2>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <a href="#" onClick={(e) => { e.preventDefault(); onSeeAll && onSeeAll(); }} style={{ fontFamily: 'var(--font-body)', fontSize: 14, fontWeight: 600, color: 'var(--ink)', padding: '6px 0' }}>Tout voir →</a>
-          {/* .lc-row-nav : masquées au téléphone (storefront2.css) — le rayon se
-              fait défiler au doigt, les flèches n'y volent que de la place. */}
-          <div className="lc-row-nav" style={{ display: 'flex', gap: 6 }}>
-            {[-1, 1].map((d) => (
-              <button key={d} onClick={() => scroll(d)} aria-label={d < 0 ? 'Précédent' : 'Suivant'}
-                style={{ width: 36, height: 36, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--card)', color: 'var(--ink)', fontSize: 15 }}>{d < 0 ? '‹' : '›'}</button>
-            ))}
-          </div>
+    <section>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14, gap: 16, flexWrap: 'wrap' }}>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 'clamp(22px, 2.6vw, 30px)', letterSpacing: '-0.02em', lineHeight: 1.15, minWidth: 0 }}>{title}</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <a href="#" onClick={(e) => { e.preventDefault(); onSeeAll && onSeeAll(); }} style={{ fontSize: 14.5, fontWeight: 500, color: 'var(--ink)', textDecoration: 'underline', textUnderlineOffset: 4, textDecorationThickness: 1 }}>Tout voir</a>
+          <div className="lc-row-nav" style={{ display: 'flex', gap: 6 }}>{[-1, 1].map(arrow)}</div>
         </div>
       </div>
-      <div ref={ref} style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '248px', gap: 18, overflowX: 'auto', scrollSnapType: 'x mandatory', paddingBottom: 6, scrollbarWidth: 'none' }}>
+      {/* .lc-pocket-row : un trait au-dessus, un en dessous, un entre chaque pochette. */}
+      <div ref={ref} className="lc-pocket-row" style={{ display: 'grid', gridAutoFlow: 'column', gridAutoColumns: '232px', overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none' }}>
         {products.map((p) => <div key={p.id} style={{ scrollSnapAlign: 'start' }}><StoreCard product={p} navigate={navigate} /></div>)}
       </div>
     </section>
   );
 }
+
 
 /* ---- lightweight modal bus (mock account / contact / newsletter / checkout) ---- */
 const __lcModalSubs = new Set();
@@ -962,7 +1038,7 @@ function useFocusTrap(panelRef, onClose) {
 
 /* fontSize 16 : en dessous, iOS Safari zoome tout seul à la mise au point sur le
    champ et l'utilisateur se retrouve à devoir dézoomer entre chaque saisie. */
-const lcField = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', background: 'var(--paper)', fontSize: 16, color: 'var(--ink)', outline: 'none', marginBottom: 12, boxSizing: 'border-box' };
+const lcField = { width: '100%', padding: '11px 13px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', background: 'var(--paper)', fontSize: 16, color: 'var(--ink)', outline: 'none', marginBottom: 12, boxSizing: 'border-box' };
 
 /* Repli <button> natif si le design system (DS.Button) n'est pas encore chargé —
    même garde défensive que Checkout.jsx (const DS = ... || {} ; DS.Button ? ...).
@@ -981,10 +1057,10 @@ function ModalShell({ title, children, onClose }) {
           défiler — le bouton de validation devenait inatteignable. Même
           traitement que la modale de paiement (Checkout.jsx). overscrollBehavior
           empêche la page du dessous de défiler en bout de liste. */}
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="lc-modal-title" tabIndex={-1} style={{ position: 'relative', width: 'min(440px, 100%)', maxHeight: '92vh', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--card)', border: '1.5px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26, outline: 'none' }}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby="lc-modal-title" tabIndex={-1} style={{ position: 'relative', width: 'min(440px, 100%)', maxHeight: '92vh', overflowY: 'auto', overscrollBehavior: 'contain', background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-lg)', padding: 26, outline: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <h3 id="lc-modal-title" style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 22, letterSpacing: '-0.02em' }}>{title}</h3>
-          <button onClick={onClose} aria-label="Fermer" style={{ width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer' }}>×</button>
+          <h3 id="lc-modal-title" style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, letterSpacing: '-0.02em' }}>{title}</h3>
+          <button onClick={onClose} aria-label="Fermer" style={{ width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer' }}>×</button>
         </div>
         {children}
       </div>
@@ -1068,7 +1144,7 @@ function AccountModal({ onClose }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
           <span style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--accent)', color: 'var(--on-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 700, textTransform: 'uppercase' }}>{(u.name || 'C')[0]}</span>
           <div>
-            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16 }}>{u.name}</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 16 }}>{u.name}</div>
             <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>{u.email}</div>
           </div>
         </div>
@@ -1077,7 +1153,7 @@ function AccountModal({ onClose }) {
             <button key={it} onClick={() => { openModal(target); }}
               onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.background = 'var(--accent-wash)'; }}
               onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--line)'; e.currentTarget.style.background = 'var(--card)'; }}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '11px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid var(--line)', background: 'var(--card)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', transition: 'border-color 0.18s ease, background 0.18s ease' }}>
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', textAlign: 'left', padding: '11px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--line)', background: 'var(--card)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', transition: 'border-color 0.18s ease, background 0.18s ease' }}>
               {it}
               {it === 'Mes alertes' && window.LC151.Alerts.count() > 0 && <span style={{ minWidth: 20, height: 20, padding: '0 6px', borderRadius: 'var(--radius-pill)', background: 'var(--accent)', color: 'var(--on-accent)', fontSize: 11.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.LC151.Alerts.count()}</span>}
             </button>
@@ -1110,7 +1186,7 @@ function AccountModal({ onClose }) {
 
   const tabBtn = (k, label) => (
     <button key={k} type="button" onClick={() => { setTab(k); setErr(''); }}
-      style={{ flex: 1, height: 38, borderRadius: 'var(--radius-sm)', border: '1.5px solid',
+      style={{ flex: 1, height: 38, borderRadius: 'var(--radius-sm)', border: '1px solid',
         borderColor: tab === k ? 'var(--ink)' : 'var(--line-strong)',
         background: tab === k ? 'var(--ink)' : 'transparent',
         color: tab === k ? 'var(--on-ink)' : 'var(--ink)',
@@ -1124,7 +1200,7 @@ function AccountModal({ onClose }) {
       {sent ? (
         <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
           <div className="lc-pop" style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--green-soft)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 6L2 7"></path></svg>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"></rect><path d="m22 7-10 6L2 7"></path></svg>
           </div>
           <p style={{ fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.55, marginBottom: 18 }}>
             Si un compte existe avec cette adresse, un e-mail de réinitialisation vient d’être envoyé.
@@ -1203,7 +1279,7 @@ function AlertsModal({ onClose }) {
           const on = alerts.hasTopic(t.key);
           return (
             <button key={t.key} onClick={() => alerts.toggleTopic(t.key)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', borderRadius: 'var(--radius-sm)', border: '1.5px solid', borderColor: on ? 'var(--ink)' : 'var(--line)', background: on ? 'var(--accent-wash)' : 'var(--card)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid', borderColor: on ? 'var(--ink)' : 'var(--line)', background: on ? 'var(--accent-wash)' : 'var(--card)', color: 'var(--ink)', fontSize: 14, cursor: 'pointer', textAlign: 'left' }}>
               <span style={{ width: 38, height: 22, borderRadius: 'var(--radius-pill)', background: on ? 'var(--accent)' : 'var(--line-strong)', position: 'relative', flexShrink: 0, transition: 'background 0.18s ease' }}>
                 <span style={{ position: 'absolute', top: 2, left: on ? 18 : 2, width: 18, height: 18, borderRadius: '50%', background: on ? 'var(--on-accent)' : 'var(--card)', transition: 'left 0.18s ease' }}></span>
               </span>
@@ -1213,7 +1289,7 @@ function AlertsModal({ onClose }) {
         })}
       </div>
 
-      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Alerte sur un mot-clé</div>
+      <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 14, marginBottom: 8 }}>Alerte sur un mot-clé</div>
       <form onSubmit={addKw} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <input value={kw} onChange={(e) => setKw(e.target.value)} placeholder="ex. Dracaufeu, Méga-Évolution…" style={{ ...lcField, marginBottom: 0 }} />
         <button type="submit" style={{ flexShrink: 0, padding: '0 16px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontWeight: 600, fontSize: 13.5, cursor: 'pointer' }}>Ajouter</button>
@@ -1221,14 +1297,14 @@ function AlertsModal({ onClose }) {
       {data.keywords.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
           {data.keywords.map((k) => (
-            <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 8px 6px 12px', borderRadius: 'var(--radius-pill)', background: 'var(--paper-2)', border: '1.5px solid var(--line)', fontSize: 13 }}>
+            <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 8px 6px 12px', borderRadius: 'var(--radius-pill)', background: 'var(--paper-2)', border: '1px solid var(--line)', fontSize: 13 }}>
               {k}
               <button onClick={() => alerts.removeKeyword(k)} aria-label={'Retirer ' + k} style={{ width: 18, height: 18, borderRadius: '50%', border: 'none', background: 'var(--line-strong)', color: 'var(--paper)', fontSize: 11, cursor: 'pointer', lineHeight: 1 }}>✕</button>
             </span>
           ))}
         </div>
       )}
-      <div style={{ fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', paddingTop: 6, borderTop: '1.5px solid var(--line)' }}>
+      <div style={{ fontSize: 12.5, color: 'var(--muted)', textAlign: 'center', paddingTop: 6, borderTop: '1px solid var(--line)' }}>
         {alerts.count() > 0 ? `${alerts.count()} alerte${alerts.count() > 1 ? 's' : ''} active${alerts.count() > 1 ? 's' : ''} · envoyées à ${auth.user().email}` : 'Aucune alerte active pour le moment.'}
       </div>
     </ModalShell>
@@ -1293,7 +1369,7 @@ function OrdersModal({ onClose }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {list.map((o) => (
-            <div key={o.number} style={{ border: '1.5px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '14px 16px' }}>
+            <div key={o.number} style={{ border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '14px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13.5 }}>N° {o.number}</span>
                 {/* Le libellé vient du serveur : « on-hold » ne veut pas dire la
@@ -1400,4 +1476,4 @@ function lcNavigate(view, arg) {
   if (view === 'cart') { window.location.href = '/panier.html'; return; }
   window.location.href = '/index.html';
 }
-Object.assign(window, { lcNavigate, useCart, useStore, useAuth, useAlerts, useFavorites, lcUseFocusTrap: useFocusTrap, Pokeball, FavRibbon, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });
+Object.assign(window, { TopBar, lcStageKind, lcNavigate, useCart, useStore, useAuth, useAlerts, useFavorites, lcUseFocusTrap: useFocusTrap, Pokeball, FavRibbon, lcFlyToCart, Logo, Announcement, ThemeToggle, Header, ProductStage, Footer, StoreCard, ProductRow, openModal, closeModal, ModalHost });
