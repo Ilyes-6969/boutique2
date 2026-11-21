@@ -128,6 +128,10 @@ async function wooProducts() {
     process.exit(1);
   }
   const strip = (h) => String(h || '').replace(/<[^>]*>/g, '').trim();
+  // Photos hébergées par le site, à défaut d'image dans WooCommerce (même table
+  // que lib/serverCatalog.js — voir outils/photos/manifeste.mjs).
+  const photosFile = join(ROOT, 'lib', 'photos-produits.json');
+  const PHOTOS = existsSync(photosFile) ? JSON.parse(readFileSync(photosFile, 'utf8')) : {};
   return raw.map((p) => {
     const minor = (p.prices && p.prices.currency_minor_unit != null) ? Number(p.prices.currency_minor_unit) : 2;
     const price = (Number(p.prices && p.prices.price) || 0) / Math.pow(10, minor);
@@ -137,7 +141,7 @@ async function wooProducts() {
       game: gameOf(p),
       price: Math.round(price * 100) / 100,
       desc: strip(p.short_description) || strip(p.description),
-      image: (p.images && p.images[0] && p.images[0].src) || null,
+      image: (p.images && p.images[0] && p.images[0].src) || (PHOTOS[String(p.sku || '')] ? 'assets/produits/' + PHOTOS[String(p.sku)] : null),
       inStock: p.is_in_stock !== false,
     };
   });
