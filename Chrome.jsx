@@ -928,9 +928,9 @@ function StoreCard({ product, navigate }) {
           </button>
         )}
         {/* Visuel : fond neutre, coins arrondis comme une carte sous pochette. */}
-        <div style={{ borderRadius: 8, overflow: 'hidden', background: 'var(--paper-2)', filter: hover ? 'brightness(0.975)' : 'none', transition: 'filter 0.15s ease' }}>
+        <div style={{ borderRadius: 8, overflow: 'hidden', background: product.image ? '#FFFFFF' : 'var(--paper-2)', border: '1px solid ' + (product.image ? 'var(--line)' : 'transparent'), filter: hover ? 'brightness(0.975)' : 'none', transition: 'filter 0.15s ease' }}>
           {product.image ? (
-            <div style={{ position: 'relative', aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}>
+            <div style={{ position: 'relative', aspectRatio: '1 / 1', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 10 }}>
               <img src={product.image} alt={product.name} loading="lazy" decoding="async" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.style.visibility = 'hidden'; }}
                 style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             </div>

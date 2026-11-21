@@ -323,7 +323,7 @@ function Product({ navigate, productId, onCart }) {
       <section className="container-wide lc-prod-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 56, padding: '20px 24px 72px', alignItems: 'start' }}>
         {/* GALLERY */}
         <div className="lc-prod-gallery" style={{ position: 'sticky', top: 92 }}>
-          <div style={{ background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
+          <div style={{ background: (current && product.type !== 'single' && product.type !== 'graded') ? '#FFFFFF' : 'var(--card)', border: '1px solid var(--line)', borderRadius: 'var(--radius-lg)', padding: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 460 }}>
             {current ? (
               <button type="button" aria-label="Agrandir l'image"
                 onMouseMove={hoverZoomOn ? handleZoomMove : undefined}
@@ -334,7 +334,7 @@ function Product({ navigate, productId, onCart }) {
                     remet aussi à zéro le transform posé impérativement par la loupe */}
                 <img key={imgIdx} ref={zoomImgRef} src={current.src} alt={product.name} decoding="async"
                   onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = placeholderSvg; }}
-                  style={{ maxHeight: 440, maxWidth: '100%', display: 'block', filter: 'drop-shadow(0 22px 36px rgba(26,23,20,0.30))', transition: hoverZoomOn ? 'transform 0.18s ease' : 'none' }} />
+                  style={{ maxHeight: 440, maxWidth: '100%', display: 'block', filter: (product.type === 'single' || product.type === 'graded') ? 'drop-shadow(0 22px 36px rgba(26,23,20,0.30))' : 'none', transition: hoverZoomOn ? 'transform 0.18s ease' : 'none' }} />
               </button>
             ) : (
               <div style={{ width: '70%' }}><ProductStage glyph={product.glyph} ratio="3 / 4" big kind={window.lcStageKind ? window.lcStageKind(product) : undefined} /></div>
