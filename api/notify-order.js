@@ -79,7 +79,7 @@ module.exports = async function handler(req, res) {
       try {
         const sess = readSession(req);      // client connecté → commande rattachée à son compte
         wooOrder = await createPickupOrder({
-          email: email, name: name, phone: phone, lines: lines,
+          email: email, name: name, phone: phone, lines: lines, ref: orderRef,
           customerId: sess ? sess.cid : 0,
         });
       } catch (e) {
@@ -106,6 +106,7 @@ module.exports = async function handler(req, res) {
       subject: 'Commande retrait en boutique ' + (ref || '') + ' — CLUB 151',
       from_name: 'Boutique CLUB 151',
       Commande: ref || '—',
+      'Référence donnée au client': orderRef || '—',
       Client: name,
       'E-mail': email,
       'Téléphone': phone || '—',

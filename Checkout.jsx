@@ -360,7 +360,11 @@ function CheckoutModal({ onClose }) {
   const freeShipPct = Math.min(100, (subtotal / FREE_SHIP) * 100);
 
   // Puces de garantie sous le total — rassurent au moment de payer.
-  const guaranteeItems = [
+  // Pour un retrait en boutique, rien n'est expédié : on le dit au lieu de parler de colis.
+  const guaranteeItems = ship.method === 'pickup' ? [
+    ['truck', 'Retrait en boutique', 'À régler sur place, 28 rue Juiverie à Vienne'],
+    ['bouclier', 'Authenticité garantie', 'Chaque article vérifié par nos soins'],
+  ] : [
     ['truck', 'Livraison suivie', 'Colis suivi et soigneusement protégé'],
     ['bouclier', 'Authenticité garantie', 'Chaque article vérifié par nos soins'],
     ['retour', 'Retours sous 14 jours', 'Rétractation simple, remboursement rapide'],
@@ -399,8 +403,8 @@ function CheckoutModal({ onClose }) {
           </div>
         ); })}
       </div>
-      {/* Barre « livraison offerte » — halo de valeur avant le total */}
-      <div style={{ marginBottom: 14 }}>
+      {/* Barre « livraison offerte » — sans objet pour un retrait en boutique */}
+      <div style={{ marginBottom: 14, display: ship.method === 'pickup' ? 'none' : 'block' }}>
         <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 7 }}>
           {freeShipRemaining > 0
             ? <span>Plus que <strong style={{ color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>{fmt(freeShipRemaining)}</strong> pour la livraison offerte</span>

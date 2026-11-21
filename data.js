@@ -654,8 +654,8 @@
 
     // Inscription : crée le compte ET ouvre la session dans la foulée — le
     // client n'a pas à se reconnecter juste après s'être inscrit.
-    async register(email, password) {
-      const r = await postAccount('register', { email: email, password: password });
+    async register(email, password, name) {
+      const r = await postAccount('register', { email: email, password: password, name: name || '' });
       if (r.ok) await Auth.hydrate();
       return r;
     },

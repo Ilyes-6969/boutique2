@@ -106,7 +106,7 @@ module.exports = async function handler(req, res) {
         // le bénéfice.
         return res.status(409).json({ ok: false, error: 'Un compte existe déjà avec cette adresse — connectez-vous.' });
       }
-      const customer = await W.createCustomer(email, password);
+      const customer = await W.createCustomer(email, password, typeof body.name === 'string' ? body.name : '');
       if (!customer || !customer.id) throw new Error('création client sans identifiant');
       S.setSessionCookie(res, S.signSession(customer.id, email));
       return res.status(200).json({ ok: true });

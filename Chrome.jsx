@@ -1141,6 +1141,7 @@ function AccountModal({ onClose }) {
   const [sent, setSent] = React.useState(false);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [fullName, setFullName] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [err, setErr] = React.useState('');
   if (auth.isLoggedIn()) {
@@ -1181,7 +1182,7 @@ function AccountModal({ onClose }) {
     const A = window.LC151.Auth;
     let r;
     if (tab === 'forgot') r = await A.forgot(email);
-    else if (tab === 'register') r = await A.register(email, password);
+    else if (tab === 'register') r = await A.register(email, password, fullName.trim());
     else r = await A.login(email, password);
     setBusy(false);
     if (!r || !r.ok) { setErr((r && r.error) || 'Opération impossible pour le moment.'); return; }
@@ -1226,8 +1227,8 @@ function AccountModal({ onClose }) {
           )}
           {tab === 'register' && (
             <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, marginBottom: 14 }}>
-              Deux champs suffisent. Vos coordonnées de livraison seront demandées à la commande —
-              et vous pouvez aussi commander sans créer de compte.
+              Votre nom, votre e-mail et un mot de passe suffisent. L'adresse de livraison est demandée
+              à la commande, et vous pouvez aussi commander sans créer de compte.
             </p>
           )}
           {tab === 'forgot' && (
@@ -1236,6 +1237,10 @@ function AccountModal({ onClose }) {
             </p>
           )}
           <form onSubmit={submit}>
+            {tab === 'register' && (
+              <input required type="text" autoComplete="name" aria-label="Prénom et nom" placeholder="Prénom et nom" maxLength={80}
+                value={fullName} onChange={(e) => setFullName(e.target.value)} style={lcField} />
+            )}
             <input required type="email" autoComplete="email" aria-label="Adresse e-mail" placeholder="votre@email.fr"
               value={email} onChange={(e) => setEmail(e.target.value)} style={lcField} />
             {tab !== 'forgot' && (
