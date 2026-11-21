@@ -42,6 +42,34 @@ module.exports = async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
 
+    // --- Formulaires du site (contact, inscription aux arrivages) ---
+    // Le visiteur n'a aucune clé d'envoi : son message transite par ici et part
+    // vers la boîte de la boutique, seul destinataire possible. Champs bornés,
+    // retours à la ligne neutralisés (cleanText), même limite de débit que le reste.
+    if (body.kind === 'form') {
+      const subject = cleanText(body.subject, 80);
+      const src = (body.fields && typeof body.fields === 'object' && !Array.isArray(body.fields)) ? body.fields : {};
+      const fields = {};
+      Object.keys(src).slice(0, 10).forEach(function (k) {
+        const key = cleanText(k, 40).replace(/[^\w À-ÿ'’-]/g, '');
+        const val = cleanText(String(src[k] == null ? '' : src[k]), 2000);
+        if (key && val && key !== 'access_key' && key !== 'subject' && key !== 'from_name') fields[key] = val;
+      });
+      if (!subject || !Object.keys(fields).length) return res.status(400).json({ error: 'Message vide' });
+      const formKey = process.env.WEB3FORMS_KEY;
+      if (!formKey) return res.status(200).json({ ok: false });
+      const fr = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(Object.assign({ access_key: formKey, subject: subject + ' — CLUB 151', from_name: 'Site CLUB 151' }, fields)),
+      });
+      if (!fr.ok) {
+        console.error('notify-order (formulaire): Web3Forms HTTP ' + fr.status);
+        return res.status(502).json({ error: 'Envoi impossible pour le moment.' });
+      }
+      return res.status(200).json({ ok: true });
+    }
+
     // --- Validation stricte (endpoint public → aucune confiance) ---
     if (body.method !== 'pickup') return res.status(400).json({ error: 'Méthode invalide' });
     const c = (body.customer && typeof body.customer === 'object') ? body.customer : {};

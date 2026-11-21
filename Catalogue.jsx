@@ -88,9 +88,11 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame, initial
           <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
             <a href="#" onClick={(e) => { e.preventDefault(); navigate('home'); }} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Accueil</a> &nbsp;/&nbsp; {game ? GAMES[game] : 'Boutique'}
           </div>
-          <h1 className="display-2" style={{ marginBottom: 8 }}>{game ? GAMES[game] : (sort === 'new' && !rayon ? 'Nouveautés' : 'La boutique')}</h1>
+          <h1 className="display-2" style={{ marginBottom: 8 }}>{query.trim() ? 'Recherche : ' + query.trim() : game ? GAMES[game] : (sort === 'new' && !rayon ? 'Nouveautés' : 'La boutique')}</h1>
           <p style={{ fontSize: 16, color: 'var(--ink-2)', maxWidth: 560 }}>
-            {comingSoon
+            {query.trim()
+              ? <span>Articles dont le nom ou le rayon contient «&nbsp;{query.trim()}&nbsp;». <a href="#" onClick={(e) => { e.preventDefault(); setQuery(''); }} style={{ textDecoration: 'underline', textUnderlineOffset: 3 }}>Effacer la recherche</a></span>
+              : comingSoon
               ? 'Le rayon ' + GAMES[game] + ' n’est pas encore en ligne. Passez en boutique ou écrivez-nous pour connaître les disponibilités.'
               : game
               ? 'Tout ce que nous avons en ' + GAMES[game] + ', à retirer au magasin ou livré chez vous.'

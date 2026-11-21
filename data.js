@@ -831,6 +831,18 @@
   // Contact / newsletter — réutilise la même configuration de réception.
   function notifyForm(subject, fields) {
     const f = fields || {};
+    // Visiteur ordinaire : aucune réception n'est configurée dans SON navigateur
+    // (ce réglage n'existe que dans celui du gérant). Sans relais, le formulaire
+    // de contact et l'inscription aux arrivages n'envoyaient donc rien. Le
+    // message passe par le serveur, qui détient la clé d'envoi.
+    if (!(orderHook || '').trim()) {
+      return fetch('/api/notify-order', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'form', subject: subject, fields: f }),
+      }).then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (j) { return !!(j && j.ok); })
+        .catch(function () { return false; });
+    }
     return postWebhook(
       Object.assign({ source: 'club151', type: 'form', subject: subject }, f),
       Object.assign({ subject: subject + ' — CLUB 151', from_name: 'Site CLUB 151' }, f)
