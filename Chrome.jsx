@@ -906,7 +906,8 @@ function StoreCard({ product, navigate }) {
   // Une carte à l'unité ou gradée est presque toujours une pièce unique : l'écrire sur
   // chacune n'apprend rien. « Dernier exemplaire » ne s'affiche donc que hors cartes.
   const isCardType = product.type === 'single' || product.type === 'graded';
-  const note = !product.inStock ? 'Rupture' : product.preorder ? 'Précommande' : (unique && !isCardType) ? 'Dernier exemplaire' : (low && !unique) ? ('Plus que ' + product.stockLeft) : '';
+  // Demande de la boutique : on n'affiche jamais qu'il ne reste qu'un exemplaire.
+  const note = !product.inStock ? 'Rupture' : product.preorder ? 'Précommande' : '';
   const rayonCourt = ({ "Cartes à l'unité": 'Carte', 'Cartes gradées': 'Carte gradée' })[product.cat] || String(product.cat || '').replace(/^(Scellé|Accessoires) — /, '');
   return (
     <div className={'lc-card lc-pocket' + (isGraded ? ' lc-graded' : '')} onClick={() => open()}

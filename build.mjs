@@ -20,9 +20,13 @@ import { readFileSync, writeFileSync, mkdirSync, rmSync, cpSync, readdirSync, ex
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { createRequire } from 'node:module';
 import { transformSync } from 'esbuild';
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
+// Mêmes règles de vitrine que /api/catalog (lib/vitrine.json) : un article écarté
+// du site n'a ni fiche statique ni ligne dans le sitemap.
+const { isVisible, typeFromCategories } = createRequire(import.meta.url)('./lib/serverCatalog.js');
 const DIST = join(ROOT, 'dist');
 const SITE = (process.env.SITE_URL
   || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL : '')
@@ -143,8 +147,10 @@ async function wooProducts() {
       desc: strip(p.short_description) || strip(p.description),
       image: (p.images && p.images[0] && p.images[0].src) || (PHOTOS[String(p.sku || '')] ? 'assets/produits/' + PHOTOS[String(p.sku)] : null),
       inStock: p.is_in_stock !== false,
+      num: p.sku || '',
+      type: typeFromCategories(p.categories),
     };
-  });
+  }).filter(isVisible);
 }
 
 // _ds_bundle.js (248 Ko) contient : 6 composants du design system (Button,

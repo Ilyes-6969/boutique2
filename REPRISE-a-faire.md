@@ -148,6 +148,21 @@ _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment E
   peluches / figurines / goodies avec les cartes à l'unité et n'a pas les menus
   par jeu : c'est la nouvelle version (non poussée, accès GitHub refusé) qui corrige.
 
+## Vitrine du site et photos (21/11/2026, soir)
+- **Ce que le site montre** se règle dans **`lib/vitrine.json`**, sans toucher à
+  WooCommerce ni à la caisse : `prixMinCartes` (300 → les cartes moins chères ne
+  sont ni affichées ni achetables), `masquer` (codes article retirés un par un ;
+  « Display Bundle 2.5 » y est : ce produit n'existe pas), `seulement` (si la
+  liste est remplie, le site ne montre QUE ces codes article).
+- **Photos produits** : `assets/produits/<code article>.webp`, utilisées quand
+  l'article n'a pas d'image dans WooCommerce. Après ajout ou remplacement :
+  `node outils/photos/manifeste.mjs`. 22 photos fournies par la boutique.
+- Plus aucune mention « dernier exemplaire », « plus que N » ou « pièce unique »
+  sur les cartes produit, la fiche et le panier (demande de la boutique).
+- **Mise en ligne** : Claude n'a pas accès au dépôt (compte GitHub relié =
+  `ilyesbnc`, dépôt sur `Ilyes-6969`). Les commits passent par le dossier
+  `boutique` du PC, puis **Push origin** dans GitHub Desktop.
+
 ## Rappel technique utile
 - Astuce si le site semble « pas à jour » après un push : Vercel/cache. Vérifier dans **Vercel → Deployments** que le **dernier commit** est bien déployé (Ready), sinon re-pousser un petit changement. Côté navigateur : **Ctrl + Maj + R**.
 - Détails complets dans **`DEPLOIEMENT-PAIEMENT.md`**.

@@ -375,16 +375,7 @@ function Product({ navigate, productId, onCart }) {
           </div>
           <p style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--ink-2)', marginBottom: 28, maxWidth: 520 }}>{product.desc}</p>
 
-          {window.LC151.Cart.isUnique(product.id) && (
-            /* Pièce unique / dernier exemplaire : une ligne de texte entre deux traits. */
-            <div style={{ padding: '11px 0', marginBottom: 20, borderTop: '1px solid var(--line)', borderBottom: '1px solid var(--line)', fontSize: 14, color: 'var(--ink)' }}>
-              {/* « Pièce unique » n'a de sens que pour une carte ; pour un coffret ou un
-                  accessoire dont il reste un exemplaire, on le dit tel quel. */}
-              {isCard
-                ? <span style={{ color: 'var(--ink-2)' }}><span style={{ fontWeight: 600, color: 'var(--ink)' }}>Pièce unique.</span> Nous n'en avons qu'un exemplaire.</span>
-                : <span style={{ color: 'var(--ink-2)' }}><span style={{ fontWeight: 600, color: 'var(--ink)' }}>Dernier exemplaire.</span> Il n'en reste qu'un en stock.</span>}
-            </div>
-          )}
+          {/* Demande de la boutique : aucune mention « pièce unique / dernier exemplaire ». */}
 
           <div ref={ctaRef} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
             {!window.LC151.Cart.isUnique(product.id) && <DS.QtyStepper value={qty} onChange={setQty} max={Math.min(10, cart.qtyCap(product.id))} />}

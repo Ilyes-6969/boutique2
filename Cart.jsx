@@ -134,7 +134,7 @@ function CartDrawer({ open, onClose, navigate }) {
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '3px 0 8px' }}>{p.num}</div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         {window.LC151.Cart.isUnique(line.id)
-                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '5px 9px' }}>Pièce unique · 1</span>
+                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '5px 9px' }}>Quantité 1</span>
                           : <DS.QtyStepper value={line.qty} onChange={(q) => cart.setQty(line.id, q)} max={Math.min(10, cart.qtyCap(line.id))} />}
                         <DS.PriceTag price={p.price * line.qty} size="sm" />
                       </div>
@@ -226,7 +226,7 @@ function CartPage({ navigate }) {
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '4px 0 10px' }}>{p.cat} · {p.num}</div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                         {cart.isUnique(line.id)
-                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>Pièce unique · 1</span>
+                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>Quantité 1</span>
                           : <DS.QtyStepper value={line.qty} onChange={(q) => cart.setQty(line.id, q)} max={Math.min(10, cart.qtyCap(line.id))} />}
                         <DS.PriceTag price={p.price * line.qty} size="md" />
                       </div>
