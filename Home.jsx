@@ -99,7 +99,9 @@ function Home({ navigate }) {
           <div className="lc-open-visual" style={{ position: 'relative', minHeight: 460, background: 'var(--paper-2)', overflow: 'hidden' }}
             onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
             {heroImgs.map((src, k) => (
-              <div key={src} aria-hidden="true" style={{ position: 'absolute', inset: 0, backgroundImage: 'url(' + src + ')', backgroundSize: 'cover', backgroundPosition: 'center', opacity: k === slide ? 1 : 0, transition: 'opacity 0.6s ease' }}></div>
+              <div key={src} role={SHOP.photos && SHOP.photos.length ? 'img' : undefined} aria-hidden={SHOP.photos && SHOP.photos.length ? undefined : 'true'}
+                aria-label={SHOP.photos && SHOP.photos.length ? 'La boutique CLUB 151, ' + (SHOP.street || '') + ' à ' + (SHOP.city || '') : undefined}
+                style={{ position: 'absolute', inset: 0, backgroundImage: 'url(' + src + ')', backgroundSize: 'cover', backgroundPosition: 'center 42%', opacity: k === slide ? 1 : 0, transition: 'opacity 0.6s ease' }}></div>
             ))}
             {heroImgs.length > 1 && (
               <div style={{ position: 'absolute', left: 0, right: 0, bottom: 14, display: 'flex', justifyContent: 'center', gap: 6 }}>

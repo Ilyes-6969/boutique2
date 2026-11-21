@@ -508,7 +508,7 @@ main section:not(.lc-reveal), .lc-card, .lc-hero-in > * { animation: none !impor
 @media (max-width: 900px) {
   .lc-open { grid-template-columns: 1fr !important; }
   .lc-open-text { border-right: 0 !important; padding-left: 20px !important; padding-right: 20px !important; }
-  .lc-open-visual { min-height: 230px !important; border-top: 1px solid var(--line); }
+  .lc-open-visual { min-height: 320px !important; border-top: 1px solid var(--line); }
   .lc-facts { margin-left: -20px !important; margin-right: -20px !important; grid-template-columns: 1fr !important; }
   .lc-facts > div { border-left: 0 !important; padding: 14px 20px 16px !important; }
   .lc-facts > div + div { border-top: 1px solid var(--line); }
