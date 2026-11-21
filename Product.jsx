@@ -373,15 +373,15 @@ function Product({ navigate, productId, onCart }) {
           <div style={{ marginTop: 22, paddingTop: 20, borderTop: '1px solid var(--line)', marginBottom: 22 }}>
             <DS.PriceTag price={product.price} oldPrice={product.oldPrice} size="lg" />
           </div>
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--ink-2)', marginBottom: 28, maxWidth: 520 }}>{product.desc}</p>
+          {product.desc ? <p style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--ink-2)', marginBottom: 28, maxWidth: 520 }}>{product.desc}</p> : null}
 
           {/* Demande de la boutique : aucune mention « pièce unique / dernier exemplaire ». */}
 
           <div ref={ctaRef} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
             {!window.LC151.Cart.isUnique(product.id) && <DS.QtyStepper value={qty} onChange={setQty} max={Math.min(10, cart.qtyCap(product.id))} />}
             <div style={{ flex: 1 }}>
-              <DS.Button className="lc-press" variant="primary" size="lg" block disabled={!product.inStock || lockedUnique} iconLeft={lockedUnique || added ? '✓' : null} onClick={lockedUnique ? undefined : addToCart}>
-                {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : product.inStock ? 'Ajouter au panier' : 'Indisponible')}
+              <DS.Button className="lc-press" variant="primary" size="lg" block disabled={!product.inStock || lockedUnique} onClick={lockedUnique ? undefined : addToCart}>
+                {lockedUnique ? 'Déjà dans le panier' : (added ? 'Ajouté au panier' : product.inStock ? 'Ajouter au panier' : 'Indisponible')}
               </DS.Button>
             </div>
             {favBtn(36)}
@@ -473,7 +473,7 @@ function Product({ navigate, productId, onCart }) {
             </div>
             {favBtn(32)}
             <DS.Button className="lc-press" variant="primary" disabled={lockedUnique} iconLeft={lockedUnique || added ? '✓' : null} onClick={lockedUnique ? undefined : addToCart}>
-              {lockedUnique ? 'Déjà dans le panier (1/1)' : (added ? 'Ajouté au panier' : 'Ajouter au panier')}
+              {lockedUnique ? 'Déjà dans le panier' : (added ? 'Ajouté au panier' : 'Ajouter au panier')}
             </DS.Button>
           </div>
         </div>

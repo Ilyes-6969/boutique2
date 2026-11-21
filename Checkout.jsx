@@ -361,8 +361,8 @@ function CheckoutModal({ onClose }) {
 
   // Puces de garantie sous le total — rassurent au moment de payer.
   const guaranteeItems = [
-    ['truck', 'Livraison suivie', 'Colissimo assuré, remis contre signature'],
-    ['bouclier', 'Authenticité garantie', 'Chaque carte vérifiée par nos soins'],
+    ['truck', 'Livraison suivie', 'Colis suivi et soigneusement protégé'],
+    ['bouclier', 'Authenticité garantie', 'Chaque article vérifié par nos soins'],
     ['retour', 'Retours sous 14 jours', 'Rétractation simple, remboursement rapide'],
   ];
 
@@ -512,12 +512,13 @@ function CheckoutModal({ onClose }) {
                   <div style={{ marginBottom: 16 }}><label style={lbl} htmlFor="lc-co-phone">Téléphone (optionnel)</label><input id="lc-co-phone" type="tel" autoComplete="tel" style={errStyle('phone')} {...focusProps('phone')} value={ship.phone} onChange={(e) => setS('phone', e.target.value)} /></div>
                   <label style={lbl}>Mode de livraison</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
-                    {Object.values(Orders.methods()).map((m) => (
+                    {/* « Point relais » n'est pas proposé : le client ne peut pas choisir son relais ici. */}
+                    {Object.values(Orders.methods()).filter((m) => m.key !== 'relais').map((m) => (
                       <ShipOption key={m.key} selected={ship.method === m.key} onSelect={() => setS('method', m.key)} label={m.label} eta={m.eta} cost={Orders.shippingCost(m.key, subtotal)} fmt={fmt} />
                     ))}
                   </div>
                   {DS.Button
-                    ? <DS.Button className="lc-press" variant="accent" size="lg" block iconRight="→" onClick={goPay}>Continuer vers le paiement</DS.Button>
+                    ? <DS.Button className="lc-press" variant="primary" size="lg" block onClick={goPay}>Continuer vers le paiement</DS.Button>
                     : <button onClick={goPay} style={{ width: '100%', height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer vers le paiement →</button>}
                 </React.Fragment>
               ) : (
@@ -555,12 +556,12 @@ function CheckoutModal({ onClose }) {
                   {errors.pay && <div role="alert" style={{ fontSize: 12.5, color: 'var(--red)', marginBottom: 10, lineHeight: 1.5 }}>Paiement impossible : {errors.pay}</div>}
                   <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
                     {DS.Button
-                      ? <DS.Button variant="outline" size="lg" iconLeft="←" onClick={() => { setErrors({}); setStep('livraison'); }}>Retour</DS.Button>
+                      ? <DS.Button variant="outline" size="lg" onClick={() => { setErrors({}); setStep('livraison'); }}>Retour</DS.Button>
                       : <button onClick={() => { setErrors({}); setStep('livraison'); }} style={{ padding: '0 18px', height: 46, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>← Retour</button>}
                     {/* flex:1 porté par le wrapper — ne pas passer `style` à DS.Button
                         (son `style` calculé serait écrasé par le prop `rest`). */}
                     {DS.Button
-                      ? <div style={{ flex: 1, display: 'flex' }}><DS.Button className="lc-press" variant="accent" size="lg" block onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</DS.Button></div>
+                      ? <div style={{ flex: 1, display: 'flex' }}><DS.Button className="lc-press" variant="primary" size="lg" block onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</DS.Button></div>
                       : <button onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: (paying || (stripeEmbedded && !stripeReady)) ? 'wait' : 'pointer', opacity: (paying || (stripeEmbedded && !stripeReady)) ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>}
                   </div>
                 </React.Fragment>

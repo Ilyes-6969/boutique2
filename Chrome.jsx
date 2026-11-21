@@ -706,6 +706,10 @@ function Footer({ navigate }) {
     .filter(([name, url]) => SOCIAL_ICONS[name] && url);
   const appBadge = null;
   const shop = (window.LC151 || {}).SHOP || {};
+  // Un rayon sans article n'a pas de lien dans le pied de page.
+  const footProducts = (window.LC151 || {}).PRODUCTS || [];
+  const hasType = (ty) => footProducts.some((p) => p.type === ty);
+  const hasPreorder = footProducts.some((p) => p.preorder);
   // Icônes SVG du bandeau de réassurance (mêmes tracés que ReassureIcon de Home.jsx,
   // dupliqués ici car Home.jsx n'est chargé que sur l'accueil).
   const footIcon = (name) => {
@@ -738,7 +742,7 @@ function Footer({ navigate }) {
           <div>
             <div style={{ marginBottom: 18 }}><Logo size={30} onClick={() => navigate('home')} /></div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-              {[['Visa', 'visa'], ['Mastercard', 'mastercard'], ['Maestro', 'maestro'], ['American Express', 'amex'], ['PayPal', 'paypal']].map(([name, slug]) => (
+              {[['Visa', 'visa'], ['Mastercard', 'mastercard'], ['American Express', 'amex']].map(([name, slug]) => (
                 <span key={slug} title={name} style={{ height: 28, padding: '0 8px', borderRadius: 6, background: '#fff', border: '1px solid rgba(0,0,0,0.08)', display: 'inline-flex', alignItems: 'center' }}>
                   <img src={'https://cdn.jsdelivr.net/gh/aaronfagan/svg-credit-card-payment-icons@main/flat/' + slug + '.svg'} alt={name} style={{ height: 18, display: 'block' }} />
                 </span>
@@ -760,17 +764,16 @@ function Footer({ navigate }) {
           {col(t('f_buy'), [
             { label: t('nav_home'), href: 'index.html' },
             { label: t('nav_single'), onClick: () => navigate('catalogue', 'single') },
-            { label: t('nav_graded'), onClick: () => navigate('catalogue', 'graded') },
+            hasType('graded') && { label: t('nav_graded'), onClick: () => navigate('catalogue', 'graded') },
             { label: t('f_displays'), onClick: () => navigate('catalogue', 'sealed') },
             { label: t('nav_accessory'), onClick: () => navigate('catalogue', 'accessory') },
-            { label: t('f_preorders'), onClick: () => navigate('catalogue', 'preorder') },
-          ])}
+            hasPreorder && { label: t('f_preorders'), onClick: () => navigate('catalogue', 'preorder') },
+          ].filter(Boolean))}
           {col(t('f_house'), [
             { label: t('f_boutique'), href: 'index.html#la-boutique' },
             { label: t('f_about'), href: 'apropos.html' },
             { label: 'FAQ', href: 'faq.html' },
-            { label: t('f_auth'), onClick: () => openModal('contact') },
-            { label: t('f_news'), soon: true },
+            { label: 'Nous contacter', onClick: () => openModal('contact') },
           ])}
           {col(t('f_account'), [
             { label: t('h_account'), onClick: () => openModal('account') },
@@ -939,7 +942,9 @@ function StoreCard({ product, navigate }) {
         </div>
       </div>
       <div style={{ paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 3, flex: 1 }}>
-        <a href="#" onClick={(e) => { e.preventDefault(); e.stopPropagation(); open(); }}
+        {/* Vrai lien : ouvrable dans un nouvel onglet, et suivi par les moteurs de recherche. */}
+        <a href={(window.LC151 && window.LC151.productUrl) ? window.LC151.productUrl(product.id) : 'produit.html?id=' + encodeURIComponent(product.id)}
+          onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) { e.stopPropagation(); return; } e.preventDefault(); e.stopPropagation(); open(); }}
           style={{ textDecoration: 'none', color: 'var(--ink)', fontSize: 15, fontWeight: 500, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.name}</a>
         <div style={{ fontSize: 12.5, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rayonCourt}{note ? <span style={{ color: product.inStock ? 'var(--ink-2)' : 'var(--red-ink)' }}>{', ' + note.toLowerCase()}</span> : null}</div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 'auto', paddingTop: 10 }}>

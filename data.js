@@ -171,7 +171,9 @@
     const price = hasValidPrice ? rawPrice : 0;
     const regular = p.prices && p.prices.regular_price != null ? Number(p.prices.regular_price) / div : price;
     const onSale = !!p.on_sale && regular > price;
-    const cat = (p.categories && p.categories[0] && p.categories[0].name) || 'Carte';
+    // Noms « texturisés » par WordPress (&amp;, &rsquo;, &#8211;…) → vrais caractères.
+    const dec = (s) => { try { const t = document.createElement('textarea'); t.innerHTML = String(s == null ? '' : s); return t.value; } catch (e) { return String(s || ''); } };
+    const cat = dec((p.categories && p.categories[0] && p.categories[0].name) || 'Carte');
     const img = (p.images && p.images[0]) || null;
     const strip = (html) => (html || '').replace(/<[^>]*>/g, '').trim();
     // quantity_limits.maximum fait foi (« Vendu individuellement » ou stock=1
@@ -195,7 +197,7 @@
     const preorder = isPreorderWoo(p);
     return {
       id: 'wp' + p.id,
-      name: p.name,
+      name: dec(p.name),
       cat: cat,
       set: cat,
       num: p.sku || '—',

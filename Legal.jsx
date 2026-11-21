@@ -110,7 +110,7 @@ function LegalPage({ navigate, kind }) {
             <H>Article 4 — Commande & paiement</H>
             <P>La commande peut être passée avec ou sans compte client (« commande invité »). La création d'un compte client, gratuite, est facultative ; elle permet de suivre ses commandes et d'enregistrer ses adresses de livraison. Le paiement s'effectue par <strong>carte bancaire</strong> (et autres moyens éventuellement proposés), via le prestataire de paiement sécurisé <strong>Stripe</strong> ; aucune donnée de carte n'est conservée par nos soins. La commande est confirmée après validation du paiement. <V v={COMPANY.name} ph="Nom de l'entreprise" /> se réserve le droit d'annuler toute commande en cas de litige de paiement.</P>
             <H>Article 5 — Livraison</H>
-            <P>Livraison en France métropolitaine sous 48 h ouvrées, en envoi suivi et protégé. Frais : livraison standard <strong>4,90 €</strong> (2–4 j), point relais <strong>3,90 €</strong> (3–5 j), ou <strong>retrait gratuit</strong> en boutique à Vienne. <strong>Livraison offerte dès 100 €</strong> d'achat. Les délais sont indicatifs.</P>
+            <P>Livraison en France métropolitaine sous 48 h ouvrées, en envoi suivi et protégé. Frais : livraison standard <strong>4,90 €</strong> (2–4 j) ou <strong>retrait gratuit</strong> en boutique à Vienne. <strong>Livraison offerte dès 100 €</strong> d'achat. Les délais sont indicatifs.</P>
             <H>Article 6 — Droit de rétractation</H>
             <P>Conformément au Code de la consommation, le client dispose d'un délai de <strong>14 jours</strong> à compter de la réception pour exercer son droit de rétractation, sans avoir à se justifier. Les produits doivent être retournés <strong>non ouverts / scellés et dans leur état d'origine</strong>. Les frais de retour sont à la charge <V v={COMPANY.returnCost} ph="du client / du vendeur" />. Remboursement sous 14 jours après réception du retour.</P>
             <H>Article 7 — Garanties</H>
@@ -173,7 +173,7 @@ function LegalPage({ navigate, kind }) {
         {kind === 'faq' && (
           <React.Fragment>
             <H>Livraison — quels délais et quels frais ?</H>
-            <P>Les commandes sont expédiées sous 48 h ouvrées en envoi suivi et protégé. Livraison standard <strong>4,90 €</strong> (2–4 j), point relais <strong>3,90 €</strong> (3–5 j), ou <strong>retrait gratuit</strong> en boutique à Vienne. La livraison est <strong>offerte dès 100 €</strong> d'achat.</P>
+            <P>Les commandes sont expédiées sous 48 h ouvrées en envoi suivi et protégé. Livraison standard <strong>4,90 €</strong> (2–4 j) ou <strong>retrait gratuit</strong> en boutique à Vienne. La livraison est <strong>offerte dès 100 €</strong> d'achat.</P>
             <H>Vos cartes sont-elles authentiques ?</H>
             <P>Oui. Chaque pièce de valeur est vérifiée avant mise en vente, et les cartes gradées sont vendues sous coque, certifiées (PSA, BGS, CGC). L'état est précisé sur chaque fiche produit.</P>
             <H>Qu'est-ce qu'une « pièce unique » (1/1) ?</H>

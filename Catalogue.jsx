@@ -105,7 +105,7 @@ function Catalogue({ navigate, initialFilter, initialQuery, initialGame, initial
         <div className="container-wide" style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '6px 24px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', columnGap: 22, rowGap: 0, flexWrap: 'wrap' }}>
             {/* Filtres = de simples mots ; l'actif porte un trait fin dessous. */}
-            {CHIPS.map((f) => <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} style={tab(filter === f.key)}>{f.label}</button>)}
+            {CHIPS.filter((f) => f.key === 'all' || f.key === filter || POOL.some((p) => f.key === 'preorder' ? p.preorder : p.type === f.key)).map((f) => <button key={f.key} type="button" aria-pressed={filter === f.key} onClick={() => setFilter(f.key)} style={tab(filter === f.key)}>{f.label}</button>)}
             {/* Rayon précis choisi dans le menu : un filtre qu'on retire d'un clic. */}
             {rayon && <button type="button" onClick={() => setRayon('')} title="Retirer ce filtre" style={{ ...tab(true), display: 'inline-flex', alignItems: 'center', gap: 7 }}>{rayon.replace(/^Scellé — /, '')}<svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" aria-hidden="true"><path d="M2 2l6 6M8 2l-6 6"></path></svg></button>}
             {showFavChip && <button type="button" aria-pressed={filter === 'favs'} onClick={() => setFilter('favs')} style={{ ...tab(filter === 'favs'), display: 'inline-flex', alignItems: 'center', gap: 6 }}><FavRibbon caught={true} size={12} />Ma collection</button>}

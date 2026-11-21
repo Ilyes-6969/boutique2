@@ -21,7 +21,7 @@
       f_soon: 'Disponible prochainement',
       r_auth_t: 'Authentification garantie', r_auth_s: 'Chaque pièce vérifiée',
       r_ship_t: 'Livraison offerte', r_ship_s: 'Dès 100 € d’achat',
-      r_pay_t: 'Paiement sécurisé', r_pay_s: 'CB · PayPal · Apple Pay',
+      r_pay_t: 'Paiement sécurisé', r_pay_s: 'Carte bancaire, via Stripe',
     },
     en: {
       ann_free: 'Free shipping over €100 · Authenticity guaranteed',
@@ -40,7 +40,7 @@
       f_soon: 'Coming soon',
       r_auth_t: 'Authenticity guaranteed', r_auth_s: 'Every item verified',
       r_ship_t: 'Free shipping', r_ship_s: 'On orders over €100',
-      r_pay_t: 'Secure payment', r_pay_s: 'Card · PayPal · Apple Pay',
+      r_pay_t: 'Secure payment', r_pay_s: 'Card, via Stripe',
     },
     es: {
       ann_free: 'Envío gratis desde 100 € · Autenticidad garantizada',
@@ -59,7 +59,7 @@
       f_soon: 'Próximamente',
       r_auth_t: 'Autenticidad garantizada', r_auth_s: 'Cada pieza verificada',
       r_ship_t: 'Envío gratis', r_ship_s: 'Desde 100 € de compra',
-      r_pay_t: 'Pago seguro', r_pay_s: 'Tarjeta · PayPal · Apple Pay',
+      r_pay_t: 'Pago seguro', r_pay_s: 'Tarjeta, con Stripe',
     },
     de: {
       ann_free: 'Kostenloser Versand ab 100 € · Echtheit garantiert',
@@ -78,7 +78,7 @@
       f_soon: 'Demnächst',
       r_auth_t: 'Echtheit garantiert', r_auth_s: 'Jedes Stück geprüft',
       r_ship_t: 'Kostenloser Versand', r_ship_s: 'Ab 100 € Bestellwert',
-      r_pay_t: 'Sichere Zahlung', r_pay_s: 'Karte · PayPal · Apple Pay',
+      r_pay_t: 'Sichere Zahlung', r_pay_s: 'Karte, über Stripe',
     },
     it: {
       ann_free: 'Spedizione gratis da 100 € · Autenticità garantita',
@@ -97,7 +97,7 @@
       f_soon: 'Prossimamente',
       r_auth_t: 'Autenticità garantita', r_auth_s: 'Ogni pezzo verificato',
       r_ship_t: 'Spedizione gratuita', r_ship_s: 'Da 100 € di spesa',
-      r_pay_t: 'Pagamento sicuro', r_pay_s: 'Carta · PayPal · Apple Pay',
+      r_pay_t: 'Pagamento sicuro', r_pay_s: 'Carta, con Stripe',
     },
     nl: {
       ann_free: 'Gratis verzending vanaf €100 · Echtheid gegarandeerd',
@@ -116,7 +116,7 @@
       f_soon: 'Binnenkort',
       r_auth_t: 'Echtheid gegarandeerd', r_auth_s: 'Elk stuk geverifieerd',
       r_ship_t: 'Gratis verzending', r_ship_s: 'Vanaf €100 besteld',
-      r_pay_t: 'Veilig betalen', r_pay_s: 'Kaart · PayPal · Apple Pay',
+      r_pay_t: 'Veilig betalen', r_pay_s: 'Kaart, via Stripe',
     },
   };
 

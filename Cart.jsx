@@ -131,7 +131,7 @@ function CartDrawer({ open, onClose, navigate }) {
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 14.5, lineHeight: 1.25 }}>{p.name}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '3px 0 8px' }}>{p.num}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '3px 0 8px' }}>{String(p.cat || '').replace(/^(Scellé|Accessoires) — /, '')}</div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                         {window.LC151.Cart.isUnique(line.id)
                           ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '5px 9px' }}>Quantité 1</span>
@@ -164,7 +164,7 @@ function CartDrawer({ open, onClose, navigate }) {
                   Connecté · {auth.user().name}
                 </div>
               )}
-              <DS.Button className="lc-press" variant="accent" size="lg" block iconRight="→" onClick={() => { onClose(); openModal('checkout'); }}>Passer commande</DS.Button>
+              <DS.Button className="lc-press" variant="primary" size="lg" block onClick={() => { onClose(); openModal('checkout'); }}>Passer commande</DS.Button>
               {!loggedIn && (
                 <div style={{ marginTop: 10, textAlign: 'center' }}>
                   <button onClick={() => { onClose(); openModal('account'); }} style={{ fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', background: 'transparent', textDecoration: 'underline', textUnderlineOffset: 2 }}>Vous avez un compte ? Se connecter</button>
@@ -223,7 +223,7 @@ function CartPage({ navigate }) {
                     </a>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <a href={window.LC151.productUrl(p.id)} style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 16, lineHeight: 1.25, color: 'var(--ink)' }}>{p.name}</a>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '4px 0 10px' }}>{p.cat} · {p.num}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--muted)', margin: '4px 0 10px' }}>{String(p.cat || '').replace(/^(Scellé|Accessoires) — /, '')}</div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                         {cart.isUnique(line.id)
                           ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', border: '1px solid var(--line)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>Quantité 1</span>
@@ -256,14 +256,14 @@ function CartPage({ navigate }) {
                 <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>Sous-total ({cart.count()})</span>
                 <DS.PriceTag price={animatedSubtotal} size="lg" />
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: savings > 0 ? 10 : 16 }}>Taxes incluses · livraison à l'étape suivante</div>
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: savings > 0 ? 10 : 16 }}>Taxes incluses, livraison à l'étape suivante</div>
               {savings > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>
                   <span>Vous économisez</span>
                   <span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(savings)}</span>
                 </div>
               )}
-              <DS.Button className="lc-press" variant="accent" size="lg" block iconRight="→" onClick={() => openModal('checkout')}>Passer commande</DS.Button>
+              <DS.Button className="lc-press" variant="primary" size="lg" block onClick={() => openModal('checkout')}>Passer commande</DS.Button>
               {!loggedIn && (
                 <div style={{ marginTop: 10, textAlign: 'center' }}>
                   <button onClick={() => openModal('account')} style={{ fontSize: 13, color: 'var(--ink-2)', fontFamily: 'var(--font-body)', background: 'transparent', textDecoration: 'underline', textUnderlineOffset: 2 }}>Vous avez un compte ? Se connecter</button>
