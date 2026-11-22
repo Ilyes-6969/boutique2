@@ -78,7 +78,10 @@ module.exports = async function handler(req, res) {
     // Liste blanche : ce champ part dans les métadonnées Stripe (limite 500 car.)
     // et dans la clé d'idempotence — jamais une chaîne client arbitraire.
     const method = ['standard', 'relais', 'pickup'].indexOf(body.method) >= 0 ? body.method : 'standard';
-    const orderRef = (typeof body.orderRef === 'string' ? body.orderRef : '').slice(0, 120);
+    // Référence affichée au client (« LC151-… ») : format strict, sinon vide. Elle
+    // part dans les métadonnées Stripe puis sur la commande WooCommerce, pour que
+    // la boutique retrouve la commande quand le client donne son numéro.
+    const orderRef = /^[A-Za-z0-9_-]{1,40}$/.test(String(body.orderRef || '')) ? String(body.orderRef) : '';
     const customer = cleanCustomer(body.customer);
 
     // PAS DE COMMANDE SANS E-MAIL. C'est l'adresse du reçu Stripe et de la
@@ -105,7 +108,10 @@ module.exports = async function handler(req, res) {
 
     const itemsMeta = lines.map(function (l) { return l.id + 'x' + l.qty; }).join(',');
     const key = idemKey('pi', {
-      a: amount, m: method, e: receiptEmail, c: customer || 0,
+      // r : la référence change à chaque nouvelle commande. Sans elle, deux achats
+      // identiques du même client dans la journée partageaient la même clé : Stripe
+      // renvoyait le premier paiement, déjà encaissé, et le second était impossible.
+      a: amount, m: method, e: receiptEmail, c: customer || 0, r: orderRef,
       l: lines.map(function (l) { return [l.id, l.qty]; }),
     });
 

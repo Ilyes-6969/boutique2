@@ -15,7 +15,7 @@
 // ---------------------------------------------------------------------------
 
 const { priceItems, discountCents, DISCOUNT, applyCors, errorStatus, rateLimit, rateLimitKey, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
-const { wooConfigured, createPickupOrder, sendPickupConfirmation } = require('../lib/wooCustomers');
+const { wooConfigured, createPickupOrder, sendPickupConfirmation, sendShopMessage } = require('../lib/wooCustomers');
 const { readSession } = require('../lib/session');
 
 const MAX_ITEMS = 30;
@@ -60,7 +60,19 @@ module.exports = async function handler(req, res) {
       });
       if (!subject || !Object.keys(fields).length) return res.status(400).json({ error: 'Message vide' });
       const formKey = process.env.WEB3FORMS_KEY;
-      if (!formKey) return res.status(200).json({ ok: false });
+      if (!formKey) {
+        // Pas de clé d'envoi côté site : le message passe par WooCommerce, qui
+        // l'envoie par e-mail à la boutique (voir sendShopMessage). ok:true
+        // seulement s'il est réellement parti — le site affiche sinon une erreur.
+        if (!wooConfigured()) return res.status(200).json({ ok: false });
+        try {
+          const sent = await sendShopMessage(subject + ' (site CLUB 151)', fields);
+          return res.status(200).json({ ok: !!sent });
+        } catch (e) {
+          console.error('notify-order (formulaire): relais WooCommerce en échec :', String((e && e.message) || e));
+          return res.status(200).json({ ok: false });
+        }
+      }
       const fr = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },

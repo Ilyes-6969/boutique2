@@ -885,8 +885,11 @@
       if (!target) return [];
       return orders.filter((o) => norm(o.email) === target);
     },
+    // Numéro de commande montré au client. Pour un paiement par carte il est créé
+    // AVANT le paiement (Checkout.jsx) et suit la commande jusque dans WooCommerce.
+    newNumber: () => 'LC151-' + Date.now().toString(36).toUpperCase().slice(-6),
     add(order) {
-      const num = 'LC151-' + Date.now().toString(36).toUpperCase().slice(-6);
+      const num = 'LC151-' + Date.now().toString(36).toUpperCase().slice(-6);   // remplacé par order.number s'il est fourni
       const full = { number: num, date: new Date().toISOString(), status: 'Confirmée', ...order };
       orders.unshift(full);
       save(K_ORDERS, orders);

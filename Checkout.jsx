@@ -49,6 +49,9 @@ function CheckoutModal({ onClose }) {
   // Vrai tant que la boutique tourne avec des clés Stripe de TEST : les vraies
   // cartes sont alors refusées, on prévient le client au lieu de le laisser échouer.
   const [stripeTest, setStripeTest] = React.useState(false);
+  // Numéro de la commande carte en cours, créé avant le paiement : le même numéro
+  // est affiché au client, écrit chez Stripe et sur la commande WooCommerce.
+  const cardRef = React.useRef(null);
   const cardBoxRef = React.useRef(null);   // conteneur DOM du formulaire de carte
   const stripeRef = React.useRef(null);
   const elementsRef = React.useRef(null);
@@ -164,7 +167,9 @@ function CheckoutModal({ onClose }) {
         if (cancelled) return;
         // Coordonnées transmises au serveur pour le reçu Stripe et l'adresse de
         // livraison du PaymentIntent (jamais pour le calcul du montant).
+        if (!cardRef.current) cardRef.current = window.LC151.Orders.newNumber();
         const data = await window.LCPay.createPaymentIntent({
+          ref: cardRef.current,
           items: currentLines(),
           method: ship.method,
           email: ship.email,
@@ -226,6 +231,7 @@ function CheckoutModal({ onClose }) {
     setErrors({});
     const lines = resolved.map(({ p, l }) => ({ name: p.name, qty: l.qty, price: p.price }));
     const orderData = {
+      ...(ship.method !== 'pickup' && cardRef.current ? { number: cardRef.current } : {}),
       email: ship.email, name: ship.name,
       items: lines,
       subtotal, discount, shipping: shippingCost, total,
@@ -243,6 +249,7 @@ function CheckoutModal({ onClose }) {
       try { localStorage.removeItem('lc151_pending_order'); } catch (e) { console.warn('[lc151] pending_order non nettoyé', e); }
       // La confirmation s'affiche TOUJOURS et immédiatement : un souci de
       // notification ne doit jamais la bloquer.
+      cardRef.current = null;   // la prochaine commande aura son propre numéro
       setOrder(o); cart.clear(); setPaying(false); setStep('confirme');
       // Retrait en boutique : pas de Stripe, donc pas de webhook → on notifie le
       // commerçant côté serveur et on EXPLOITE le booléen renvoyé. En cas d'échec

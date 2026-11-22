@@ -128,6 +128,10 @@ const woo = createServer(async (req, res) => {
     }
     return send(200, c);
   }
+  // Réglage WooCommerce lu pour connaître l'adresse e-mail de la boutique.
+  if (p === '/settings/email/woocommerce_email_from_address' && req.method === 'GET') {
+    return send(200, { id: 'woocommerce_email_from_address', value: 'boutique@exemple.fr' });
+  }
   if (p === '/orders' && req.method === 'POST') {
     const body = await readJson(req);
     const id = 2000 + orders.length;
@@ -310,10 +314,12 @@ const pk = await W.createPickupOrder({
 });
 check('retrait : commande créée', pk && !!pk.number, JSON.stringify(pk));
 const rawPk = orders.find((o) => String(o.number) === String(pk && pk.number));
-// LE point critique : 'pending' est ce qui empêche un inconnu de vider le stock
-// en boucle depuis un endpoint non authentifié.
-check('retrait : statut « pending » → WooCommerce ne retire AUCUN stock',
-  rawPk && rawPk.status === 'pending', rawPk && rawPk.status);
+// Réglage lib/vitrine.json (retraitReserveLeStock = true depuis le 22/11/2026) :
+// « En attente » réserve le stock et fait écrire WooCommerce à la boutique et au
+// client. Les abus sont freinés en amont (origine de la requête, limites par IP
+// et par adresse e-mail dans api/notify-order.js).
+check('retrait : statut « on-hold » (réservé) quand le réglage le demande, « pending » sinon',
+  rawPk && rawPk.status === (W.pickupReservesStock() ? 'on-hold' : 'pending'), rawPk && rawPk.status);
 check('retrait : aucun paiement enregistré (réglé au comptoir)',
   rawPk && rawPk.set_paid === undefined);
 check('retrait : marqué comme retrait via le méta',
@@ -390,17 +396,32 @@ const pickupMade = orders[orders.length - 1];
 check('commande : acceptée avec un e-mail valide, enregistrée dans WooCommerce',
   rOk.code === 200 && rOk.body.ok === true && rOk.body.orderNumber === pickupMade.number && pickupMade.billing.email === 'marie@exemple.fr',
   JSON.stringify(rOk.body));
-check('commande : le stock n\'est pas touché (statut en attente de paiement)', pickupMade.status === 'pending');
+check('commande : statut « En attente » (WooCommerce réserve le stock et écrit lui-même à la boutique et au client)', pickupMade.status === 'on-hold');
+check('confirmation : annoncée au site, sans note en double (l\'e-mail « En attente » de WooCommerce suffit)',
+  rOk.body.emailed === true && orderNotes.length === notesBefore);
+// Le mode « sans réservation » reste disponible : la note au client y fait office d'e-mail.
+await W.sendPickupConfirmation({ id: pickupMade.id, number: pickupMade.number }, 'LC151-TEST1');
 const lastNote = orderNotes[orderNotes.length - 1] || {};
-check('confirmation : un e-mail part au client (note client WooCommerce)',
-  rOk.body.emailed === true && orderNotes.length === notesBefore + 1 && lastNote.customer_note === true && lastNote.order === pickupMade.id);
-check('confirmation : le message porte le numéro, la référence et l\'adresse du magasin',
-  String(lastNote.note).includes(pickupMade.number) && /LC151-TEST1/.test(lastNote.note) && /28 rue Juiverie/.test(lastNote.note), String(lastNote.note));
+check('confirmation (mode sans réservation) : la note porte le numéro, la référence et l\'adresse du magasin',
+  lastNote.customer_note === true && lastNote.order === pickupMade.id && String(lastNote.note).includes(pickupMade.number) && /LC151-TEST1/.test(lastNote.note) && /28 rue Juiverie/.test(lastNote.note), String(lastNote.note));
 check('réponse : jamais mise en cache', rOk.headers['Cache-Control'] === 'no-store');
 await sendPickup(fromSite('10.0.0.5'), pickupPayload('marie@exemple.fr'));
 await sendPickup(fromSite('10.0.0.6'), pickupPayload('marie@exemple.fr'));
 const rFlood = await sendPickup(fromSite('10.0.0.7'), pickupPayload('MARIE@exemple.fr'));
 check('anti-abus : pas plus de 3 commandes par heure vers une même adresse', rFlood.code === 429, String(rFlood.code));
+
+// Formulaires du site sans clé Web3Forms : relais par une commande « boîte de réception » WooCommerce.
+const ordersBeforeForm = orders.length, notesBeforeForm = orderNotes.length;
+const sendForm = async (ip, fields) => { const res = stubRes(); await notifyHandler({ method: 'POST', headers: Object.assign({ host: 'club151.fr' }, fromSite(ip)), body: { kind: 'form', subject: 'Contact', fields: fields } }, res); return res; };
+const rForm = await sendForm('10.0.1.1', { Nom: 'Luc', Message: 'Avez-vous <b>ce</b> coffret ?' });
+const inbox = orders[orders.length - 1];
+const formNote = orderNotes[orderNotes.length - 1] || {};
+check('formulaire : sans clé d\'envoi, le message part par WooCommerce vers l\'adresse de la boutique',
+  rForm.code === 200 && rForm.body.ok === true && orders.length === ordersBeforeForm + 1 && inbox.billing.email === 'boutique@exemple.fr' && /LC151-BOITE/.test(inbox.billing.last_name)
+  && formNote.customer_note === true && formNote.order === inbox.id && /Luc/.test(formNote.note), JSON.stringify([rForm.body, formNote]));
+check('formulaire : le texte du visiteur est neutralisé (pas de balises dans l\'e-mail)', /&lt;b&gt;ce&lt;\/b&gt;/.test(formNote.note) && !/<b>/.test(formNote.note));
+const rForm2 = await sendForm('10.0.1.2', { Email: 'luc@exemple.fr' });
+check('formulaire : les messages suivants réutilisent la même boîte de réception', rForm2.body.ok === true && orders.length === ordersBeforeForm + 1 && orderNotes.length === notesBeforeForm + 2);
 
 // Plus de livraison offerte ; remise de 10 % dès 250 € d'articles.
 check('port : la livraison n\'est jamais offerte, quel que soit le montant',

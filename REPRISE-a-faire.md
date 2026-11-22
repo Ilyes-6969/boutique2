@@ -54,6 +54,22 @@
   Webhooks créés : `club151-site` (réel) et `club151-site-test` (test). Les trois valeurs restent à
   coller dans Vercel une fois le compte validé.
 
+**Contrôle du backend avant mise en ligne (22/11, 13 h)**
+- Vérifié sur le site en ligne : montants de paiement (2,99 € → 7,89 € ; 319,99 € → 292,89 €), refus sans
+  e-mail, quantité plafonnée au stock, article inconnu refusé, prix envoyé par le navigateur ignoré.
+- Vérifié sur le vrai WooCommerce : une ligne de remise négative est acceptée, et une commande créée
+  « En attente » envoie « Nouvelle commande » à la boutique et « Commande en attente » au client.
+- Corrigé : deux achats identiques du même client dans la journée étaient impossibles (clé
+  d'idempotence Stripe partagée). Le numéro LC151-… suit maintenant la commande carte jusqu'à Stripe
+  et WooCommerce (`_lc151_ref`).
+- Retraits : statut « En attente » (stock réservé, e-mails natifs WooCommerce). ANNULER la commande
+  dans WooCommerce si le client ne vient pas : le stock revient tout seul.
+- `WEB3FORMS_KEY` est ABSENTE dans Vercel : contact et arrivages passent désormais par une commande
+  technique WooCommerce « MESSAGES DU SITE / LC151-BOITE » (ne pas la supprimer).
+- Stock corrigé à la main dans WooCommerce sur indication de la boutique : ETB Destinées Radieuses 1,
+  ETB Nuit Noire 2, Display Règne Delta 4. À corriger aussi dans la caisse, sinon le prochain import
+  remettra les anciennes quantités.
+
 **À décider / vérifier**
 - Expéditeur des e-mails WooCommerce : aujourd'hui `boutiqueclub151@gmail.com` (risque de spam,
   le courrier ne part pas de Gmail). Le domaine club151.fr autorise déjà le serveur (SPF o2switch).

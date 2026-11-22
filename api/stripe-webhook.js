@@ -283,7 +283,7 @@ async function createWooOrder(stripe, pi) {
       // Mode de traitement : lu par lib/wooCustomers.js pour libeller les
       // statuts côté client (« Retirée » vs « Expédiée »).
       { key: '_lc151_fulfilment', value: meta.method === 'pickup' ? 'pickup' : 'shipping' },
-    ],
+    ].concat(meta.orderRef ? [{ key: '_lc151_ref', value: String(meta.orderRef) }] : []),   // n° donné au client
   };
 
   // Rattachement au compte client. `cid` est posé par api/create-payment-intent

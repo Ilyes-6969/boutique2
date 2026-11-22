@@ -5,6 +5,6 @@
     "0000775863015"
   ],
   "seulement": [],
-  "retraitReserveLeStock": false,
-  "_lisezmoi_retrait": "retraitReserveLeStock : false = une commande à retirer en boutique ne touche pas au stock tant que la boutique ne la passe pas « En cours » dans WooCommerce (le client reçoit quand même sa confirmation par e-mail). true = l'article est retiré du stock dès la commande (statut « En attente » de WooCommerce, qui envoie lui-même l'e-mail au client) ; une commande non retirée doit alors être annulée à la main pour remettre l'article en vente."
+  "retraitReserveLeStock": true,
+  "_lisezmoi_retrait": "retraitReserveLeStock : true = une commande a retirer en boutique passe en « En attente » dans WooCommerce : l'article est retire du stock tout de suite, et WooCommerce envoie lui-meme l'e-mail « Nouvelle commande » a la boutique et « Commande en attente » au client (verifie le 22/11/2026). Si le client ne vient pas, ANNULER la commande dans WooCommerce : le stock revient tout seul. false = la commande reste « En attente de paiement », le stock ne bouge pas, et la boutique n'est prevenue que si la cle Web3Forms est configuree."
 }
