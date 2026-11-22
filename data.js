@@ -625,6 +625,11 @@
   // REMISE AUTOMATIQUE : 10 % sur le montant des articles dès 250 € d'articles
   // (frais de port exclus). Même formule que le serveur (lib/serverCatalog.js,
   // discountCents), en centimes, pour que le total affiché soit celui encaissé.
+  // Réservation sans paiement (commande à retirer, réglée au comptoir) : FERMÉE
+  // depuis le 22/11/2026 — décision de la boutique. Le retrait reste proposé,
+  // mais payé en ligne par carte comme une livraison. Le serveur applique la
+  // même règle (lib/vitrine.json : reservationSansPaiement).
+  const PICKUP_UNPAID = false;
   const DISCOUNT = { threshold: 250, rate: 0.10 };
   function discountFor(subtotal) {
     const c = Math.round((Number(subtotal) || 0) * 100);
@@ -945,7 +950,7 @@
   }
 
   window.LC151 = {
-    PRODUCTS, FILTERS, GAMES, gameUrl, Cart, Store, Auth, Alerts, Orders, Favorites, Recent, DISCOUNT, discountFor,
+    PRODUCTS, FILTERS, GAMES, gameUrl, Cart, Store, Auth, Alerts, Orders, Favorites, Recent, DISCOUNT, discountFor, PICKUP_UNPAID,
     get: (id) => Store.get(id),
     productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',

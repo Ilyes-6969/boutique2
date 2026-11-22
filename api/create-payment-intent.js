@@ -151,6 +151,10 @@ module.exports = async function handler(req, res) {
       metadata: Object.assign(
         { orderRef: orderRef, source: 'club151', shipping: String(shipCents), discount: String(discCents), method: method },
         cid ? { cid: cid } : {},
+        // Retrait payé en ligne : pas d'adresse, donc pas de bloc « shipping » —
+        // le nom et le téléphone voyagent ici pour figurer sur la commande.
+        (customer && customer.name) ? { cname: customer.name.slice(0, 80) } : {},
+        (customer && customer.phone) ? { cphone: customer.phone } : {},
         splitItemsMeta(itemsMeta)
       ),
     }, { idempotencyKey: key });

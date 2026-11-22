@@ -15,7 +15,7 @@
 // ---------------------------------------------------------------------------
 
 const { priceItems, discountCents, DISCOUNT, applyCors, errorStatus, rateLimit, rateLimitKey, sameSiteRequest, noStore, isEmail, cleanName, cleanPhone } = require('../lib/serverCatalog');
-const { wooConfigured, createPickupOrder, sendPickupConfirmation, sendShopMessage, pickupLimits, pickupLoad, pickupReservesStock } = require('../lib/wooCustomers');
+const { wooConfigured, createPickupOrder, sendPickupConfirmation, sendShopMessage, pickupLimits, pickupLoad, pickupReservesStock, reservationsOpen } = require('../lib/wooCustomers');
 const { readSession } = require('../lib/session');
 
 const MAX_ITEMS = 30;
@@ -87,6 +87,12 @@ module.exports = async function handler(req, res) {
 
     // --- Validation stricte (endpoint public → aucune confiance) ---
     if (body.method !== 'pickup') return res.status(400).json({ error: 'Méthode invalide' });
+    // AUCUNE réservation sur le site : une commande n'existe que si elle est payée
+    // en ligne (elle est alors créée par le webhook Stripe, jamais ici). Refus
+    // côté serveur — masquer le bouton sur le site ne suffirait pas.
+    if (!reservationsOpen()) {
+      return res.status(403).json({ error: 'La réservation sans paiement n’est pas proposée. Réglez votre commande en ligne par carte, ou passez en boutique.' });
+    }
     const c = (body.customer && typeof body.customer === 'object') ? body.customer : {};
     // Nom et téléphone réduits aux caractères d'un nom / d'un numéro : la
     // confirmation part à l'adresse saisie SANS paiement, elle ne doit pas

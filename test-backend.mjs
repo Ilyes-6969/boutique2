@@ -386,6 +386,18 @@ const fromSite = (ip) => ({ origin: 'https://club151.fr', 'x-forwarded-for': ip 
 const pickupPayload = (email) => ({ method: 'pickup', orderRef: 'LC151-TEST1', customer: { name: 'Marie Durand', email: email, phone: '' }, items: [{ id: 'wp7', qty: 2 }] });
 const keptW3F = process.env.WEB3FORMS_KEY; delete process.env.WEB3FORMS_KEY;
 
+// AUCUNE réservation sur le site (décision du 22/11/2026) : le serveur refuse,
+// même si quelqu'un appelle directement l'adresse de l'ancien retrait sans paiement.
+const vitRes = require('./lib/vitrine.json');
+const ordersBeforeClosed = orders.length;
+const rClosed = await sendPickup(fromSite('10.0.3.1'), pickupPayload('marie@exemple.fr'));
+check('réservation : fermée par défaut — aucune commande sans paiement n\'est créée',
+  vitRes.reservationSansPaiement === false && rClosed.code === 403 && /réservation/i.test(rClosed.body.error) && orders.length === ordersBeforeClosed, JSON.stringify([rClosed.code, rClosed.body]));
+check('réservation : le réglage est lu côté serveur', W.reservationsOpen() === false);
+// Les contrôles ci-dessous portent sur le mode « réservation ouverte », conservé
+// dans le code au cas où la boutique le rouvrirait.
+vitRes.reservationSansPaiement = true;
+
 const r403 = await sendPickup({ 'x-forwarded-for': '10.0.0.1' }, pickupPayload('marie@exemple.fr'));
 check('commande : refusée si elle ne vient pas du site', r403.code === 403, String(r403.code));
 const rNoMail = await sendPickup(fromSite('10.0.0.2'), pickupPayload(''));
@@ -496,6 +508,7 @@ process.env.VERCEL_ENV = 'preview'; process.env.STRIPE_SECRET_KEY = 'sk_test_exe
 check('carte : un aperçu reste testable avec les clés de test', SecLib.cardPaymentsClosed() === false);
 if (keptEnv[0] === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = keptEnv[0];
 if (keptEnv[1] === undefined) delete process.env.STRIPE_SECRET_KEY; else process.env.STRIPE_SECRET_KEY = keptEnv[1];
+vitRes.reservationSansPaiement = false;
 if (keptW3F) process.env.WEB3FORMS_KEY = keptW3F;
 
 // ---------------------------------------------------------------------------

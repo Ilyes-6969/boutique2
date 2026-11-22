@@ -34,6 +34,7 @@ function CheckoutModal({ onClose }) {
   const cart = useCart();
   const auth = useAuth();
   const { fmt, Orders, DISCOUNT, discountFor } = window.LC151;
+  const SHOPINFO = window.LC151.SHOP || {};
   const items = cart.items();
   const subtotal = cart.subtotal();
 
@@ -140,7 +141,23 @@ function CheckoutModal({ onClose }) {
     setErrors(e); return Object.keys(e).length === 0;
   };
   // Paiement carte INTÉGRÉ au site (Stripe Payment Element) — pas de redirection.
-  const stripeEmbedded = !!(window.LCPay && window.LCPay.isLive && window.LCPay.isLive() && ship.method !== 'pickup');
+  // Retrait SANS paiement en ligne (réservation réglée au comptoir) : fermé par
+  // la boutique (LC151.PICKUP_UNPAID=false). Le retrait se paie alors par carte,
+  // exactement comme une livraison — seuls l'adresse et les frais de port changent.
+  const unpaidPickup = ship.method === 'pickup' && !!window.LC151.PICKUP_UNPAID;
+  const stripeEmbedded = !!(window.LCPay && window.LCPay.isLive && window.LCPay.isLive() && !unpaidPickup);
+
+  // Dès l'ouverture : la carte est-elle ouverte ? Si elle est fermée et qu'aucune
+  // commande sans paiement n'est possible, on le dit AVANT de faire remplir un
+  // formulaire pour rien (voir le panneau « bientôt » plus bas).
+  React.useEffect(() => {
+    if (!(window.LCPay && window.LCPay.isLive && window.LCPay.isLive() && window.LCPay.ensureStripe)) return;
+    let gone = false;
+    window.LCPay.ensureStripe()
+      .then(() => { const sc = (window.LCPay.config && window.LCPay.config.stripe) || {}; if (!gone) { setStripeTest(!!sc.testMode); setCardClosed(!!sc.cardClosed); } })
+      .catch(() => {});   // l'erreur éventuelle sera affichée à l'étape paiement
+    return () => { gone = true; };
+  }, []);
 
   // On n'envoie au serveur que { id, qty } : c'est lui qui détient les prix.
   const currentLines = () => items
@@ -198,7 +215,7 @@ function CheckoutModal({ onClose }) {
   }, [step, stripeEmbedded]);
 
   const validatePay = () => {
-    if (ship.method === 'pickup') return true; // pay in store
+    if (unpaidPickup) return true; // pay in store
     if (stripeEmbedded) return true;           // carte gérée par le Payment Element
     const e = {};
     // Validation Luhn centralisée dans payments.js (LCPay.luhn) — repli sur un
@@ -237,7 +254,7 @@ function CheckoutModal({ onClose }) {
     setErrors({});
     const lines = resolved.map(({ p, l }) => ({ name: p.name, qty: l.qty, price: p.price }));
     const orderData = {
-      ...(ship.method !== 'pickup' && cardRef.current ? { number: cardRef.current } : {}),
+      ...(!unpaidPickup && cardRef.current ? { number: cardRef.current } : {}),
       email: ship.email, name: ship.name,
       items: lines,
       subtotal, discount, shipping: shippingCost, total,
@@ -246,12 +263,12 @@ function CheckoutModal({ onClose }) {
     const finalize = (result) => {
       const o = Orders.add({
         ...orderData,
-        paid: ship.method !== 'pickup' ? !!(result && result.paid) : false,
+        paid: !unpaidPickup ? !!(result && result.paid) : false,
         processing: !!(result && result.processing),
         payRef: result ? result.ref : null,
       });
       // Snapshot des lignes AVANT cart.clear() (currentLines lit le panier courant).
-      const notifyLines = ship.method === 'pickup' ? currentLines() : null;
+      const notifyLines = unpaidPickup ? currentLines() : null;
       try { localStorage.removeItem('lc151_pending_order'); } catch (e) { console.warn('[lc151] pending_order non nettoyé', e); }
       // La confirmation s'affiche TOUJOURS et immédiatement : un souci de
       // notification ne doit jamais la bloquer.
@@ -347,7 +364,7 @@ function CheckoutModal({ onClose }) {
     // aucun webhook ne part, et le marchand n'a aucune trace de la vente.
     // Le retrait en boutique reste autorisé : il n'encaisse rien ici (paid=false).
     const hasGateway = !!(window.LCPay && window.LCPay.process);
-    if (ship.method !== 'pickup' && !hasGateway) {
+    if (!unpaidPickup && !hasGateway) {
       setErrors({ pay: 'Paiement indisponible pour le moment — rechargez la page ou réessayez dans un instant.' });
       return;
     }
@@ -363,16 +380,19 @@ function CheckoutModal({ onClose }) {
   };
 
   // Retrait en boutique : rien à payer en ligne, l'étape 2 n'est qu'une validation.
-  const steps = [['livraison', 'Livraison'], ['paiement', ship.method === 'pickup' ? 'Validation' : 'Paiement'], ['confirme', 'Confirmation']];
+  const steps = [['livraison', 'Livraison'], ['paiement', unpaidPickup ? 'Validation' : 'Paiement'], ['confirme', 'Confirmation']];
   const stepIdx = steps.findIndex((s) => s[0] === step);
 
   // Rangée de réassurance paiement : moyens acceptés (SVG monochromes) + mention
   // « 100% sécurisé ». Partagée par le formulaire carte manuel et le Payment Element.
   // Carte fermée + livraison choisie : le bouton ne paie pas, il bascule sur le
   // retrait en boutique (seul mode de commande ouvert tant que la carte est fermée).
-  const cardOff = cardClosed && ship.method !== 'pickup';
+  const cardOff = cardClosed && !unpaidPickup;
+  // Carte fermée ET aucune réservation possible : on ne peut pas commander en
+  // ligne pour le moment → panneau « bientôt » à la place du formulaire.
+  const orderingClosed = cardClosed && !window.LC151.PICKUP_UNPAID;
   const payBusy = paying || (stripeEmbedded && !stripeReady && !cardOff);
-  const payLabel = paying ? 'Traitement…' : (cardOff ? 'Choisir le retrait' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total)));
+  const payLabel = paying ? 'Traitement…' : (cardOff ? 'Choisir le retrait' : (unpaidPickup ? 'Valider la commande' : 'Payer ' + fmt(total)));
   const payClick = cardOff ? () => { setErrors({}); setS('method', 'pickup'); } : placeOrder;
 
   const payReassure = (
@@ -398,13 +418,13 @@ function CheckoutModal({ onClose }) {
 
   // Puces de garantie sous le total — rassurent au moment de payer.
   // Pour un retrait en boutique, rien n'est expédié : on le dit au lieu de parler de colis.
+  // Pas de promesse de retour : la boutique ne reprend ni n'échange (voir CGV, article 6).
   const guaranteeItems = ship.method === 'pickup' ? [
-    ['truck', 'Retrait en boutique', 'À régler sur place, 28 rue Juiverie à Vienne'],
+    ['truck', 'Retrait en boutique', unpaidPickup ? 'À régler sur place, 28 rue Juiverie à Vienne' : '28 rue Juiverie à Vienne, commande payée en ligne'],
     ['bouclier', 'Authenticité garantie', 'Chaque article vérifié par nos soins'],
   ] : [
     ['truck', 'Livraison suivie', 'Colis suivi et soigneusement protégé'],
     ['bouclier', 'Authenticité garantie', 'Chaque article vérifié par nos soins'],
-    ['retour', 'Retours sous 14 jours', 'Rétractation simple, remboursement rapide'],
   ];
 
   // Message de confirmation — n'affirme QUE ce qui est réellement vrai.
@@ -417,7 +437,9 @@ function CheckoutModal({ onClose }) {
   //    si le serveur a répondu qu'elle est partie (pickupEmailed).
   const confirmNote = !order ? '' : (
     order.paid
-      ? 'Paiement reçu. Votre confirmation de commande est envoyée à ' + order.email + '.'
+      ? (order.method === 'pickup'
+        ? 'Paiement reçu. À retirer en boutique, 28 rue Juiverie à Vienne : présentez le n° ' + order.number + '. Votre confirmation est envoyée à ' + order.email + '.'
+        : 'Paiement reçu. Votre confirmation de commande est envoyée à ' + order.email + '.')
       : order.processing
         ? 'Paiement en cours de validation — vous recevrez un e-mail dès qu’il est confirmé.'
         : 'À régler au retrait en boutique. Présentez le n° ' + order.number + ' sur place : nous gardons votre commande de côté.'
@@ -481,13 +503,13 @@ function CheckoutModal({ onClose }) {
         {/* head */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, letterSpacing: '-0.02em' }}>
-            {step === 'confirme' ? 'Commande confirmée' : (ship.method === 'pickup' ? 'Votre commande' : 'Paiement sécurisé')}
+            {step === 'confirme' ? 'Commande confirmée' : (orderingClosed ? 'Commande en ligne' : (unpaidPickup ? 'Votre commande' : 'Paiement sécurisé'))}
           </h3>
           <button onClick={guardedClose} aria-label="Fermer" style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer', background: 'transparent' }}>×</button>
         </div>
 
         {/* stepper — pastilles avec transition douce background/color quand l'étape avance */}
-        {step !== 'confirme' && (
+        {step !== 'confirme' && !orderingClosed && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 22 }}>
             {steps.slice(0, 2).map(([k, label], i) => {
               const done = i < stepIdx;
@@ -534,6 +556,21 @@ function CheckoutModal({ onClose }) {
               ? <DS.Button className="lc-press" variant="accent" size="lg" onClick={onClose}>Continuer mes achats</DS.Button>
               : <button onClick={onClose} style={{ padding: '12px 28px', borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer mes achats</button>}
           </div>
+        ) : orderingClosed ? (
+          <div className="lc-checkout-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr', gap: 24 }}>
+            <div className="lc-line-in">
+              <div role="status" style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--ink)', background: 'var(--accent-wash)', border: '1px solid var(--accent-soft)', borderRadius: 'var(--radius)', padding: '18px 20px', marginBottom: 16 }}>
+                <strong style={{ display: 'block', fontSize: 16, marginBottom: 6 }}>La commande en ligne ouvre très bientôt.</strong>
+                En attendant, ces articles sont disponibles en boutique : <strong>{SHOPINFO.street || '28 rue Juiverie'}, 38200 Vienne</strong>{SHOPINFO.hoursText ? ', ' + SHOPINFO.hoursText : ''}.
+                {SHOPINFO.phone ? <React.Fragment> Une question ? Appelez-nous au <a href={'tel:' + SHOPINFO.phone.replace(/\s/g, '')} style={{ color: 'var(--accent)', fontWeight: 600 }}>{SHOPINFO.phone}</a>.</React.Fragment> : null}
+              </div>
+              <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5, marginBottom: 16 }}>Votre panier est conservé : vous le retrouverez à l'ouverture du paiement en ligne.</p>
+              {DS.Button
+                ? <DS.Button className="lc-press" variant="primary" size="lg" block onClick={guardedClose}>Fermer</DS.Button>
+                : <button onClick={guardedClose} style={{ width: '100%', height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Fermer</button>}
+            </div>
+            {summary}
+          </div>
         ) : (
           <div className="lc-checkout-grid" style={{ display: 'grid', gridTemplateColumns: '1.3fr 0.9fr', gap: 24 }}>
             {/* key={step} → remonte à chaque changement d'étape : le fade-up .lc-line-in
@@ -565,23 +602,28 @@ function CheckoutModal({ onClose }) {
                     </React.Fragment>
                   )}
                   {DS.Button
-                    ? <DS.Button className="lc-press" variant="primary" size="lg" block onClick={goPay}>{ship.method === 'pickup' ? 'Continuer' : 'Continuer vers le paiement'}</DS.Button>
+                    ? <DS.Button className="lc-press" variant="primary" size="lg" block onClick={goPay}>{unpaidPickup ? 'Continuer' : 'Continuer vers le paiement'}</DS.Button>
                     : <button onClick={goPay} style={{ width: '100%', height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer vers le paiement →</button>}
                 </React.Fragment>
               ) : (
                 <React.Fragment>
-                  {ship.method === 'pickup' ? (
+                  {unpaidPickup ? (
                     <div style={{ padding: '20px', background: 'var(--accent-wash)', border: '1px solid var(--accent-soft)', borderRadius: 'var(--radius)', marginBottom: 16, fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>
                       Vous avez choisi le <strong>retrait en boutique</strong> à Vienne. Vous réglerez sur place — aucune carte requise maintenant.
                     </div>
                   ) : stripeEmbedded ? (
                     <React.Fragment>
                       <div style={{ minHeight: 80, marginBottom: 12 }}>
+                        {ship.method === 'pickup' && !cardClosed && (
+                          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink)', background: 'var(--accent-wash)', border: '1px solid var(--accent-soft)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', marginBottom: 12 }}>
+                            <strong>Retrait en boutique</strong> à Vienne : vous payez maintenant par carte, puis vous venez chercher votre commande avec son numéro.
+                          </div>
+                        )}
                         {(stripeTest || cardClosed) && (
                           <div role="status" style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink)', background: 'var(--paper-2)', border: '1px solid var(--line-strong)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', marginBottom: 12 }}>
                             {cardClosed
                               ? <React.Fragment>Le paiement par carte et la livraison ouvrent très bientôt. Dès maintenant, vous pouvez commander en <strong>retrait en boutique</strong> à Vienne et régler sur place.</React.Fragment>
-                              : <React.Fragment>Le paiement par carte n'est pas encore ouvert : aucune carte n'est débitée pour le moment. Vous pouvez dès maintenant commander en <strong>retrait en boutique</strong> et régler sur place.</React.Fragment>}
+                              : <React.Fragment>Mode test : aucune carte n'est réellement débitée.</React.Fragment>}
                           </div>
                         )}
                         {/* Le formulaire de carte Stripe est monté ici (Payment Element) */}

@@ -251,12 +251,14 @@ async function createWooOrder(stripe, pi) {
 
   const ship = pi.shipping || {};
   const addr = ship.address || {};
-  const fullName = String(ship.name || '').trim();
+  const meta0 = pi.metadata || {};
+  // Retrait payé en ligne : nom et téléphone viennent des métadonnées (pas d'adresse).
+  const fullName = String(ship.name || meta0.cname || '').trim();
   const spaceAt = fullName.indexOf(' ');
   const contact = {
     first_name: spaceAt > 0 ? fullName.slice(0, spaceAt) : fullName,
     last_name: spaceAt > 0 ? fullName.slice(spaceAt + 1) : '',
-    phone: ship.phone || '',
+    phone: ship.phone || meta0.cphone || '',
     address_1: addr.line1 || '',
     postcode: addr.postal_code || '',
     city: addr.city || '',

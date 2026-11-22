@@ -258,3 +258,10 @@ Ce que le code ne peut pas faire à la place du comptoir :
 - Ne remettre un article que sur la foi de WooCommerce : « En cours » = payé par carte ; « En attente » = à encaisser au comptoir. Jamais sur un e-mail ou une capture d'écran.
 - La remise de 10 % vaut pour un achat réel de 250 € ou plus : si le client ne prend qu'une partie de sa réservation, recalculer.
 - Annuler les réservations non retirées (le stock revient tout seul).
+
+## Aucune réservation, aucune reprise — décision de la boutique, 22/11/2026 (13 h 15)
+
+- **Aucune réservation sur le site.** Une commande n'existe que si elle est payée en ligne par carte, en livraison comme en retrait en boutique. `lib/vitrine.json` → `reservationSansPaiement: false` (le serveur refuse l'ancien retrait sans paiement, HTTP 403) et `data.js` → `PICKUP_UNPAID = false` (le site ne le propose plus). Le retrait payé en ligne passe par Stripe et le webhook, comme une livraison ; le nom et le téléphone du client suivent dans les métadonnées (`cname`, `cphone`).
+- **Conséquence tant que Stripe n'est pas ouvert** (clés de test dans Vercel) : personne ne peut commander. La fenêtre de commande affiche « La commande en ligne ouvre très bientôt » avec l'adresse, les horaires et le téléphone du magasin. Tout s'ouvre seul dès que les clés réelles sont dans Vercel.
+- **Aucune reprise ni échange.** CGV article 6 et FAQ réécrits ; la mention « Retours sous 14 jours » a disparu de la fenêtre de commande. Pour les commandes payées EN LIGNE, le Code de la consommation impose un délai de rétractation de 14 jours qu'un vendeur ne peut pas supprimer : les CGV le limitent au strict minimum légal (article scellé et intact, frais de renvoi au client, dépréciation déduite pour un produit ouvert). **À faire valider par un juriste ou l'expert-comptable.**
+- Les garde-fous des réservations (20 articles, 3 par e-mail, 15 par heure) restent dans le code mais ne servent plus tant que la réservation est fermée.

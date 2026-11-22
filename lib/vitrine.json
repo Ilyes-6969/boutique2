@@ -5,6 +5,8 @@
     "0000775863015"
   ],
   "seulement": [],
+  "reservationSansPaiement": false,
+  "_lisezmoi_reservation": "reservationSansPaiement : false = AUCUNE reservation sur le site (decision de la boutique, 22/11/2026). Une commande n'existe que si elle est payee en ligne par carte, en livraison comme en retrait en boutique. true = le site accepterait de nouveau les commandes a retirer et a regler au comptoir ; les reglages 'retrait...' ci-dessous ne servent que dans ce cas (il faut aussi remettre PICKUP_UNPAID a true dans data.js).",
   "retraitReserveLeStock": true,
   "_lisezmoi_retrait": "retraitReserveLeStock : true = une commande a retirer en boutique passe en « En attente » dans WooCommerce : l'article est retire du stock tout de suite, et WooCommerce envoie lui-meme l'e-mail « Nouvelle commande » a la boutique et « Commande en attente » au client (verifie le 22/11/2026). Si le client ne vient pas, ANNULER la commande dans WooCommerce : le stock revient tout seul. false = la commande reste « En attente de paiement », le stock ne bouge pas, et la boutique n'est prevenue que si la cle Web3Forms est configuree.",
   "retraitMaxArticles": 20,
