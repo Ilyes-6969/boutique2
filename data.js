@@ -1003,6 +1003,10 @@
 /* ---- Bandeau cookies (RGPD) — léger, sans dépendance ----
    S'affiche tant que le visiteur n'a pas choisi. Le choix est mémorisé.
    Ne s'affiche pas dans le back-office (admin.html). */
+/* Interrupteur unique de la mesure d'audience : lu par le bandeau ci-dessous et
+   par le chargement du script plus bas. false = aucune mesure, aucun script. */
+window.LC_ANALYTICS_ON = false;
+
 (function () {
   var K = 'lc151_cookie_consent';
   function ready(fn) {
@@ -1018,14 +1022,22 @@
     bar.setAttribute('role', 'dialog');
     bar.setAttribute('aria-label', 'Gestion des cookies');
     bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:9999;width:min(680px,calc(100% - 24px));background:var(--card,#fff);color:var(--ink,#1a1a1a);border:1.5px solid var(--line-strong,#ddd);border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,0.18);padding:16px 18px;display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-family:system-ui,sans-serif';
+    // Deux textes : tant que la mesure d'audience est éteinte (LC_ANALYTICS_ON
+    // plus bas), le site ne dépose que des cookies nécessaires — il n'y a donc
+    // rien à accepter ou refuser, seulement une information.
+    var tracked = window.LC_ANALYTICS_ON === true;
     bar.innerHTML =
       '<div style="flex:1;min-width:220px;font-size:13.5px;line-height:1.5">' +
-        'Nous utilisons des cookies pour le bon fonctionnement du site (panier, session), ainsi qu’une mesure d’audience anonyme et sans cookie. ' +
-        '<a href="confidentialite.html" style="color:var(--accent,#3363A9);font-weight:600">En savoir plus</a>.' +
+        (tracked
+          ? 'Nous utilisons des cookies pour le bon fonctionnement du site (panier, session), ainsi qu’une mesure d’audience anonyme et sans cookie. '
+          : 'Ce site n’utilise que les cookies nécessaires à son fonctionnement (panier, session, paiement sécurisé). Aucune publicité, aucun traçage. ') +
+        '<a href="/confidentialite.html" style="color:var(--accent,#3363A9);font-weight:600">En savoir plus</a>.' +
       '</div>' +
       '<div style="display:flex;gap:8px;flex-shrink:0">' +
-        '<button data-lc-cookie="refuse" style="height:38px;padding:0 14px;border-radius:8px;border:1.5px solid var(--line-strong,#ccc);background:transparent;color:var(--ink,#1a1a1a);font-weight:600;font-size:13.5px;cursor:pointer">Refuser</button>' +
-        '<button data-lc-cookie="accept" style="height:38px;padding:0 16px;border-radius:8px;border:none;background:var(--accent,#3363A9);color:var(--on-accent,#fff);font-weight:600;font-size:13.5px;cursor:pointer">Accepter</button>' +
+        (tracked
+          ? ('<button data-lc-cookie="refuse" style="height:38px;padding:0 14px;border-radius:8px;border:1.5px solid var(--line-strong,#ccc);background:transparent;color:var(--ink,#1a1a1a);font-weight:600;font-size:13.5px;cursor:pointer">Refuser</button>' +
+             '<button data-lc-cookie="accept" style="height:38px;padding:0 16px;border-radius:8px;border:none;background:var(--accent,#3363A9);color:var(--on-accent,#fff);font-weight:600;font-size:13.5px;cursor:pointer">Accepter</button>')
+          : '<button data-lc-cookie="ok" style="height:38px;padding:0 16px;border-radius:8px;border:none;background:var(--accent,#3363A9);color:var(--on-accent,#fff);font-weight:600;font-size:13.5px;cursor:pointer">J’ai compris</button>') +
       '</div>';
     function choose(v) { try { localStorage.setItem(K, v); } catch (e) {} bar.remove(); }
     bar.addEventListener('click', function (e) {
@@ -1039,9 +1051,11 @@
 /* ---- Mesure d'audience Vercel (anonyme, sans cookie) ----
    ÉTEINTE : « Web Analytics » n'est pas activé sur le projet Vercel, donc chaque
    page demandait un script qui n'existe pas (erreur 404 dans la console).
-   Pour l'allumer : activer Web Analytics dans Vercel, puis passer à true. */
+   Pour l'allumer : activer Web Analytics dans Vercel, puis passer
+   window.LC_ANALYTICS_ON à true (plus haut) : le bandeau redevient alors un
+   vrai choix Accepter / Refuser. */
 (function () {
-  var ANALYTICS_ON = false;
+  var ANALYTICS_ON = window.LC_ANALYTICS_ON === true;
   if (!ANALYTICS_ON) return;
   try {
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };

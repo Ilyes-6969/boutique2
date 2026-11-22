@@ -274,3 +274,11 @@ Ce que le code ne peut pas faire à la place du comptoir :
 - Contrôle complet : 15 pages × bureau et mobile, aucune erreur JavaScript, aucun lien interne cassé, aucun débordement, 96 tests.
 
 **Blocage Stripe constaté le 22/11 à 19 h** — statut « Suspendu », tâche « justificatif de l'activité de l'entreprise » en retard : le document envoyé (un fichier nommé identity_document) a été refusé car « les informations du compte ne correspondent pas ». Dans Stripe, la dénomination sociale et le nom commercial sont saisis « SAS » (c'est la forme juridique, pas le nom). À faire par la boutique : mettre la dénomination exacte du Kbis, vérifier que la personne déclarée dirigeant est bien celle du Kbis, puis charger le Kbis (ou l'avis de situation SIRENE) comme justificatif.
+
+## Vérification complète en ligne — 22/11/2026, 19 h 45 à 20 h
+
+Contrôlé sur club151.fr (pas en aperçu) : les 255 adresses du plan du site répondent, avec leur adresse canonique et leur description ; 18 pages ouvertes une à une sur ordinateur et sur mobile, sans débordement ni texte cassé ; 194 images de produits chargées, aucune cassée ; recherche, filtres par rayon et par jeu (22 accessoires, 61 figurines et goodies, 123 Pokémon) ; ajout au panier, quantité plafonnée au stock, remise de 10 % (700 € → 630 €) ; fenêtre de commande fermée proprement ; formulaire « Nous contacter » envoyé depuis la page et retrouvé dans WooCommerce ; suivi de commande ; connexion et création de compte (refus corrects, pont WordPress joignable) ; mode sombre ; page 404 ; en-têtes de sécurité. WooCommerce : 720 produits publiés, aucun sans prix, aucun stock négatif ou incohérent, aucune référence manquante ou en double.
+
+Corrigé à cette occasion : le bandeau cookies et la page confidentialité annonçaient une mesure d'audience qui n'est pas active. Le site ne dépose que des cookies nécessaires : le bandeau devient une simple information (« J'ai compris »). Interrupteur unique `window.LC_ANALYTICS_ON` dans data.js.
+
+Non vérifiable par Claude : l'arrivée réelle des e-mails dans la boîte (seul WooCommerce confirme l'envoi), un vrai paiement par carte (Stripe suspendu), une connexion réussie à un compte client (il faudrait un mot de passe). 19 noms de produits en double viennent de la caisse.

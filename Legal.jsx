@@ -141,7 +141,7 @@ function LegalPage({ navigate, kind }) {
               <LI>Gestion des commandes et du compte client (exécution du contrat)</LI>
               <LI>Service client et alertes produits (consentement)</LI>
               <LI>Obligations comptables et légales (obligation légale)</LI>
-              <LI>Amélioration du site et mesure d'audience (intérêt légitime / consentement)</LI>
+              <LI>Amélioration du site (intérêt légitime)</LI>
             </UL>
             <H>4. Durée de conservation</H>
             <P>Les données sont conservées le temps de la relation commerciale puis archivées selon les délais légaux (10 ans pour les pièces comptables et factures), ou jusqu'au retrait du consentement pour les alertes/newsletter.</P>
@@ -150,7 +150,7 @@ function LegalPage({ navigate, kind }) {
             <H>6. Vos droits (RGPD)</H>
             <P>Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, d'opposition et de portabilité. Pour les exercer : <V v={COMPANY.email} ph="contact@club151.fr" />. Vous pouvez aussi saisir la CNIL (cnil.fr).</P>
             <H>7. Cookies</H>
-            <P>Le site utilise des cookies techniques (panier, session) et, sous réserve de votre consentement, des cookies de mesure d'audience. Vous pouvez les gérer à tout moment via le bandeau cookies / les réglages de votre navigateur.</P>
+            <P>Le site n'utilise que des cookies techniques, nécessaires à son fonctionnement : panier, session, préférences d'affichage et paiement sécurisé (Stripe). Il ne dépose aucun cookie publicitaire ni de mesure d'audience. Vous pouvez les effacer à tout moment depuis les réglages de votre navigateur.</P>
           </React.Fragment>
         )}
 
