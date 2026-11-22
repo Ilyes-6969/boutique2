@@ -40,6 +40,9 @@ function CheckoutModal({ onClose }) {
 
   const [step, setStep] = React.useState('livraison'); // livraison | paiement | confirme
   const [order, setOrder] = React.useState(null);
+  // Numéro de la commande dans WooCommerce (celui que voit la boutique), reçu
+  // quelques secondes après le paiement.
+  const [wooNumber, setWooNumber] = React.useState(null);
   const u = auth.user() || {};
   const sa = u.address || {};
   const [ship, setShip] = React.useState({ name: sa.name || u.name || '', email: u.email || '', addr: sa.addr || '', city: sa.city || '', zip: sa.zip || '', phone: sa.phone || '', method: 'standard' });
@@ -199,6 +202,15 @@ function CheckoutModal({ onClose }) {
           customer: { name: ship.name, email: ship.email, addr: ship.addr, zip: ship.zip, city: ship.city, phone: ship.phone },
         });
         if (cancelled || !data.clientSecret) throw new Error('Paiement indisponible');
+        // Le serveur fixe le montant débité. S'il diffère de celui affiché (prix
+        // ou stock modifiés depuis le chargement de la page), on ne présente PAS
+        // le formulaire : le client ne doit jamais payer un autre total que celui
+        // qu'il lit. On recharge le catalogue pour que le panier se mette à jour.
+        const shownCents = Math.round(total * 100);
+        if (Number.isFinite(data.amount) && Math.abs(data.amount - shownCents) > 1) {
+          try { if (window.LC151.Store.refreshFromWp) window.LC151.Store.refreshFromWp(); } catch (e2) {}
+          throw new Error('Le prix ou le stock d’un article vient de changer : le total à régler est de ' + fmt(data.amount / 100) + ' au lieu de ' + fmt(total) + '. Revenez à l’étape précédente pour vérifier votre commande.');
+        }
         const elements = stripe.elements({ clientSecret: data.clientSecret, appearance: { theme: 'stripe' } });
         el = elements.create('payment', { layout: 'tabs' });
         if (cancelled) return;
@@ -335,6 +347,7 @@ function CheckoutModal({ onClose }) {
           // notification différée) restent à valider. On enregistre la commande
           // mais on ne prétend PAS « Paiement reçu » — le webhook confirmera.
           finalize({ paid: pi.status === 'succeeded', processing: pi.status === 'processing', ref: pi.id });
+          if (window.LCPay.orderNumberFor) window.LCPay.orderNumberFor(pi.id).then((n) => { if (n) setWooNumber(n); });
           // Verrou d'idempotence (même format que finalizeOnce dans merci.html) :
           // marque ce PaymentIntent comme déjà finalisé pour qu'une visite de
           // merci.html?payment_intent=… ne recrée pas la commande en double.
@@ -438,7 +451,7 @@ function CheckoutModal({ onClose }) {
   const confirmNote = !order ? '' : (
     order.paid
       ? (order.method === 'pickup'
-        ? 'Paiement reçu. À retirer en boutique, 28 rue Juiverie à Vienne : présentez le n° ' + order.number + '. Votre confirmation est envoyée à ' + order.email + '.'
+        ? 'Paiement reçu. À retirer en boutique, 28 rue Juiverie à Vienne : présentez le n° ' + (wooNumber || order.number) + '. Votre confirmation est envoyée à ' + order.email + '.'
         : 'Paiement reçu. Votre confirmation de commande est envoyée à ' + order.email + '.')
       : order.processing
         ? 'Paiement en cours de validation — vous recevrez un e-mail dès qu’il est confirmé.'
@@ -538,7 +551,7 @@ function CheckoutModal({ onClose }) {
           <div style={{ textAlign: 'center', padding: '8px 0 4px' }}>
             <div className="lc-confirm-ic" style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--green-soft)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 16px' }}>✓</div>
             <p style={{ fontSize: 16, color: 'var(--ink-2)', marginBottom: 6 }}>Merci {order.name} ! Votre commande est confirmée.</p>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600, marginBottom: 18 }}>N° {order.number}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 600, marginBottom: 18 }}>{wooNumber ? 'Commande n° ' + wooNumber + ' (réf. ' + order.number + ')' : 'N° ' + order.number}</div>
             <div style={{ maxWidth: 420, margin: '0 auto 22px', textAlign: 'left', background: 'var(--paper-2)', borderRadius: 'var(--radius)', padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Total</span><strong style={{ fontFamily: 'var(--font-mono)' }}>{fmt(order.total)}</strong></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 6 }}><span style={{ color: 'var(--ink-2)' }}>Livraison</span><span>{(Orders.methods()[order.method] || {}).label || 'Livraison standard'}</span></div>

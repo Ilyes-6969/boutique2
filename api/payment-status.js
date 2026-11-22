@@ -40,6 +40,9 @@ module.exports = async function handler(req, res) {
       // Masqué (a***@domaine.fr) : le client se reconnaît, un tiers n'en tire rien.
       email: maskEmail(intent.receipt_email),
       orderRef: (intent.metadata && intent.metadata.orderRef) || '',
+      // Numéro de la commande créée dans WooCommerce par le webhook (vide tant
+      // qu'il n'est pas passé) : c'est celui que la boutique voit et recherche.
+      orderNumber: (intent.metadata && intent.metadata.wc_order_id) ? String(intent.metadata.wc_order_id) : '',
     });
   } catch (err) {
     // Réponse neutre : un id inexistant et une erreur interne sont indistinguables.

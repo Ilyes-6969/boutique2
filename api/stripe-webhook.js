@@ -51,16 +51,20 @@ const METHOD_LABELS = {
 };
 
 function readRawBody(req) {
+  // Sur Vercel, le corps est lu par la plateforme puis RESTITUÉ au flux : les
+  // événements 'data' / 'end' redonnent les octets exacts signés par Stripe
+  // (vérifié dans le code de @vercel/node, fonction restoreBody, le 22/11/2026).
+  // Garde-fou : si rien n'arrive en 5 s, on échoue proprement (réponse 400,
+  // Stripe réessaiera) au lieu de laisser la fonction tourner jusqu'à son délai.
   return new Promise(function (resolve, reject) {
     const chunks = [];
-    req.on('data', function (c) { chunks.push(c); });
-    req.on('end', function () { resolve(Buffer.concat(chunks)); });
-    req.on('error', reject);
+    const timer = setTimeout(function () { reject(new Error('corps de la requête illisible (délai dépassé)')); }, 5000);
+    req.on('data', function (c) { chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)); });
+    req.on('end', function () { clearTimeout(timer); resolve(Buffer.concat(chunks)); });
+    req.on('error', function (e) { clearTimeout(timer); reject(e); });
   });
 }
 
-// Reconstitue la chaîne 'wpIDxQTY,...' répartie sur items, items2, items3…
-// (voir splitItemsMeta dans create-payment-intent.js / create-checkout-session.js).
 function joinItemsMeta(meta) {
   if (!meta) return '';
   let out = String(meta.items || '');
@@ -136,6 +140,13 @@ module.exports = async function handler(req, res) {
   // webhook (Stripe → Développeurs → Webhooks), sinon rien n'arrive ici.
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object;
+    // Seuls les paiements créés PAR CE SITE donnent une commande (étiquette
+    // posée par api/create-payment-intent.js). Un encaissement fait ailleurs sur
+    // le même compte Stripe (terminal du magasin, lien de paiement, facture) est
+    // accusé de réception et ignoré.
+    if (!pi || !pi.metadata || pi.metadata.source !== 'club151') {
+      return res.status(200).json({ received: true, ignored: 'autre-origine' });
+    }
 
     // 1) Commande WooCommerce (stock partagé). Toute erreur est capturée :
     //    la notification propriétaire part quoi qu'il arrive.
@@ -219,7 +230,10 @@ async function createWooOrder(stripe, pi) {
   }
 
   // Auth Basic en clair dans l'en-tête → HTTPS non négociable.
-  if (!/^https:\/\//i.test(base)) {
+  // HTTPS obligatoire (les clés WooCommerce voyagent dans l'en-tête), sauf vers
+  // la machine locale : c'est ce qui permet de tester ce webhook de bout en bout.
+  const isLocalWoo = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/|$)/i.test(base);
+  if (!/^https:\/\//i.test(base) && !isLocalWoo) {
     throw new Error('WC_STORE_URL doit être en HTTPS (auth Basic WooCommerce)');
   }
 

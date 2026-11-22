@@ -45,6 +45,13 @@ module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  // Ancien mode de paiement par redirection : FERMÉ. Le site paie par formulaire
+  // intégré (api/create-payment-intent.js), seul chemin qui crée la commande dans
+  // WooCommerce. Laisser celui-ci ouvert permettrait de payer sans commande.
+  // Pour le rouvrir un jour : STRIPE_REDIRECT_MODE=1 dans Vercel.
+  if (process.env.STRIPE_REDIRECT_MODE !== '1') {
+    return res.status(410).json({ error: 'Ce mode de paiement n’est pas disponible.' });
+  }
   noStore(res);
   if (!sameSiteRequest(req, false)) return res.status(403).json({ error: 'Requête refusée.' });
 

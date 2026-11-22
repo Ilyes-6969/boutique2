@@ -63,7 +63,8 @@ module.exports = async function handler(req, res) {
     const sess = S.readSession(req);
     // 200 + loggedIn:false plutôt que 401 : « pas connecté » est un état normal
     // de la page, pas une erreur à afficher au client.
-    if (!sess) return res.status(200).json({ ok: true, loggedIn: false, orders: [] });
+    // cid ≤ 0 : WooCommerce renverrait TOUTES les commandes passées sans compte.
+    if (!sess || !(Number(sess.cid) > 0)) return res.status(200).json({ ok: true, loggedIn: false, orders: [] });
     try {
       const orders = await W.listOrders(sess.cid);
       // Jamais de cache partagé : ces données sont nominatives. Un s-maxage ici

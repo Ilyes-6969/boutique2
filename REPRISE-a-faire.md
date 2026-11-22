@@ -282,3 +282,27 @@ Contrôlé sur club151.fr (pas en aperçu) : les 255 adresses du plan du site r�
 Corrigé à cette occasion : le bandeau cookies et la page confidentialité annonçaient une mesure d'audience qui n'est pas active. Le site ne dépose que des cookies nécessaires : le bandeau devient une simple information (« J'ai compris »). Interrupteur unique `window.LC_ANALYTICS_ON` dans data.js.
 
 Non vérifiable par Claude : l'arrivée réelle des e-mails dans la boîte (seul WooCommerce confirme l'envoi), un vrai paiement par carte (Stripe suspendu), une connexion réussie à un compte client (il faudrait un mot de passe). 19 noms de produits en double viennent de la caisse.
+
+## Audit complet « client et pirate » — 22/11/2026, 20 h à 21 h
+
+**Méthode.** Tout le code serveur relu fichier par fichier (api/, lib/, pont WordPress) ; historique entier du dépôt public passé au crible (aucune clé, aucun mot de passe, aucun prix d'achat, aucune donnée de client) ; attaques non destructives sur club151.fr et gestion.club151.fr ; parcours client complet. Le code source de la plateforme Vercel a été lu pour confirmer que le webhook Stripe reçoit bien le corps brut (fonction `restoreBody` de @vercel/node).
+
+**Trouvé et corrigé dans ce lot**
+- *Compte administrateur.* Le pont de connexion WordPress acceptait n'importe quel compte, y compris l'administrateur : la connexion de la boutique pouvait servir à deviner son mot de passe. La boutique ne connecte plus que les comptes clients (même réponse qu'un mauvais mot de passe). `wordpress/lc151-auth.php` refuse aussi ces comptes : à redéposer dans `wp-content/mu-plugins/` quand c'est possible (double sécurité, pas indispensable).
+- *Essais de mot de passe.* Limite par adresse e-mail (8 essais / 15 min) en plus de la limite par IP ; 3 e-mails de réinitialisation par heure vers une même adresse.
+- *Suivi de commande.* Le client reçoit une référence LC151-… que la recherche WooCommerce ne connaît pas : le suivi répondait « aucune commande ». Il retrouve maintenant la commande par e-mail + référence. Après paiement, le site affiche aussi le numéro WooCommerce (« Commande n° 1430 »), celui que la boutique voit.
+- *Montant affiché = montant débité.* Si le serveur calcule un autre total que celui affiché (prix ou stock changé entre-temps), le formulaire de carte ne s'affiche pas et le client est prévenu.
+- *Dernier exemplaire.* Le stock est relu dans WooCommerce à l'instant du paiement (le catalogue affiché peut dater d'une minute).
+- *Adresse.* Le serveur refuse lui-même une livraison sans adresse complète et toute commande sans nom.
+- *Webhook.* Ignore les encaissements qui ne viennent pas du site (terminal du magasin sur le même compte Stripe) ; délai de garde sur la lecture du corps. L'ancien paiement par redirection (`create-checkout-session`), qui ne créait pas de commande WooCommerce, est fermé.
+- *Sessions.* Un identifiant client nul ne peut plus lister de commandes (WooCommerce aurait renvoyé toutes celles passées sans compte).
+- Tests : 131 (35 nouveaux), dont le webhook rejoué exactement comme Vercel le livre, avec le vrai schéma de signature Stripe.
+
+**Tenu bon face aux attaques** : prix et quantités falsifiés, cookies de session inventés, requêtes venues d'un autre site, injections dans tous les champs, scripts dans les adresses (rien ne s'exécute), méthodes HTTP interdites, corps énormes ou malformés, traversées de chemin, fichiers internes (aucun n'est servi), API WooCommerce (commandes, clients, réglages : fermés), xmlrpc (fermé), fichiers de sauvegarde ou de configuration WordPress (absents).
+
+**Reste côté hébergement WordPress (o2switch) — hors de portée du code du site**
+1. Le nom du compte administrateur est lisible publiquement (`/wp-json/wp/v2/users`) et la page de connexion WordPress n'a aucune limite d'essais : mot de passe long et unique indispensable, et une extension de limitation des connexions conseillée.
+2. Le listing des dossiers est activé (`/wp-content/uploads/2026/11/` se parcourt) : il ne contient que les photos des produits, mais mieux vaut le couper (cPanel → Index → « Pas d'indexation »).
+3. DMARC de club151.fr est en `p=none` : rien n'empêche quelqu'un d'envoyer de faux e-mails « @club151.fr ».
+4. Les e-mails de WooCommerce partent avec une adresse Gmail comme expéditeur depuis o2switch : risque de spam. Le domaine club151.fr, lui, est correctement configuré (SPF + DKIM) : un expéditeur `@club151.fr` arriverait mieux, sans rien changer à la boîte où la boutique reçoit.
+5. Le dépôt GitHub est public : il ne contient aucun secret, mais expose le code et ces notes. Le passer en privé ne change rien au site.

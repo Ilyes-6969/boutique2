@@ -22,7 +22,7 @@
 // WC_CONSUMER_KEY, WC_CONSUMER_SECRET.
 // ---------------------------------------------------------------------------
 
-const { applyCors, rateLimit, sameSiteRequest, noStore, isEmail, cleanName, cleanPhone } = require('../../lib/serverCatalog');
+const { applyCors, rateLimit, rateLimitKey, sameSiteRequest, noStore, isEmail, cleanName, cleanPhone } = require('../../lib/serverCatalog');
 const S = require('../../lib/session');
 const W = require('../../lib/wooCustomers');
 
@@ -134,8 +134,13 @@ module.exports = async function handler(req, res) {
     const body = readBody(req);
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
-    if (!isEmail(email) || !password) {
+    if (!isEmail(email) || !password || password.length > 200) {
       return res.status(400).json({ ok: false, error: 'E-mail ou mot de passe invalide.' });
+    }
+    // Limite PAR ADRESSE en plus de la limite par IP : quelqu'un qui change d'IP
+    // ne peut pas essayer des mots de passe en rafale sur le même compte.
+    if (!rateLimitKey('login-mail:' + email, 8, 15 * 60 * 1000)) {
+      return res.status(429).json({ ok: false, error: 'Trop de tentatives — réessayez dans quelques minutes.' });
     }
 
     try {
@@ -143,6 +148,15 @@ module.exports = async function handler(req, res) {
       if (!customerId) {
         // Message IDENTIQUE pour « compte inconnu » et « mot de passe faux » :
         // les distinguer révélerait qui est client de la boutique.
+        return res.status(401).json({ ok: false, error: 'E-mail ou mot de passe incorrect.' });
+      }
+      // Le pont WordPress valide N'IMPORTE QUEL compte du site d'administration,
+      // y compris l'administrateur. La boutique n'ouvre de session qu'aux comptes
+      // CLIENTS : un compte à privilèges reçoit la même réponse qu'un mauvais mot
+      // de passe (le site ne sert donc pas à deviner celui de l'administrateur).
+      const who = await W.getCustomer(customerId);
+      if (!W.isShopCustomer(who)) {
+        console.error('account/login: connexion refusée pour un compte non client (id ' + customerId + ')');
         return res.status(401).json({ ok: false, error: 'E-mail ou mot de passe incorrect.' });
       }
       S.setSessionCookie(res, S.signSession(customerId, email));
@@ -161,6 +175,9 @@ module.exports = async function handler(req, res) {
     }
     const email = String(readBody(req).email || '').trim().toLowerCase();
     if (!isEmail(email)) return res.status(400).json({ ok: false, error: 'Adresse e-mail invalide.' });
+    // Pas plus de 3 e-mails de réinitialisation par heure vers une même adresse
+    // (même réponse « ok » : on ne révèle rien, on n'envoie simplement plus).
+    if (!rateLimitKey('forgot-mail:' + email, 3, 60 * 60 * 1000)) return res.status(200).json({ ok: true });
 
     try {
       await W.requestPasswordReset(email);
@@ -174,7 +191,7 @@ module.exports = async function handler(req, res) {
   if (action === 'me') {
     if (req.method !== 'GET') return res.status(405).json({ ok: false, error: 'Method not allowed' });
     const sess = S.readSession(req);
-    if (!sess) return res.status(200).json({ ok: true, loggedIn: false });
+    if (!sess || !(Number(sess.cid) > 0)) return res.status(200).json({ ok: true, loggedIn: false });
     try {
       const c = await W.getCustomer(sess.cid);
       const b = (c && c.billing) || {};
@@ -208,7 +225,7 @@ module.exports = async function handler(req, res) {
   if (action === 'address') {
     if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Method not allowed' });
     const sess = S.readSession(req);
-    if (!sess) return res.status(401).json({ ok: false, error: 'Connectez-vous pour modifier votre adresse.' });
+    if (!sess || !(Number(sess.cid) > 0)) return res.status(401).json({ ok: false, error: 'Connectez-vous pour modifier votre adresse.' });
     const body = readBody(req);
     const full = cleanName(cleanText(body.name, LIMITS.name), 80);
     const sp = full.indexOf(' ');

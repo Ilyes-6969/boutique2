@@ -98,6 +98,13 @@ function lc151_verify_password($request) {
         return new WP_REST_Response(array('ok' => false), 401);
     }
 
+    // Jamais un compte à privilèges (administrateur, gestionnaire, éditeur…) :
+    // la boutique ne connecte que des comptes clients. Même réponse qu'un mot de
+    // passe faux, pour que ce point d'entrée ne serve pas à deviner celui de l'admin.
+    if (user_can($user, 'edit_posts') || user_can($user, 'manage_woocommerce') || user_can($user, 'manage_options')) {
+        return new WP_REST_Response(array('ok' => false), 401);
+    }
+
     return new WP_REST_Response(array(
         'ok'          => true,
         'customer_id' => (int) $user->ID,

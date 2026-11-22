@@ -15,6 +15,19 @@ import crypto from 'node:crypto';
 
 const require = createRequire(import.meta.url);
 
+// Le paquet « stripe » n'est jamais appelé pour de vrai dans les tests : toute
+// demande de ce module est servie par un faux (test-stubs/stripe-stub.cjs) qui
+// applique le vrai schéma de signature des webhooks. Aucun appel réseau.
+import Module from 'node:module';
+import { fileURLToPath } from 'node:url';
+import { PassThrough } from 'node:stream';
+const STRIPE_STUB = fileURLToPath(new URL('./test-stubs/stripe-stub.cjs', import.meta.url));
+const realResolve = Module._resolveFilename;
+Module._resolveFilename = function (request, ...rest) {
+  if (request === 'stripe') return STRIPE_STUB;
+  return realResolve.call(this, request, ...rest);
+};
+
 // ---------------------------------------------------------------------------
 // Simulateur WooCommerce — données SYNTHÉTIQUES, en mémoire.
 // ---------------------------------------------------------------------------
@@ -27,11 +40,26 @@ const NONCE_KEY = '_lc151_login_nonce';
 const AUTH_SECRET = 'z'.repeat(64);
 
 const customers = [
-  { id: 42, email: 'client@exemple.fr', first_name: 'Marie', last_name: 'Durand',
+  { id: 42, email: 'client@exemple.fr', first_name: 'Marie', last_name: 'Durand', role: 'customer',
     billing: { first_name: 'Marie', last_name: 'Durand', address_1: '3 rue des Lilas', postcode: '38200', city: 'Vienne', phone: '0400000000' },
     meta_data: [{ key: NONCE_KEY, value: 'nonce-initial' }] },
 ];
+// Le compte administrateur du site de gestion : il existe dans WordPress, et le
+// pont d'authentification le reconnaîtrait — la boutique ne doit pas le connecter.
+customers.push({ id: 1, email: 'admin@exemple.fr', first_name: 'Admin', last_name: '', role: 'administrator',
+  password: 'MotDePasseAdmin-151', billing: {}, meta_data: [] });
 let nextCustomerId = 43;
+
+// Produits du catalogue public (Store API) — modifiables par les tests pour
+// simuler une vente en caisse entre l'affichage et le paiement.
+const storeProducts = [
+  { id: 7, name: 'ETB de test', sku: '0000000000024', is_in_stock: true,
+    prices: { price: '2999', regular_price: '2999', currency_minor_unit: 2 },
+    categories: [{ name: 'Scellé — ETB' }], add_to_cart: { maximum: 3 } },
+  { id: 8, name: 'Display de test', sku: '0000000000031', is_in_stock: true,
+    prices: { price: '18000', regular_price: '18000', currency_minor_unit: 2 },
+    categories: [{ name: 'Scellé — Displays' }], add_to_cart: { maximum: 2 } },
+];
 
 const orders = [
   { id: 1001, number: '1001', status: 'processing', total: '64.90', currency: 'EUR',
@@ -87,12 +115,9 @@ const woo = createServer(async (req, res) => {
 
   // Catalogue public (Store API) — lu sans authentification par lib/serverCatalog.
   if (url.pathname === '/wp-json/wc/store/v1/products') {
-    return send(200, [{ id: 7, name: 'ETB de test', sku: '0000000000024', is_in_stock: true,
-      prices: { price: '2999', regular_price: '2999', currency_minor_unit: 2 },
-      categories: [{ name: 'Scellé — ETB' }], add_to_cart: { maximum: 3 } },
-    { id: 8, name: 'Display de test', sku: '0000000000031', is_in_stock: true,
-      prices: { price: '18000', regular_price: '18000', currency_minor_unit: 2 },
-      categories: [{ name: 'Scellé — Displays' }], add_to_cart: { maximum: 2 } }]);
+    const inc = url.searchParams.get('include');
+    const ids = inc ? inc.split(',').map(Number) : null;
+    return send(200, storeProducts.filter((x) => !ids || ids.indexOf(x.id) !== -1));
   }
 
   // L'auth Basic doit être présente — c'est aussi ce qu'on veut vérifier.
@@ -106,7 +131,7 @@ const woo = createServer(async (req, res) => {
     const body = await readJson(req);
     // WooCommerce reçoit et hache le mot de passe. Le simulateur le conserve en
     // clair — c'est acceptable ici, ce sont des données synthétiques en mémoire.
-    const c = { id: nextCustomerId++, email: body.email, first_name: '', last_name: '',
+    const c = { id: nextCustomerId++, email: body.email, first_name: '', last_name: '', role: 'customer',
       password: body.password || '', billing: {}, meta_data: body.meta_data || [] };
     customers.push(c);
     return send(201, c);
@@ -155,9 +180,14 @@ const woo = createServer(async (req, res) => {
     let list = orders;
     if (cust) list = list.filter((o) => String(o.customer_id) === String(cust));
     if (status && status !== 'any') list = list.filter((o) => o.status === status);
-    // Le vrai ?search de Woo est flou : on l'imite en LARGE, ce qui garantit que
-    // le filtrage strict (numéro + e-mail) est bien fait côté lib, pas ici.
-    if (search) list = list.filter((o) => JSON.stringify(o).includes(search));
+    // Imite le vrai ?search de WooCommerce, relevé sur gestion.club151.fr le
+    // 22/11/2026 : il trouve par numéro et par champs de facturation (nom,
+    // e-mail), mais PAS par métadonnée ni par note client.
+    if (search) {
+      const q = String(search).toLowerCase();
+      list = list.filter((o) => String(o.id) === search || String(o.number) === search ||
+        JSON.stringify(o.billing || {}).toLowerCase().includes(q));
+    }
     return send(200, list);
   }
   return send(404, { message: 'unknown route' });
@@ -525,6 +555,211 @@ const mInf = SC.mapWooProduct(wooProd(9999));
 check('stock : 9999 (pas de limite Woo) → quantité inconnue, rien d\'affiché', mInf.stock === null && mInf.maxQty === 999);
 const mOut = SC.mapWooProduct(wooProd(2, { is_in_stock: false }));
 check('stock : rupture → inStock faux et stock 0', mOut.inStock === false && mOut.stock === 0);
+
+// ===========================================================================
+// CONTRÔLE COMPLET DU 22/11/2026 (soir) — comptes, suivi, stock au paiement,
+// création du paiement, webhook Stripe tel que Vercel le livre.
+// ===========================================================================
+const accountHandler = require('./api/account/[action].js');
+const ordersHandler = require('./api/orders/[action].js');
+const callApi = async (handler, action, method, headers, body) => {
+  const res = stubRes();
+  await handler({ method: method, query: { action: action }, headers: Object.assign({ host: 'club151.fr' }, headers || {}), body: body }, res);
+  return res;
+};
+// --- Connexion : comptes clients uniquement --------------------------------
+await W.createCustomer('lea@exemple.fr', 'MotDePasse-Lea-1', 'Léa Martin');
+const rLogin = await callApi(accountHandler, 'login', 'POST', fromSite('10.1.0.1'), { email: 'Lea@Exemple.fr', password: 'MotDePasse-Lea-1' });
+const cookieLea = String(rLogin.headers['Set-Cookie'] || '');
+check('connexion (site) : une cliente se connecte et reçoit un cookie protégé',
+  rLogin.code === 200 && /^lc151_session=/.test(cookieLea) && /HttpOnly/.test(cookieLea) && /SameSite=Lax/.test(cookieLea), cookieLea.slice(0, 80));
+const rAdmin = await callApi(accountHandler, 'login', 'POST', fromSite('10.1.0.2'), { email: 'admin@exemple.fr', password: 'MotDePasseAdmin-151' });
+const rWrong = await callApi(accountHandler, 'login', 'POST', fromSite('10.1.0.3'), { email: 'lea@exemple.fr', password: 'mauvais' });
+check('connexion (site) : le compte ADMINISTRATEUR est refusé, même avec le bon mot de passe',
+  rAdmin.code === 401 && !rAdmin.headers['Set-Cookie']);
+check('connexion (site) : réponse identique à un mauvais mot de passe (rien à deviner)',
+  rWrong.code === 401 && JSON.stringify(rAdmin.body) === JSON.stringify(rWrong.body));
+let last = null;
+for (let i = 0; i < 9; i++) last = await callApi(accountHandler, 'login', 'POST', fromSite('10.1.1.' + i), { email: 'cible@exemple.fr', password: 'essai' + i });
+check('connexion (site) : 8 essais maximum sur une même adresse, même en changeant d\'IP', last.code === 429, String(last.code));
+const rCross = await callApi(accountHandler, 'login', 'POST', { origin: 'https://site-pirate.example', 'x-forwarded-for': '10.1.0.9' }, { email: 'lea@exemple.fr', password: 'MotDePasse-Lea-1' });
+check('connexion (site) : une page d\'un autre site ne peut pas connecter le client à sa place', rCross.code === 403);
+// --- Sessions falsifiées -----------------------------------------------------
+const cookieOf = (token) => ({ cookie: 'lc151_session=' + encodeURIComponent(token) });
+const meAs = async (token) => (await callApi(accountHandler, 'me', 'GET', token ? cookieOf(token) : {})).body;
+const tokLea = decodeURIComponent(cookieLea.split(';')[0].split('=')[1]);
+const meLea = await meAs(tokLea);
+check('session : la cliente connectée retrouve SON compte', meLea.loggedIn === true && meLea.customer.email === 'lea@exemple.fr');
+const forged = [
+  tokLea.split('.')[0] + '.' + 'A'.repeat(43),                                    // signature inventée
+  Buffer.from(JSON.stringify({ cid: 42, em: 'client@exemple.fr', exp: Date.now() + 1e9 })).toString('base64url') + '.' + tokLea.split('.')[1],   // contenu changé, signature réutilisée
+  'n-importe-quoi', '', 'a.b.c', '..',
+];
+let forgedOk = true;
+for (const f of forged) { const b = await meAs(f); if (b.loggedIn !== false) forgedOk = false; }
+check('session : aucun cookie falsifié n\'ouvre de compte', forgedOk);
+const tokZero = S.signSession(0, 'personne@exemple.fr');
+const mineZero = await callApi(ordersHandler, 'mine', 'GET', cookieOf(tokZero));
+check('session : un identifiant client nul ne montre AUCUNE commande (surtout pas celles des autres)',
+  mineZero.body.loggedIn === false && mineZero.body.orders.length === 0 && (await W.listOrders(0)).length === 0);
+const mineLea = await callApi(ordersHandler, 'mine', 'GET', cookieOf(tokLea));
+check('mes commandes : une cliente ne voit que les siennes (aucune ici)', mineLea.body.loggedIn === true && mineLea.body.orders.length === 0);
+const rAddrAnon = await callApi(accountHandler, 'address', 'POST', fromSite('10.1.0.4'), { name: 'X', addr: '1 rue A', zip: '38200', city: 'Vienne' });
+check('adresse : impossible à modifier sans être connecté', rAddrAnon.code === 401);
+// --- Mot de passe oublié : pas de rafale vers une même adresse ---------------
+let forgotCodes = [];
+for (let i = 0; i < 5; i++) forgotCodes.push((await callApi(accountHandler, 'forgot', 'POST', fromSite('10.1.2.' + i), { email: 'lea@exemple.fr' })).code);
+check('mot de passe oublié : réponse toujours identique (on ne révèle rien)', forgotCodes.every((c) => c === 200), forgotCodes.join(','));
+// --- Suivi par la référence remise au client ---------------------------------
+orders.push({ id: 3001, number: '3001', status: 'processing', total: '74.89', currency: 'EUR', date_created_gmt: '2026-11-22T10:00:00',
+  customer_id: 0, billing: { email: 'paul@exemple.fr', first_name: 'Paul', last_name: 'Petit' }, line_items: [{ name: 'ETB de test', quantity: 1, total: '69.99' }],
+  shipping_lines: [{ method_title: 'Livraison standard' }], customer_note: 'Commande site CLUB 151 — réf LC151-AB12CD',
+  meta_data: [{ key: '_lc151_ref', value: 'LC151-AB12CD' }] });
+orders.push({ id: 3002, number: '3002', status: 'on-hold', total: '29.99', currency: 'EUR', date_created_gmt: '2026-11-22T11:00:00',
+  customer_id: 0, billing: { email: 'paul@exemple.fr' }, line_items: [], shipping_lines: [],
+  customer_note: 'Commande site CLUB 151 (réf. client LC151-ZZ99YY) — retrait en boutique, à régler sur place.', meta_data: [{ key: '_lc151_fulfilment', value: 'pickup' }] });
+const tRef = await W.findOrderForTracking('LC151-AB12CD', 'Paul@Exemple.fr');
+const tRefLow = await W.findOrderForTracking('lc151-ab12cd', 'paul@exemple.fr');
+const tNote = await W.findOrderForTracking('LC151-ZZ99YY', 'paul@exemple.fr');
+const tNum = await W.findOrderForTracking('3001', 'paul@exemple.fr');
+const tBadMail = await W.findOrderForTracking('LC151-AB12CD', 'autre@exemple.fr');
+const tBadRef = await W.findOrderForTracking('LC151-XXXXXX', 'paul@exemple.fr');
+check('suivi : le client retrouve sa commande avec la référence LC151 affichée par le site', !!tRef && tRef.number === '3001' && !!tRefLow);
+check('suivi : aussi avec le numéro WooCommerce, et avec une référence notée sur une ancienne commande', !!tNum && tNum.number === '3001' && !!tNote && tNote.number === '3002');
+check('suivi : rien sans le bon e-mail, rien avec une référence inconnue', tBadMail === null && tBadRef === null);
+// --- Stock relu au moment de payer -------------------------------------------
+await SecLib.priceItems([{ id: 'wp7', qty: 1 }]);                 // remplit le cache (stock 3)
+storeProducts[0].add_to_cart.maximum = 1;                         // 2 exemplaires viennent d'être vendus en caisse
+const stale = await SecLib.priceItems([{ id: 'wp7', qty: 3 }]);
+const fresh = await SecLib.priceItems([{ id: 'wp7', qty: 3 }], { fresh: true });
+check('stock au paiement : le catalogue affiché peut dater d\'une minute (3)…', stale.lines[0].qty === 3);
+check('stock au paiement : …mais le paiement relit le stock à l\'instant (1 seul facturé)', fresh.lines[0].qty === 1 && fresh.subtotalCents === 2999);
+storeProducts[0].is_in_stock = false;
+let soldOut = '';
+try { await SecLib.priceItems([{ id: 'wp7', qty: 1 }], { fresh: true }); } catch (e) { soldOut = String(e.message); }
+check('stock au paiement : article vendu entre-temps → paiement refusé', /rupture/i.test(soldOut), soldOut);
+const kept7 = storeProducts.shift();                              // article retiré de la vente (brouillon)
+let gone = '';
+try { await SecLib.priceItems([{ id: 'wp7', qty: 1 }], { fresh: true }); } catch (e) { gone = String(e.message); }
+check('stock au paiement : article retiré de la vente → paiement refusé', /rupture|indisponible/i.test(gone), gone);
+kept7.is_in_stock = true; kept7.add_to_cart.maximum = 3; storeProducts.unshift(kept7);
+await SecLib.priceItems([{ id: 'wp7', qty: 1 }], { fresh: true });   // remet le cache d'aplomb
+// --- Création du paiement ------------------------------------------------------
+const StripeStub = require('stripe');
+process.env.STRIPE_SECRET_KEY = 'sk_live_exemple_tests';
+const piHandler = require('./api/create-payment-intent.js');
+const pay = async (ip, body, headers) => { const res = stubRes(); await piHandler({ method: 'POST', headers: Object.assign({ host: 'club151.fr' }, headers || fromSite(ip)), body: body }, res); return res; };
+const cust = { name: 'Paul Petit', email: 'paul@exemple.fr', addr: '3 rue des Lilas', zip: '38200', city: 'Vienne', phone: '06 00 00 00 00' };
+const pNoName = await pay('10.2.0.1', { items: [{ id: 'wp7', qty: 1 }], method: 'pickup', email: 'paul@exemple.fr' });
+const pNoAddr = await pay('10.2.0.2', { items: [{ id: 'wp7', qty: 1 }], method: 'standard', email: 'paul@exemple.fr', customer: { name: 'Paul Petit', email: 'paul@exemple.fr' } });
+const pBadZip = await pay('10.2.0.3', { items: [{ id: 'wp7', qty: 1 }], method: 'relais', customer: Object.assign({}, cust, { zip: 'ABCDE' }) });
+check('paiement : refusé sans nom, sans adresse pour une livraison, ou avec un code postal faux',
+  pNoName.code === 400 && pNoAddr.code === 400 && pBadZip.code === 400, [pNoName.code, pNoAddr.code, pBadZip.code].join(','));
+const pShip = await pay('10.2.0.4', { items: [{ id: 'wp7', qty: 1, price: 0.01 }], method: 'standard', customer: cust, orderRef: 'LC151-TESTAA', amount: 1, total: 0.01 });
+check('paiement : livraison standard = 29,99 € + 4,90 € (prix envoyé par le navigateur ignoré)', pShip.code === 200 && pShip.body.amount === 3489, JSON.stringify(pShip.body));
+const pPick = await pay('10.2.0.5', { items: [{ id: 'wp8', qty: 2 }], method: 'pickup', customer: { name: 'Paul Petit', email: 'paul@exemple.fr', phone: '0600000000' }, orderRef: 'LC151-TESTBB' });
+check('paiement : retrait payé en ligne = 360 € − 10 % sans frais de port, sans adresse', pPick.code === 200 && pPick.body.amount === 32400, JSON.stringify(pPick.body));
+const piPick = StripeStub.__store.createCalls[StripeStub.__store.createCalls.length - 1].params;
+check('paiement : la commande emporte son étiquette d\'origine, la remise, le mode et le nom du client',
+  piPick.metadata.source === 'club151' && piPick.metadata.discount === '3600' && piPick.metadata.method === 'pickup' && piPick.metadata.cname === 'Paul Petit' && piPick.metadata.items === 'wp8x2' && piPick.metadata.orderRef === 'LC151-TESTBB', JSON.stringify(piPick.metadata));
+const pCross = await pay(null, { items: [{ id: 'wp7', qty: 1 }], method: 'pickup', customer: cust }, { origin: 'https://site-pirate.example', 'x-forwarded-for': '10.2.0.6' });
+check('paiement : une page d\'un autre site ne peut pas créer de paiement', pCross.code === 403);
+const pGet = stubRes(); await piHandler({ method: 'GET', headers: { host: 'club151.fr' } }, pGet);
+check('paiement : seule la méthode POST est acceptée', pGet.code === 405);
+const statusHandler = require('./api/payment-status.js');
+const idPick = pPick.body.clientSecret.split('_secret_')[0];
+const st1 = stubRes(); await statusHandler({ method: 'GET', headers: { host: 'club151.fr', 'x-forwarded-for': '10.2.0.7' }, query: { payment_intent: idPick } }, st1);
+check('statut du paiement : pas encore payé, pas encore de numéro de commande', st1.body.paid === false && st1.body.orderNumber === '');
+// --- Webhook Stripe, livré comme sur Vercel ------------------------------------
+// Vercel lit le corps puis le restitue au flux (fonction restoreBody de
+// @vercel/node, recopiée ici) avant d'appeler la fonction : on reproduit ce
+// passage pour vérifier que la signature se contrôle bien sur les octets exacts.
+const hookHandler = require('./api/stripe-webhook.js');
+process.env.STRIPE_WEBHOOK_SECRET = 'whsec_exemple_tests';
+function restoreBody(req, body) {
+  const replicate = new PassThrough();
+  const on = replicate.on.bind(replicate);
+  const originalOn = req.on.bind(req);
+  req.read = replicate.read.bind(replicate);
+  req.on = req.addListener = (name, cb) => (name === 'data' || name === 'end' ? on(name, cb) : originalOn(name, cb));
+  replicate.write(body);
+  replicate.end();
+}
+const vercelLike = createServer(async (req, res) => {
+  const chunks = [];
+  for await (const c of req) chunks.push(c);
+  const body = Buffer.concat(chunks);
+  restoreBody(req, body);
+  Object.defineProperty(req, 'body', { get() { try { return JSON.parse(body.toString('utf8')); } catch (e) { return {}; } } });
+  res.status = (c) => { res.statusCode = c; return res; };
+  res.json = (o) => { res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(o)); return res; };
+  res.send = (t) => { res.end(String(t)); return res; };
+  try { await hookHandler(req, res); } catch (e) { res.statusCode = 599; res.end(String(e && e.message)); }
+});
+await new Promise((r) => vercelLike.listen(5198, r));
+const deliver = async (event, opts) => {
+  const o = opts || {};
+  // Stripe envoie un JSON indenté : on garde exactement ces octets pour signer.
+  const payload = JSON.stringify(event, null, 2);
+  const header = o.header != null ? o.header : StripeStub.__sign(payload, o.secret || process.env.STRIPE_WEBHOOK_SECRET, o.t);
+  const r = await fetch('http://localhost:5198/api/stripe-webhook', { method: 'POST', headers: { 'Content-Type': 'application/json; charset=utf-8', 'Stripe-Signature': header }, body: o.tamper ? payload.replace('32400', '100') : payload });
+  let j = null; const t = await r.text(); try { j = JSON.parse(t); } catch (e) {}
+  return { code: r.status, body: j, text: t };
+};
+const paidEvent = (id) => { const pi = StripeStub.__store.intents[id]; pi.status = 'succeeded'; pi.amount_received = pi.amount;
+  return { id: 'evt_' + id, type: 'payment_intent.succeeded', livemode: true, data: { object: JSON.parse(JSON.stringify(pi)) } }; };
+const ordersBeforeHook = orders.length;
+const hBadSig = await deliver(paidEvent(idPick), { secret: 'whsec_mauvais_secret' });
+const hNoSig = await deliver(paidEvent(idPick), { header: '' });
+const hTamper = await deliver(paidEvent(idPick), { tamper: true });
+const hOld = await deliver(paidEvent(idPick), { t: Math.floor(Date.now() / 1000) - 3600 });
+check('webhook : signature fausse, absente, corps modifié après signature ou message rejoué une heure après → refusés, aucune commande',
+  hBadSig.code === 400 && hNoSig.code === 400 && hTamper.code === 400 && hOld.code === 400 && orders.length === ordersBeforeHook,
+  [hBadSig.code, hNoSig.code, hTamper.code, hOld.code, orders.length - ordersBeforeHook].join(','));
+const hOk = await deliver(paidEvent(idPick));
+const made = orders[orders.length - 1];
+check('webhook : un vrai paiement signé crée UNE commande payée dans WooCommerce (corps brut bien lu, comme sur Vercel)',
+  hOk.code === 200 && orders.length === ordersBeforeHook + 1 && made.status === 'processing' && made.set_paid === true && made.transaction_id === idPick, hOk.code + ' ' + hOk.text.slice(0, 120));
+check('webhook : la commande porte les bons articles, la remise de 36 €, le retrait, le nom et l\'e-mail du client',
+  made.line_items.length === 1 && made.line_items[0].product_id === 8 && made.line_items[0].quantity === 2 &&
+  made.fee_lines[0].total === '-36.00' && made.shipping_lines[0].total === '0.00' && /Retrait/.test(made.shipping_lines[0].method_title) &&
+  made.meta_data.some((m) => m.key === '_lc151_fulfilment' && m.value === 'pickup') && made.meta_data.some((m) => m.key === '_lc151_ref' && m.value === 'LC151-TESTBB') &&
+  made.billing.first_name === 'Paul' && made.billing.last_name === 'Petit' && made.billing.email === 'paul@exemple.fr' && made.billing.phone === '0600000000',
+  JSON.stringify([made.line_items, made.fee_lines, made.shipping_lines, made.billing]));
+const hAgain = await deliver(paidEvent(idPick));
+check('webhook : le même paiement livré deux fois ne crée pas de deuxième commande', hAgain.code === 200 && hAgain.body.duplicate === true && orders.length === ordersBeforeHook + 1);
+const st2 = stubRes(); await statusHandler({ method: 'GET', headers: { host: 'club151.fr', 'x-forwarded-for': '10.2.0.8' }, query: { payment_intent: idPick } }, st2);
+check('statut du paiement : payé, et le numéro de commande WooCommerce est rendu au client', st2.body.paid === true && st2.body.orderNumber === String(made.id), JSON.stringify(st2.body));
+const trackPaid = await W.findOrderForTracking('LC151-TESTBB', 'paul@exemple.fr');
+check('suivi : la commande payée se retrouve avec sa référence LC151', !!trackPaid && trackPaid.number === String(made.number) && trackPaid.pickup === true);
+// Livraison : adresse reprise sur la commande
+const idShip = pShip.body.clientSecret.split('_secret_')[0];
+const hShip = await deliver(paidEvent(idShip));
+const madeShip = orders[orders.length - 1];
+check('webhook : une livraison reprend l\'adresse, les 4,90 € de port et aucun frais de remise',
+  hShip.code === 200 && madeShip.shipping.address_1 === '3 rue des Lilas' && madeShip.shipping.postcode === '38200' && madeShip.shipping.city === 'Vienne' &&
+  madeShip.shipping_lines[0].total === '4.90' && madeShip.fee_lines.length === 0 && madeShip.meta_data.some((m) => m.key === '_lc151_fulfilment' && m.value === 'shipping'),
+  JSON.stringify([madeShip.shipping, madeShip.shipping_lines, madeShip.fee_lines]));
+// Encaissement venu d'ailleurs sur le même compte Stripe (terminal du magasin…)
+StripeStub.__store.intents.pi_terminal000001 = { id: 'pi_terminal000001', amount: 5000, status: 'succeeded', metadata: { items: 'wp7x1' }, receipt_email: 'x@exemple.fr' };
+const beforeOther = orders.length;
+const hOther = await deliver(paidEvent('pi_terminal000001'));
+check('webhook : un encaissement qui ne vient pas du site est ignoré (aucune commande)', hOther.code === 200 && hOther.body.ignored === 'autre-origine' && orders.length === beforeOther);
+// Événement du mode test reçu en production
+process.env.VERCEL_ENV = 'production';
+const pTest = await pay('10.2.0.9', { items: [{ id: 'wp7', qty: 1 }], method: 'pickup', customer: cust, orderRef: 'LC151-TESTCC' });
+const evTest = paidEvent(pTest.body.clientSecret.split('_secret_')[0]); evTest.livemode = false;
+const beforeTestMode = orders.length;
+const hTestMode = await deliver(evTest);
+check('webhook : en production, un paiement du mode TEST de Stripe ne crée jamais de commande', hTestMode.code === 200 && hTestMode.body.ignored === 'mode-test' && orders.length === beforeTestMode);
+delete process.env.VERCEL_ENV;
+// Ancien mode par redirection : fermé
+const csHandler = require('./api/create-checkout-session.js');
+const csRes = stubRes(); await csHandler({ method: 'POST', headers: Object.assign({ host: 'club151.fr' }, fromSite('10.2.1.1')), body: { items: [{ id: 'wp7', qty: 1 }], email: 'paul@exemple.fr' } }, csRes);
+check('ancien paiement par redirection : fermé (il ne créait pas de commande)', csRes.code === 410, String(csRes.code));
+if (typeof vercelLike.closeAllConnections === 'function') vercelLike.closeAllConnections();
+vercelLike.close();
+delete process.env.STRIPE_WEBHOOK_SECRET; delete process.env.STRIPE_SECRET_KEY;
 
 // ---------------------------------------------------------------------------
 console.log('\n' + passed + ' réussis, ' + failed + ' échoués');

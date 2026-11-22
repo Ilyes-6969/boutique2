@@ -88,7 +88,7 @@
       '<h1>Merci ' + (order.name ? esc(order.name) : '') + ' !</h1>' +
       '<p>Votre paiement a bien été reçu et votre commande est confirmée.</p>' +
       '<div class="lc-box">' +
-        '<div class="lc-row"><span class="k">N° de commande</span><span class="v">' + esc(order.number) + '</span></div>' +
+        '<div class="lc-row"><span class="k">N° de commande</span><span class="v">' + esc(order.wooNumber ? order.wooNumber + ' (réf. ' + order.number + ')' : order.number) + '</span></div>' +
         '<div class="lc-row"><span class="k">Total payé</span><span class="v">' + fmt(order.total) + '</span></div>' +
         (order.method ? '<div class="lc-row"><span class="k">Livraison</span><span class="v" style="font-family:inherit;font-weight:600">' + esc(methodLabel(order.method)) + '</span></div>' : '') +
       '</div>' +
@@ -159,7 +159,22 @@
           email: data.email || '',
           method: null, // mode de livraison inconnu dans ce repli — la ligne Livraison reste masquée
         }, data.amount);
+        if (data.orderNumber) order = Object.assign({}, order, { wooNumber: String(data.orderNumber) });
         showPaid(order);
+        // Le webhook met quelques secondes à créer la commande : on réaffiche
+        // avec son numéro dès qu'il est connu.
+        if (!data.orderNumber) {
+          var left = 5;
+          (function again() {
+            if (left-- <= 0) return;
+            setTimeout(function () {
+              fetch('/api/payment-status?payment_intent=' + encodeURIComponent(pi))
+                .then(function (r) { return r.json(); })
+                .then(function (d) { if (d && d.orderNumber) showPaid(Object.assign({}, order, { wooNumber: String(d.orderNumber) })); else again(); })
+                .catch(again);
+            }, 2500);
+          })();
+        }
       })
       .catch(function () { showError('Erreur réseau pendant la vérification du paiement.'); });
     return;

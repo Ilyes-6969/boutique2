@@ -98,8 +98,20 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ error: 'Indiquez une adresse e-mail valide : la confirmation de commande y est envoyée.' });
     }
 
+    // Le serveur exige lui-même ce dont la boutique a besoin pour servir la
+    // commande (le formulaire le vérifie aussi, mais on peut appeler cette
+    // adresse sans passer par lui) : un nom, et une adresse complète pour une livraison.
+    if (!customer || !customer.name) {
+      return res.status(400).json({ error: 'Indiquez votre nom : il figure sur la commande.' });
+    }
+    if (method !== 'pickup' && (!customer.addr || !customer.city || !/^\d{4,5}$/.test(customer.zip || ''))) {
+      return res.status(400).json({ error: 'Adresse de livraison incomplète : rue, code postal et ville sont nécessaires.' });
+    }
+
     // Prix fixés par le serveur (le prix éventuellement envoyé par le client est ignoré).
-    const { lines, subtotalCents } = await priceItems(body.items);
+    // Stock relu À L'INSTANT pour ces articles (le catalogue est en cache 60 s) :
+    // deux clients ne paient pas le même dernier exemplaire à une minute d'écart.
+    const { lines, subtotalCents } = await priceItems(body.items, { fresh: true });
     // Panier démesuré → métadonnées Stripe tronquées → articles perdus dans la
     // commande Woo. On refuse AVANT de créer le PaymentIntent (rien n'est débité).
     if (lines.length > MAX_CART_LINES) {

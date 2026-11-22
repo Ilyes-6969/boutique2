@@ -191,6 +191,24 @@
     isLive: function () { return cfg.provider !== 'simulation'; },
     ensureStripe: ensureStripe,
     createPaymentIntent: createPaymentIntent,
+    // Numéro de la commande dans WooCommerce, une fois le paiement enregistré par
+    // le webhook Stripe (quelques secondes). Promise → 'numéro' ou null.
+    orderNumberFor: function (piId, tries) {
+      var left = Math.max(1, Math.min(8, tries || 6));
+      return new Promise(function (resolve) {
+        (function ask() {
+          fetch('/api/payment-status?payment_intent=' + encodeURIComponent(piId))
+            .then(function (r) { return r.json(); })
+            .then(function (j) {
+              if (j && j.orderNumber) { resolve(String(j.orderNumber)); return; }
+              left -= 1;
+              if (left <= 0) { resolve(null); return; }
+              setTimeout(ask, 2500);
+            })
+            .catch(function () { left -= 1; if (left <= 0) resolve(null); else setTimeout(ask, 2500); });
+        })();
+      });
+    },
     notifyPickupOrder: notifyPickupOrder,
     // Renvoie une Promise → { paid, ref, provider }
     process: function (order, card) {
