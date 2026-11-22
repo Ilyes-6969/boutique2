@@ -64,7 +64,7 @@
     // Photos du magasin pour la grande bannière de l'accueil (façade, intérieur…),
     // ex. ['assets/boutique/facade.webp', 'assets/boutique/interieur.webp'].
     // Vide = la bannière garde le visuel de cartes. Format conseillé : 2000 × 1100 px, WebP.
-    photos: ['assets/boutique/facade-hd.webp'],
+    photos: ['assets/boutique/facade-2026-11-22.webp'],
   };
 
   // Un JSON VALIDE mais du mauvais TYPE (ex. lc151_cart = {"a":1} au lieu d'un
