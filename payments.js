@@ -96,6 +96,9 @@
       const j = await r.json().catch(function () { return {}; });
       const pk = j && j.publishableKey;
       if (!pk) throw new Error('Clé publique Stripe manquante (STRIPE_PUBLISHABLE_KEY non définie dans Vercel).');
+      // Clé de TEST : Stripe refuse toute vraie carte. Le site le dit au client
+      // (Checkout.jsx) tant que les clés réelles ne sont pas en place.
+      cfg.stripe.testMode = /^pk_test_/.test(String(pk));
       if (!window.Stripe) {
         await new Promise(function (res, rej) {
           const s = document.createElement('script');

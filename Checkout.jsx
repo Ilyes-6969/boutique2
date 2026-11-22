@@ -46,6 +46,9 @@ function CheckoutModal({ onClose }) {
   const [errors, setErrors] = React.useState({});
   // --- Paiement intégré Stripe (Payment Element) ---
   const [stripeReady, setStripeReady] = React.useState(false);
+  // Vrai tant que la boutique tourne avec des clés Stripe de TEST : les vraies
+  // cartes sont alors refusées, on prévient le client au lieu de le laisser échouer.
+  const [stripeTest, setStripeTest] = React.useState(false);
   const cardBoxRef = React.useRef(null);   // conteneur DOM du formulaire de carte
   const stripeRef = React.useRef(null);
   const elementsRef = React.useRef(null);
@@ -157,6 +160,7 @@ function CheckoutModal({ onClose }) {
     (async () => {
       try {
         const stripe = await window.LCPay.ensureStripe();
+        if (!cancelled) setStripeTest(!!(window.LCPay.config && window.LCPay.config.stripe && window.LCPay.config.stripe.testMode));
         if (cancelled) return;
         // Coordonnées transmises au serveur pour le reçu Stripe et l'adresse de
         // livraison du PaymentIntent (jamais pour le calcul du montant).
@@ -553,6 +557,11 @@ function CheckoutModal({ onClose }) {
                   ) : stripeEmbedded ? (
                     <React.Fragment>
                       <div style={{ minHeight: 80, marginBottom: 12 }}>
+                        {stripeTest && (
+                          <div role="status" style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink)', background: 'var(--paper-2)', border: '1px solid var(--line-strong)', borderRadius: 'var(--radius-sm)', padding: '10px 12px', marginBottom: 12 }}>
+                            Le paiement par carte n'est pas encore ouvert : aucune carte n'est débitée pour le moment. Vous pouvez dès maintenant commander en <strong>retrait en boutique</strong> et régler sur place.
+                          </div>
+                        )}
                         {/* Le formulaire de carte Stripe est monté ici (Payment Element) */}
                         <div ref={cardBoxRef}></div>
                         {!stripeReady && !errors.pay && (
