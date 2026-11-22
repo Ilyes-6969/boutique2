@@ -40,6 +40,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
+const { DISCOUNT } = require('../lib/serverCatalog');   // libellé de la remise 10 % dès 250 €
 
 const WC_TIMEOUT_MS = 8000;
 const WC_LOOKUP_PAGES = 3;               // recherche anti-doublon : 3 × 100 = 300 commandes récentes balayées
@@ -257,6 +258,7 @@ async function createWooOrder(stripe, pi) {
   };
   const orderRef = meta.orderRef || pi.id;
   const shipCents = parseInt(meta.shipping, 10) || 0;
+  const discCents = parseInt(meta.discount, 10) || 0;   // remise 10 % dès 250 €, calculée au paiement
 
   const orderBody = {
     status: 'processing',
@@ -272,6 +274,9 @@ async function createWooOrder(stripe, pi) {
       method_title: METHOD_LABELS[meta.method] || 'Livraison',
       total: (shipCents / 100).toFixed(2),
     }],
+    // Remise déjà déduite du montant encaissé : on la porte sur la commande
+    // (ligne de frais négative) pour que le total WooCommerce soit celui payé.
+    fee_lines: discCents > 0 ? [{ name: DISCOUNT.label, total: (-discCents / 100).toFixed(2), tax_status: 'none' }] : [],
     customer_note: 'Commande site CLUB 151 — réf ' + orderRef,
     meta_data: [
       { key: '_stripe_payment_intent', value: pi.id },
@@ -433,6 +438,8 @@ async function notifyOwnerIntent(pi, woo) {
     'Adresse de livraison': adresse || '—',
     Livraison: METHOD_LABELS[meta.method] || meta.method || '—',
     Articles: joinItemsMeta(meta) || '—',
+    Remise: (parseInt(meta.discount, 10) || 0) > 0 ? '−' + ((parseInt(meta.discount, 10) || 0) / 100).toFixed(2) + ' € (10 % dès 250 € d\'achat)' : 'aucune',
+    'Frais de port': ((parseInt(meta.shipping, 10) || 0) / 100).toFixed(2) + ' €',
     'Total encaissé (Stripe)': total,
     WooCommerce: statutWoo,
     Paiement: 'Payé en ligne (Stripe, intégré au site)',

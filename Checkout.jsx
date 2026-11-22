@@ -24,7 +24,7 @@ function ShipOption({ selected, onSelect, label, eta, cost, fmt }) {
     >
       <span style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid', borderColor: active ? 'var(--accent)' : 'var(--line-strong)', flexShrink: 0, position: 'relative', transition: 'border-color var(--dur-fast, 150ms) var(--ease-out, ease)' }}>{selected && <span className="lc-pop" style={{ position: 'absolute', inset: 3, borderRadius: '50%', background: 'var(--accent)' }}></span>}</span>
       <span style={{ flex: 1 }}><span style={{ fontWeight: 600, fontSize: 14, display: 'block' }}>{label}</span><span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{eta}</span></span>
-      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13.5, color: cost === 0 ? 'var(--green)' : 'var(--ink)' }}>{cost === 0 ? 'Offert' : fmt(cost)}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, fontSize: 13.5, color: cost === 0 ? 'var(--green)' : 'var(--ink)' }}>{cost === 0 ? 'Gratuit' : fmt(cost)}</span>
     </button>
   );
 }
@@ -33,7 +33,7 @@ function CheckoutModal({ onClose }) {
   const DS = window.ADITCGDesignSystem_df75b7 || {};
   const cart = useCart();
   const auth = useAuth();
-  const { fmt, Orders, FREE_SHIP } = window.LC151;
+  const { fmt, Orders, DISCOUNT, discountFor } = window.LC151;
   const items = cart.items();
   const subtotal = cart.subtotal();
 
@@ -50,8 +50,10 @@ function CheckoutModal({ onClose }) {
   const stripeRef = React.useRef(null);
   const elementsRef = React.useRef(null);
 
-  const shippingCost = Orders.shippingCost(ship.method, subtotal);
-  const total = subtotal + shippingCost;
+  const shippingCost = Orders.shippingCost(ship.method);      // jamais offerte ; retrait gratuit
+  const discount = discountFor(subtotal);                      // 10 % dès 250 € d'articles
+  const pctLabel = Math.round(DISCOUNT.rate * 100) + ' %';
+  const total = Math.round((subtotal - discount + shippingCost) * 100) / 100;
 
   // Focus « dessiné » : anneau accent + bordure accent au focus de chaque champ.
   // Piloté en React (onFocus/onBlur) plutôt qu'en CSS car les champs sont stylés inline.
@@ -222,7 +224,7 @@ function CheckoutModal({ onClose }) {
     const orderData = {
       email: ship.email, name: ship.name,
       items: lines,
-      subtotal, shipping: shippingCost, total,
+      subtotal, discount, shipping: shippingCost, total,
       method: ship.method, address: ship.method === 'pickup' ? '' : (ship.addr + ', ' + ship.zip + ' ' + ship.city),
     };
     const finalize = (result) => {
@@ -365,9 +367,10 @@ function CheckoutModal({ onClose }) {
   const savings = (window.LC151 && typeof window.LC151.cartSavings === 'function')
     ? window.LC151.cartSavings(items)
     : 0;
-  // Barre « livraison offerte » (même logique que le drawer panier).
-  const freeShipRemaining = Math.max(0, FREE_SHIP - subtotal);
-  const freeShipPct = Math.min(100, (subtotal / FREE_SHIP) * 100);
+  // Jauge vers la remise de 10 % dès 250 € (même logique que le panier). Les
+  // noms « freeShip… » sont historiques : il n'y a plus de livraison offerte.
+  const freeShipRemaining = Math.max(0, DISCOUNT.threshold - subtotal);
+  const freeShipPct = Math.min(100, (subtotal / DISCOUNT.threshold) * 100);
 
   // Puces de garantie sous le total — rassurent au moment de payer.
   // Pour un retrait en boutique, rien n'est expédié : on le dit au lieu de parler de colis.
@@ -414,12 +417,12 @@ function CheckoutModal({ onClose }) {
           </div>
         ); })}
       </div>
-      {/* Barre « livraison offerte » — sans objet pour un retrait en boutique */}
-      <div style={{ marginBottom: 14, display: ship.method === 'pickup' ? 'none' : 'block' }}>
+      {/* Jauge de la remise — vaut pour la livraison comme pour le retrait */}
+      <div style={{ marginBottom: 14 }}>
         <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 7 }}>
           {freeShipRemaining > 0
-            ? <span>Plus que <strong style={{ color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>{fmt(freeShipRemaining)}</strong> pour la livraison offerte</span>
-            : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 600 }}><span className="lc-pop" style={{ display: 'inline-flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span> Livraison offerte débloquée</span>}
+            ? <span>Plus que <strong style={{ color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>{fmt(freeShipRemaining)}</strong> pour {pctLabel} de remise</span>
+            : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--green)', fontWeight: 600 }}><span className="lc-pop" style={{ display: 'inline-flex' }}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg></span> {pctLabel} de remise sur votre commande</span>}
         </div>
         <div className={freeShipRemaining === 0 ? 'lc-shimmer' : undefined} style={{ height: 6, borderRadius: 3, background: 'var(--card)', overflow: 'hidden' }}>
           <div style={{ width: freeShipPct + '%', height: '100%', background: freeShipRemaining === 0 ? 'var(--green)' : 'var(--accent)', transition: 'width var(--dur-normal, 300ms) var(--ease-out, ease)' }}></div>
@@ -428,7 +431,8 @@ function CheckoutModal({ onClose }) {
       <div style={{ borderTop: '1px solid var(--line)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 6, fontSize: 13 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-2)' }}><span>Sous-total</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(subtotal)}</span></div>
         {savings > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)', fontWeight: 600 }}><span>Vous économisez</span><span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(savings)}</span></div>}
-        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-2)' }}><span>Livraison</span><span style={{ fontFamily: 'var(--font-mono)', color: shippingCost === 0 ? 'var(--green)' : 'var(--ink-2)', fontWeight: shippingCost === 0 ? 600 : 400 }}>{shippingCost === 0 ? 'Offerte' : fmt(shippingCost)}</span></div>
+        {discount > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--green)', fontWeight: 600 }}><span>Remise {pctLabel}</span><span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(discount)}</span></div>}
+        <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-2)' }}><span>Livraison</span><span style={{ fontFamily: 'var(--font-mono)', color: shippingCost === 0 ? 'var(--green)' : 'var(--ink-2)', fontWeight: shippingCost === 0 ? 600 : 400 }}>{shippingCost === 0 ? 'Gratuit' : fmt(shippingCost)}</span></div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 16, marginTop: 4 }}><span>Total</span><span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(total)}</span></div>
       </div>
       {/* Puces de garantie */}
@@ -524,7 +528,7 @@ function CheckoutModal({ onClose }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
                     {/* « Point relais » n'est pas proposé : le client ne peut pas choisir son relais ici. */}
                     {Object.values(Orders.methods()).filter((m) => m.key !== 'relais').map((m) => (
-                      <ShipOption key={m.key} selected={ship.method === m.key} onSelect={() => setS('method', m.key)} label={m.label} eta={m.eta} cost={Orders.shippingCost(m.key, subtotal)} fmt={fmt} />
+                      <ShipOption key={m.key} selected={ship.method === m.key} onSelect={() => setS('method', m.key)} label={m.label} eta={m.eta} cost={Orders.shippingCost(m.key)} fmt={fmt} />
                     ))}
                   </div>
                   {ship.method !== 'pickup' && (

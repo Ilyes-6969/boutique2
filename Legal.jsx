@@ -106,11 +106,11 @@ function LegalPage({ navigate, kind }) {
             <H>Article 2 — Produits</H>
             <P>Les produits sont des articles <strong>authentiques</strong> (cartes à l'unité, cartes gradées, produits scellés, accessoires). Les cartes à l'unité et gradées sont des <strong>pièces uniques</strong> : une fois vendues, elles ne sont plus disponibles. Les photographies sont les plus fidèles possibles ; de légères variations d'état peuvent exister et sont précisées dans la fiche produit.</P>
             <H>Article 3 — Prix</H>
-            <P>Les prix sont indiqués en euros toutes taxes comprises (TTC). <V v={COMPANY.name} ph="Nom de l'entreprise" /> se réserve le droit de modifier ses prix à tout moment ; les produits sont facturés sur la base des tarifs en vigueur au moment de la commande.</P>
+            <P>Les prix sont indiqués en euros toutes taxes comprises (TTC). <V v={COMPANY.name} ph="Nom de l'entreprise" /> se réserve le droit de modifier ses prix à tout moment ; les produits sont facturés sur la base des tarifs en vigueur au moment de la commande. Une remise de <strong>10 %</strong> est appliquée automatiquement sur le montant des articles de toute commande atteignant <strong>250 €</strong> d'articles (hors frais de livraison), en livraison comme en retrait en boutique.</P>
             <H>Article 4 — Commande & paiement</H>
             <P>La commande peut être passée avec ou sans compte client (« commande invité »). La création d'un compte client, gratuite, est facultative ; elle permet de suivre ses commandes et d'enregistrer ses adresses de livraison. Le paiement s'effectue par <strong>carte bancaire</strong> (et autres moyens éventuellement proposés), via le prestataire de paiement sécurisé <strong>Stripe</strong> ; aucune donnée de carte n'est conservée par nos soins. La commande est confirmée après validation du paiement. <V v={COMPANY.name} ph="Nom de l'entreprise" /> se réserve le droit d'annuler toute commande en cas de litige de paiement.</P>
             <H>Article 5 — Livraison</H>
-            <P>Livraison en France métropolitaine sous 48 h ouvrées, en envoi suivi et protégé. Frais : livraison standard <strong>4,90 €</strong> (2–4 j) ou <strong>retrait gratuit</strong> en boutique à Vienne. <strong>Livraison offerte dès 100 €</strong> d'achat. Les délais sont indicatifs.</P>
+            <P>Livraison en France métropolitaine sous 48 h ouvrées, en envoi suivi et protégé. Frais : livraison standard <strong>4,90 €</strong> (2–4 j) ou <strong>retrait gratuit</strong> en boutique à Vienne. Les frais de livraison s'appliquent à toute commande expédiée, quel que soit son montant. Les délais sont indicatifs.</P>
             <H>Article 6 — Droit de rétractation</H>
             <P>Conformément au Code de la consommation, le client dispose d'un délai de <strong>14 jours</strong> à compter de la réception pour exercer son droit de rétractation, sans avoir à se justifier. Les produits doivent être retournés <strong>non ouverts / scellés et dans leur état d'origine</strong>. Les frais de retour sont à la charge <V v={COMPANY.returnCost} ph="du client / du vendeur" />. Remboursement sous 14 jours après réception du retour.</P>
             <H>Article 7 — Garanties</H>
@@ -173,7 +173,9 @@ function LegalPage({ navigate, kind }) {
         {kind === 'faq' && (
           <React.Fragment>
             <H>Livraison — quels délais et quels frais ?</H>
-            <P>Les commandes sont expédiées sous 48 h ouvrées en envoi suivi et protégé. Livraison standard <strong>4,90 €</strong> (2–4 j) ou <strong>retrait gratuit</strong> en boutique à Vienne. La livraison est <strong>offerte dès 100 €</strong> d'achat.</P>
+            <P>Les commandes sont expédiées sous 48 h ouvrées en envoi suivi et protégé. Livraison standard <strong>4,90 €</strong> (2–4 j) ou <strong>retrait gratuit</strong> en boutique à Vienne. Les frais de livraison s'appliquent à toutes les commandes expédiées.</P>
+            <H>Y a-t-il une remise sur les grosses commandes ?</H>
+            <P>Oui : <strong>10 % de remise</strong> sont appliqués automatiquement dès <strong>250 € d'articles</strong> dans le panier, en livraison comme en retrait en boutique. La remise porte sur les articles, pas sur les frais de livraison.</P>
             <H>Vos cartes sont-elles authentiques ?</H>
             <P>Oui. Chaque pièce de valeur est vérifiée avant mise en vente, et les cartes gradées sont vendues sous coque, certifiées (PSA, BGS, CGC). L'état est précisé sur chaque fiche produit.</P>
             <H>Qu'est-ce qu'une « pièce unique » (1/1) ?</H>

@@ -89,7 +89,10 @@ const woo = createServer(async (req, res) => {
   if (url.pathname === '/wp-json/wc/store/v1/products') {
     return send(200, [{ id: 7, name: 'ETB de test', sku: '0000000000024', is_in_stock: true,
       prices: { price: '2999', regular_price: '2999', currency_minor_unit: 2 },
-      categories: [{ name: 'Scellé — ETB' }], add_to_cart: { maximum: 3 } }]);
+      categories: [{ name: 'Scellé — ETB' }], add_to_cart: { maximum: 3 } },
+    { id: 8, name: 'Display de test', sku: '0000000000031', is_in_stock: true,
+      prices: { price: '18000', regular_price: '18000', currency_minor_unit: 2 },
+      categories: [{ name: 'Scellé — Displays' }], add_to_cart: { maximum: 2 } }]);
   }
 
   // L'auth Basic doit être présente — c'est aussi ce qu'on veut vérifier.
@@ -398,6 +401,18 @@ await sendPickup(fromSite('10.0.0.5'), pickupPayload('marie@exemple.fr'));
 await sendPickup(fromSite('10.0.0.6'), pickupPayload('marie@exemple.fr'));
 const rFlood = await sendPickup(fromSite('10.0.0.7'), pickupPayload('MARIE@exemple.fr'));
 check('anti-abus : pas plus de 3 commandes par heure vers une même adresse', rFlood.code === 429, String(rFlood.code));
+
+// Plus de livraison offerte ; remise de 10 % dès 250 € d'articles.
+check('port : la livraison n\'est jamais offerte, quel que soit le montant',
+  SecLib.shippingCost('standard', 500) === 4.9 && SecLib.shippingCost('standard', 99) === 4.9 && SecLib.shippingCost('pickup', 500) === 0);
+check('remise : rien sous 250 €, 10 % à partir de 250 € (au centime)',
+  SecLib.discountCents(24999) === 0 && SecLib.discountCents(25000) === 2500 && SecLib.discountCents(33333) === 3333 && SecLib.discountCents(0) === 0);
+const rBig = await sendPickup(fromSite('10.0.0.8'), { method: 'pickup', orderRef: 'LC151-TEST2', customer: { name: 'Paul Martin', email: 'paul@exemple.fr', phone: '' }, items: [{ id: 'wp8', qty: 2 }] });
+const bigOrder = orders[orders.length - 1];
+const fee = (bigOrder.fee_lines || [])[0] || {};
+check('remise : un retrait de 360 € porte une ligne de remise de 36 € dans WooCommerce',
+  rBig.code === 200 && rBig.body.ok === true && fee.total === '-36.00' && /10 %/.test(fee.name || ''), JSON.stringify([rBig.code, bigOrder.fee_lines]));
+check('remise : aucune ligne de remise sous 250 €', (pickupMade.fee_lines || []).length === 0);
 if (keptW3F) process.env.WEB3FORMS_KEY = keptW3F;
 
 // ---------------------------------------------------------------------------

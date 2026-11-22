@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
+const { priceItems, shippingCost, discountCents, DISCOUNT, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
 
 // La liste d'articles 'wpIDxQTY,...' peut dépasser 500 caractères (limite
 // Stripe PAR CLÉ de metadata) : on la répartit sur items, items2, items3…
@@ -94,7 +94,8 @@ module.exports = async function handler(req, res) {
       };
     });
 
-    const shipCents = Math.round(shippingCost(method, subtotalCents / 100) * 100);
+    const shipCents = Math.round(shippingCost(method) * 100);   // jamais offerts
+    const discCents = discountCents(subtotalCents);              // 10 % dès 250 € d'articles
     const shipping_options = shipCents > 0 ? [{
       shipping_rate_data: {
         type: 'fixed_amount',
@@ -103,21 +104,29 @@ module.exports = async function handler(req, res) {
       },
     }] : undefined;
 
-    const key = idemKey('cs', { l: lines.map(function (l) { return [l.id, l.qty]; }), s: shipCents, e: email || '' });
+    const key = idemKey('cs', { l: lines.map(function (l) { return [l.id, l.qty]; }), s: shipCents, d: discCents, e: email || '' });
 
     // Métadonnées portées AUSSI par le PaymentIntent sous-jacent : le webhook
     // (payment_intent.succeeded) peut ainsi créer la commande WooCommerce même
     // en mode redirection.
     const itemsMeta = splitItemsMeta(lines.map(function (l) { return l.id + 'x' + l.qty; }).join(','));
     const sharedMeta = Object.assign(
-      { orderRef: orderRef.slice(0, 120), source: 'club151', shipping: String(shipCents), method: method },
+      { orderRef: orderRef.slice(0, 120), source: 'club151', shipping: String(shipCents), discount: String(discCents), method: method },
       itemsMeta
     );
+
+    // La remise passe par un bon Stripe à usage unique, du montant exact calculé ici.
+    let discounts;
+    if (discCents > 0) {
+      const coupon = await stripe.coupons.create({ amount_off: discCents, currency: 'eur', duration: 'once', name: DISCOUNT.label.slice(0, 40) });
+      discounts = [{ coupon: coupon.id }];
+    }
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: line_items,
       shipping_options: shipping_options,
+      discounts: discounts,
       customer_email: email,
       payment_intent_data: { receipt_email: email, metadata: sharedMeta },
       locale: 'fr',

@@ -9,7 +9,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
+const { priceItems, shippingCost, discountCents, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
 const { readSession } = require('../lib/session');
 
 // Coordonnées client : uniquement des chaînes, longueurs bornées. Renvoie null
@@ -97,8 +97,10 @@ module.exports = async function handler(req, res) {
     if (lines.length > MAX_CART_LINES) {
       return res.status(400).json({ error: 'Panier trop volumineux, contactez-nous.' });
     }
-    const shipCents = Math.round(shippingCost(method, subtotalCents / 100) * 100);
-    const amount = subtotalCents + shipCents;
+    // Remise 10 % dès 250 € d'articles, puis frais de port (jamais offerts).
+    const discCents = discountCents(subtotalCents);
+    const shipCents = Math.round(shippingCost(method) * 100);
+    const amount = subtotalCents - discCents + shipCents;
     if (amount <= 0) return res.status(400).json({ error: 'Montant total invalide' });
 
     const itemsMeta = lines.map(function (l) { return l.id + 'x' + l.qty; }).join(',');
@@ -136,7 +138,7 @@ module.exports = async function handler(req, res) {
       shipping: shipping,
       automatic_payment_methods: { enabled: true },
       metadata: Object.assign(
-        { orderRef: orderRef, source: 'club151', shipping: String(shipCents), method: method },
+        { orderRef: orderRef, source: 'club151', shipping: String(shipCents), discount: String(discCents), method: method },
         cid ? { cid: cid } : {},
         splitItemsMeta(itemsMeta)
       ),

@@ -31,7 +31,7 @@ function ProductLightbox({ src, name, placeholderSvg, onClose }) {
 
 function Product({ navigate, productId, onCart }) {
   const DS = window.ADITCGDesignSystem_df75b7;
-  const { PRODUCTS, Cart, FREE_SHIP, fmt } = window.LC151;
+  const { PRODUCTS, Cart, DISCOUNT, fmt } = window.LC151;
   const cart = useCart();
   // Abonnement au Store : le catalogue (/api/catalog) résout souvent APRÈS le
   // montage — ce re-rendu transforme le squelette en fiche produit à l'arrivée.
@@ -394,7 +394,7 @@ function Product({ navigate, productId, onCart }) {
           <DS.Button variant="outline" size="lg" block onClick={() => { Cart.add(product.id, qty); onCart(); }} disabled={!product.inStock}>Acheter maintenant</DS.Button>
 
           <div style={{ marginTop: 16, fontSize: 13.5, color: 'var(--ink-2)' }}>
-            Livraison offerte dès {FREE_SHIP} €, expédition protégée sous 48 h, ou retrait gratuit au magasin.
+            {Math.round(DISCOUNT.rate * 100)} % de remise dès {DISCOUNT.threshold} € d'achat. Expédition protégée sous 48 h, ou retrait gratuit au magasin.
           </div>
 
           {/* CERTIFICATION « SLAB » — bloc mis en scène, uniquement pour les

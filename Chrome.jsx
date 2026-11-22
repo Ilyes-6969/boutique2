@@ -15,15 +15,20 @@
   (document.head || document.documentElement).appendChild(s);
 })();
 
+/* Abonnement + RATTRAPAGE. L'abonnement se fait après le premier rendu : si le
+   catalogue arrive entre les deux (réponse rapide, cache), le changement était
+   perdu et l'écran restait sur l'état vide — panier à « 0,00 € » sans ligne,
+   par exemple — jusqu'au prochain geste. On relance donc un rendu juste après
+   s'être abonné : il ne coûte rien et ne peut pas manquer une mise à jour. */
 function useCart() {
   const [, force] = React.useReducer((x) => x + 1, 0);
-  React.useEffect(() => window.LC151.Cart.subscribe(force), []);
+  React.useEffect(() => { const off = window.LC151.Cart.subscribe(force); force(); return off; }, []);
   return window.LC151.Cart;
 }
 
 function useStore() {
   const [, force] = React.useReducer((x) => x + 1, 0);
-  React.useEffect(() => window.LC151.Store.subscribe(force), []);
+  React.useEffect(() => { const off = window.LC151.Store.subscribe(force); force(); return off; }, []);
   return window.LC151.Store;
 }
 
@@ -585,7 +590,7 @@ function MegaNav({ navigate, active }) {
 
 /* BANDEAU D'ANNONCE — une ligne tout en haut, au-dessus de l'en-tête (elle défile
    avec la page, l'en-tête seul reste collé). Les deux promesses viennent des
-   réglages du site : seuil de livraison offerte (FREE_SHIP) et adresse du magasin. */
+   réglages du site : remise automatique (DISCOUNT) et adresse du magasin. */
 function TopBar() {
   const L = window.LC151 || {};
   const shop = L.SHOP || {};
@@ -593,9 +598,10 @@ function TopBar() {
   const noel = !!(L.season && L.season() === 'noel');
   const today = new Date();
   const eve = today.getMonth() === 11 && today.getDate() >= 24;   // du 24 décembre à la fin de la saison
+  const promo = Math.round(((L.DISCOUNT || {}).rate || 0.10) * 100) + ' %';
   return (
     <div className="lc-topbar" style={{ background: 'var(--header-2)', color: 'rgba(255,255,255,0.86)', textAlign: 'center', padding: '6px 16px', fontSize: 12.5, fontWeight: 500, lineHeight: 1.4, borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
-      {noel ? (eve ? 'Joyeux Noël ! Livraison' : 'Noël approche : livraison') : 'Livraison'} offerte dès {L.FREE_SHIP || 100} €, retrait gratuit en magasin{shop.street ? <span className="lc-topbar-extra">{' au ' + shop.street + ', ' + shop.city}</span> : null}
+      {noel ? (eve ? 'Joyeux Noël ! ' : 'Noël approche : ') : ''}{promo} de remise dès {(L.DISCOUNT || {}).threshold || 250} € d'achat, retrait gratuit en magasin{shop.street ? <span className="lc-topbar-extra">{' au ' + shop.street + ', ' + shop.city}</span> : null}
     </div>
   );
 }

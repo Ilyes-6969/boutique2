@@ -14,7 +14,7 @@
 //   WEB3FORMS_KEY = clé Web3Forms (sans elle : aucune notification, ok:false)
 // ---------------------------------------------------------------------------
 
-const { priceItems, applyCors, errorStatus, rateLimit, rateLimitKey, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
+const { priceItems, discountCents, DISCOUNT, applyCors, errorStatus, rateLimit, rateLimitKey, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
 const { wooConfigured, createPickupOrder, sendPickupConfirmation } = require('../lib/wooCustomers');
 const { readSession } = require('../lib/session');
 
@@ -102,7 +102,9 @@ module.exports = async function handler(req, res) {
 
     // Prix et noms d'articles fixés par le SERVEUR (jamais ceux du client).
     const { lines, subtotalCents } = await priceItems(items);
-    const total = (subtotalCents / 100).toFixed(2) + ' €'; // retrait → pas de port
+    // Retrait → pas de port. Remise 10 % dès 250 € d'articles, comme en livraison.
+    const discCents = discountCents(subtotalCents);
+    const total = ((subtotalCents - discCents) / 100).toFixed(2) + ' €';
 
     // --- Commande WooCommerce réelle (statut 'pending' : AUCUN stock retiré) ---
     // La décision historique « pas de commande Woo ici » visait le risque qu'un
@@ -117,6 +119,7 @@ module.exports = async function handler(req, res) {
         const sess = readSession(req);      // client connecté → commande rattachée à son compte
         wooOrder = await createPickupOrder({
           email: email, name: name, phone: phone, lines: lines, ref: orderRef,
+          discountCents: discCents, discountLabel: DISCOUNT.label,
           customerId: sess ? sess.cid : 0,
         });
       } catch (e) {
@@ -162,6 +165,7 @@ module.exports = async function handler(req, res) {
       'E-mail': email,
       'Téléphone': phone || '—',
       Articles: '\n' + articles,
+      Remise: discCents > 0 ? '−' + (discCents / 100).toFixed(2) + ' € (10 % dès 250 € d\'achat)' : 'aucune',
       Total: total,
       Paiement: 'À régler au retrait en boutique (aucun paiement en ligne)',
       'Confirmation au client': emailed ? 'E-mail de confirmation envoyé au client par WooCommerce.' : '⚠️ Aucun e-mail de confirmation n\'est parti au client — pensez à le prévenir.',

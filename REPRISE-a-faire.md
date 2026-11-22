@@ -35,6 +35,13 @@
 - gestion.club151.fr : déjà en mode « Bientôt disponible » pour les visiteurs ; ajouté
   « ne pas indexer ce site » (Réglages → Lecture). Le catalogue du site n'est pas touché.
 
+**Tarifs (22/11, midi)**
+- Plus AUCUNE livraison offerte : 4,90 € pour toute commande expédiée, retrait en boutique gratuit.
+- Remise automatique de 10 % sur les articles dès 250 € d'articles (livraison et retrait).
+  Réglage : `DISCOUNT` dans `lib/serverCatalog.js` (serveur, fait foi) ET `data.js` (affichage) —
+  changer les deux. La remise est portée sur la commande WooCommerce (ligne de frais négative).
+- Corrigé : le panier ouvert directement pouvait rester à « 0,00 € » (abonnement au catalogue).
+
 **À décider / vérifier**
 - Expéditeur des e-mails WooCommerce : aujourd'hui `boutiqueclub151@gmail.com` (risque de spam,
   le courrier ne part pas de Gmail). Le domaine club151.fr autorise déjà le serveur (SPF o2switch).

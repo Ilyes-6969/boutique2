@@ -38,14 +38,21 @@ function useCountUp(value) {
 function CartDrawer({ open, onClose, navigate }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const cart = useCart();
+  // S'abonne aussi au catalogue : sur une page ouverte directement (catalogue pas
+  // encore arrivé au premier rendu), le panier restait figé à « 0,00 € » sans
+  // aucune ligne tant que le client ne touchait à rien.
+  useStore();
   const auth = useAuth();
-  const { fmt, FREE_SHIP } = window.LC151;
+  const { fmt, DISCOUNT, discountFor } = window.LC151;
   const items = cart.items();
   const subtotal = cart.subtotal();
   const animatedSubtotal = useCountUp(subtotal);   // count-up doux du sous-total (respecte reduced-motion)
-  const remaining = Math.max(0, FREE_SHIP - subtotal);
-  const pct = Math.min(100, (subtotal / FREE_SHIP) * 100);
-  const freeShip = remaining === 0;                 // seuil livraison offerte atteint
+  // Jauge vers la remise de 10 % dès 250 € d'articles (la livraison n'est plus offerte).
+  const remaining = Math.max(0, DISCOUNT.threshold - subtotal);
+  const pct = Math.min(100, (subtotal / DISCOUNT.threshold) * 100);
+  const freeShip = remaining === 0;                 // seuil de la remise atteint (nom historique)
+  const discount = discountFor(subtotal);
+  const pctLabel = Math.round(DISCOUNT.rate * 100) + ' %';
   const savings = lcCartSavings(items);             // total économisé (contrat window.LC151.cartSavings)
   const loggedIn = auth.isLoggedIn();
 
@@ -105,12 +112,12 @@ function CartDrawer({ open, onClose, navigate }) {
           </div>
         ) : (
           <React.Fragment>
-            {/* free-ship progress */}
+            {/* jauge vers la remise de 10 % */}
             <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--line)' }}>
               <div style={{ fontSize: 13, color: 'var(--ink-2)', marginBottom: 8 }}>
                 {remaining > 0
-                  ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour la livraison offerte</span>
-                  : <span key="unlocked" className="lc-pop" style={{ display: 'inline-block', color: 'var(--green)', fontWeight: 600 }}>✓ Livraison offerte débloquée</span>}
+                  ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour {pctLabel} de remise sur la commande</span>
+                  : <span key="unlocked" className="lc-pop" style={{ display: 'inline-block', color: 'var(--green)', fontWeight: 600 }}>✓ {pctLabel} de remise sur votre commande</span>}
               </div>
               <div className={freeShip ? 'lc-shimmer' : undefined} style={{ height: 6, borderRadius: 3, background: 'var(--paper-2)', overflow: 'hidden' }}>
                 <div style={{ width: pct + '%', height: '100%', background: 'var(--accent)', transition: 'width var(--dur-slow) var(--ease-out)' }}></div>
@@ -151,7 +158,19 @@ function CartDrawer({ open, onClose, navigate }) {
                 <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>Sous-total</span>
                 <DS.PriceTag price={animatedSubtotal} size="lg" />
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: savings > 0 ? 8 : 14 }}>Taxes incluses · livraison calculée à l'étape suivante</div>
+{discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, margin: '2px 0 6px', fontSize: 13.5, fontWeight: 600, color: 'var(--green)' }}>
+                  <span>Remise {pctLabel}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(discount)}</span>
+                </div>
+              )}
+              {discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 6, fontSize: 14.5, fontWeight: 600 }}>
+                  <span>Total après remise</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(subtotal - discount)}</span>
+                </div>
+              )}
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: savings > 0 ? 8 : 14 }}>Taxes incluses, frais de port ajoutés à l'étape suivante</div>
               {savings > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 14, fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>
                   <span>Vous économisez</span>
@@ -185,14 +204,21 @@ function CartDrawer({ open, onClose, navigate }) {
 function CartPage({ navigate }) {
   const DS = window.ADITCGDesignSystem_df75b7;
   const cart = useCart();
+  // S'abonne aussi au catalogue : sur une page ouverte directement (catalogue pas
+  // encore arrivé au premier rendu), le panier restait figé à « 0,00 € » sans
+  // aucune ligne tant que le client ne touchait à rien.
+  useStore();
   const auth = useAuth();
-  const { fmt, FREE_SHIP } = window.LC151;
+  const { fmt, DISCOUNT, discountFor } = window.LC151;
   const items = cart.items();
   const subtotal = cart.subtotal();
   const animatedSubtotal = useCountUp(subtotal);   // count-up doux du sous-total (respecte reduced-motion)
-  const remaining = Math.max(0, FREE_SHIP - subtotal);
-  const pct = Math.min(100, (subtotal / FREE_SHIP) * 100);
-  const freeShip = remaining === 0;                 // seuil livraison offerte atteint
+  // Jauge vers la remise de 10 % dès 250 € d'articles (la livraison n'est plus offerte).
+  const remaining = Math.max(0, DISCOUNT.threshold - subtotal);
+  const pct = Math.min(100, (subtotal / DISCOUNT.threshold) * 100);
+  const freeShip = remaining === 0;                 // seuil de la remise atteint (nom historique)
+  const discount = discountFor(subtotal);
+  const pctLabel = Math.round(DISCOUNT.rate * 100) + ' %';
   const savings = lcCartSavings(items);             // total économisé (contrat window.LC151.cartSavings)
   const loggedIn = auth.isLoggedIn();
 
@@ -245,8 +271,8 @@ function CartPage({ navigate }) {
               <div style={{ marginBottom: 16 }}>
                 <div style={{ fontSize: 13, color: 'var(--ink-2)', marginBottom: 8 }}>
                   {remaining > 0
-                    ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour la livraison offerte</span>
-                    : <span key="unlocked" className="lc-pop" style={{ display: 'inline-block', color: 'var(--green)', fontWeight: 600 }}>✓ Livraison offerte débloquée</span>}
+                    ? <span>Plus que <strong style={{ color: 'var(--ink)' }}>{fmt(remaining)}</strong> pour {pctLabel} de remise sur la commande</span>
+                    : <span key="unlocked" className="lc-pop" style={{ display: 'inline-block', color: 'var(--green)', fontWeight: 600 }}>✓ {pctLabel} de remise sur votre commande</span>}
                 </div>
                 <div className={freeShip ? 'lc-shimmer' : undefined} style={{ height: 6, borderRadius: 3, background: 'var(--paper-2)', overflow: 'hidden' }}>
                   <div style={{ width: pct + '%', height: '100%', background: 'var(--accent)', transition: 'width var(--dur-slow) var(--ease-out)' }}></div>
@@ -256,7 +282,19 @@ function CartPage({ navigate }) {
                 <span style={{ fontSize: 14, color: 'var(--ink-2)' }}>Sous-total ({cart.count()})</span>
                 <DS.PriceTag price={animatedSubtotal} size="lg" />
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: savings > 0 ? 10 : 16 }}>Taxes incluses, livraison à l'étape suivante</div>
+{discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, margin: '2px 0 6px', fontSize: 13.5, fontWeight: 600, color: 'var(--green)' }}>
+                  <span>Remise {pctLabel}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>−{fmt(discount)}</span>
+                </div>
+              )}
+              {discount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 6, fontSize: 14.5, fontWeight: 600 }}>
+                  <span>Total après remise</span>
+                  <span style={{ fontFamily: 'var(--font-mono)' }}>{fmt(subtotal - discount)}</span>
+                </div>
+              )}
+              <div style={{ fontSize: 12.5, color: 'var(--muted)', marginBottom: savings > 0 ? 10 : 16 }}>Taxes incluses, frais de port ajoutés à l'étape suivante</div>
               {savings > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 16, fontSize: 13, fontWeight: 600, color: 'var(--green)' }}>
                   <span>Vous économisez</span>

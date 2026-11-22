@@ -620,7 +620,16 @@
     if (e.key === K_RECENT) { recent = toIdArray(load(K_RECENT, [])).slice(0, RECENT_MAX); recentListeners.forEach((fn) => fn()); }
   });
 
-  const FREE_SHIP = 100;
+  // PLUS DE LIVRAISON OFFERTE (décision de la boutique, 22/11/2026) : toute
+  // livraison est payante, seul le retrait en boutique est gratuit.
+  // REMISE AUTOMATIQUE : 10 % sur le montant des articles dès 250 € d'articles
+  // (frais de port exclus). Même formule que le serveur (lib/serverCatalog.js,
+  // discountCents), en centimes, pour que le total affiché soit celui encaissé.
+  const DISCOUNT = { threshold: 250, rate: 0.10 };
+  function discountFor(subtotal) {
+    const c = Math.round((Number(subtotal) || 0) * 100);
+    return c >= DISCOUNT.threshold * 100 ? Math.round(c * DISCOUNT.rate) / 100 : 0;
+  }
 
   // ---- Auth (compte client) ----
   const K_USER = 'lc151_user';
@@ -860,11 +869,10 @@
   };
   const Orders = {
     methods: () => SHIPPING,
-    shippingCost(methodKey, subtotal) {
+    discount: discountFor,
+    shippingCost(methodKey) {
       const m = SHIPPING[methodKey] || SHIPPING.standard;
-      if (m.key === 'pickup') return 0;
-      if (subtotal >= FREE_SHIP) return 0; // livraison offerte dès 100 € (tous modes sauf retrait déjà gratuit)
-      return m.price;
+      return m.key === 'pickup' ? 0 : m.price;   // jamais offerte : seul le retrait est gratuit
     },
     all: () => orders,
     // Comparaison NORMALISÉE (casse + espaces). En strict, une commande passée
@@ -934,7 +942,7 @@
   }
 
   window.LC151 = {
-    PRODUCTS, FILTERS, GAMES, gameUrl, Cart, Store, Auth, Alerts, Orders, Favorites, Recent, FREE_SHIP,
+    PRODUCTS, FILTERS, GAMES, gameUrl, Cart, Store, Auth, Alerts, Orders, Favorites, Recent, DISCOUNT, discountFor,
     get: (id) => Store.get(id),
     productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
