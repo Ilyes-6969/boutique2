@@ -156,7 +156,10 @@ img { -webkit-user-drag: none; user-select: none; }
 
 @media (max-width: 980px) {
   .lc-foot-grid { grid-template-columns: 1fr 1fr !important; gap: 34px !important; }
-  .lc-prod-grid, .lc-cart-grid, .lc-checkout-grid, .lc-shop-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
+  /* minmax(0, 1fr) et non 1fr : « 1fr » laisse un contenu insécable (nom d'article
+     sur une ligne, option de livraison) élargir la colonne au-delà de l'écran —
+     les champs du formulaire de commande débordaient alors à droite sur mobile. */
+  .lc-prod-grid, .lc-cart-grid, .lc-checkout-grid, .lc-shop-grid { grid-template-columns: minmax(0, 1fr) !important; gap: 28px !important; }
   .lc-prod-gallery { position: static !important; }
   /* Tuiles d'accueil (5 et 4 colonnes) et grilles « dans le même rayon » /
      « vus récemment » (4 colonnes) : sous 980px chaque tuile tombe à ~150px et
@@ -237,7 +240,7 @@ img { -webkit-user-drag: none; user-select: none; }
    dans la modale (largeur utile ~228px à 320px d'écran) deux colonnes laissent
    ~108px par champ — on repasse en pleine largeur. */
 @media (max-width: 480px) {
-  .lc-field-pair { grid-template-columns: 1fr !important; }
+  .lc-field-pair { grid-template-columns: minmax(0, 1fr) !important; }
 }
 @media (max-width: 460px) {
   .lc-cat-tiles { grid-template-columns: 1fr !important; }

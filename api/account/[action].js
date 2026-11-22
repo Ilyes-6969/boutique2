@@ -22,11 +22,10 @@
 // WC_CONSUMER_KEY, WC_CONSUMER_SECRET.
 // ---------------------------------------------------------------------------
 
-const { applyCors, rateLimit } = require('../../lib/serverCatalog');
+const { applyCors, rateLimit, sameSiteRequest, noStore, isEmail } = require('../../lib/serverCatalog');
 const S = require('../../lib/session');
 const W = require('../../lib/wooCustomers');
 
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const LIMITS = { name: 120, addr: 300, zip: 12, city: 120, phone: 40 };
 
 function cleanText(v, max) {
@@ -56,6 +55,12 @@ module.exports = async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   const action = String((req.query && req.query.action) || '');
+  noStore(res);
+  // Toute écriture (inscription, connexion, mot de passe oublié, adresse,
+  // déconnexion) doit venir d'une page du site.
+  if (req.method === 'POST' && !sameSiteRequest(req)) {
+    return res.status(403).json({ ok: false, error: 'Requête refusée.' });
+  }
 
   // Prérequis communs. On distingue « pas configuré » d'« en panne » : sans ça,
   // une variable d'environnement oubliée ressemblerait à un bug et se
@@ -88,7 +93,7 @@ module.exports = async function handler(req, res) {
     const body = readBody(req);
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
-    if (!EMAIL_RE.test(email) || email.length > 160) {
+    if (!isEmail(email) || email.length > 160) {
       return res.status(400).json({ ok: false, error: 'Adresse e-mail invalide.' });
     }
     // 8 caractères minimum : plus court, un mot de passe se casse hors ligne en
@@ -129,7 +134,7 @@ module.exports = async function handler(req, res) {
     const body = readBody(req);
     const email = String(body.email || '').trim().toLowerCase();
     const password = String(body.password || '');
-    if (!EMAIL_RE.test(email) || !password) {
+    if (!isEmail(email) || !password) {
       return res.status(400).json({ ok: false, error: 'E-mail ou mot de passe invalide.' });
     }
 
@@ -155,7 +160,7 @@ module.exports = async function handler(req, res) {
       return res.status(503).json({ ok: false, error: 'La réinitialisation n’est pas encore activée sur ce site.' });
     }
     const email = String(readBody(req).email || '').trim().toLowerCase();
-    if (!EMAIL_RE.test(email)) return res.status(400).json({ ok: false, error: 'Adresse e-mail invalide.' });
+    if (!isEmail(email)) return res.status(400).json({ ok: false, error: 'Adresse e-mail invalide.' });
 
     try {
       await W.requestPasswordReset(email);

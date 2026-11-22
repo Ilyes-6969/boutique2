@@ -1,6 +1,10 @@
 {
   "_lisezmoi": "Ce que le site montre et vend, sans toucher a WooCommerce ni a la caisse. Les codes sont les codes article (SKU). 'seulement' non vide = le site ne montre QUE ces articles ; sinon 'masquer' retire des articles un par un et 'prixMinCartes' retire les cartes (a l'unite et gradees) vendues moins cher.",
   "prixMinCartes": 300,
-  "masquer": ["0000775863015"],
-  "seulement": []
+  "masquer": [
+    "0000775863015"
+  ],
+  "seulement": [],
+  "retraitReserveLeStock": false,
+  "_lisezmoi_retrait": "retraitReserveLeStock : false = une commande à retirer en boutique ne touche pas au stock tant que la boutique ne la passe pas « En cours » dans WooCommerce (le client reçoit quand même sa confirmation par e-mail). true = l'article est retiré du stock dès la commande (statut « En attente » de WooCommerce, qui envoie lui-même l'e-mail au client) ; une commande non retirée doit alors être annulée à la main pour remettre l'article en vente."
 }

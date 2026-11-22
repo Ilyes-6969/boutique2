@@ -53,6 +53,8 @@ const orders = [
     shipping_lines: [{ method_title: 'Point relais' }], meta_data: [] },
 ];
 
+const orderNotes = [];
+
 function readJson(req) {
   return new Promise((resolve) => {
     let raw = '';
@@ -81,6 +83,13 @@ const woo = createServer(async (req, res) => {
   if (p === '/wp-json/lc151/v1/reset' && req.method === 'POST') {
     if (req.headers['x-lc151-secret'] !== AUTH_SECRET) return send(403, { message: 'bad secret' });
     return send(200, { ok: true });   // réponse identique, compte connu ou non
+  }
+
+  // Catalogue public (Store API) — lu sans authentification par lib/serverCatalog.
+  if (url.pathname === '/wp-json/wc/store/v1/products') {
+    return send(200, [{ id: 7, name: 'ETB de test', sku: '0000000000024', is_in_stock: true,
+      prices: { price: '2999', regular_price: '2999', currency_minor_unit: 2 },
+      categories: [{ name: 'Scellé — ETB' }], add_to_cart: { maximum: 3 } }]);
   }
 
   // L'auth Basic doit être présente — c'est aussi ce qu'on veut vérifier.
@@ -123,6 +132,14 @@ const woo = createServer(async (req, res) => {
       date_created_gmt: '2026-07-25T10:00:00' }, body);
     orders.push(o);
     return send(201, o);
+  }
+  // Note sur une commande ; customer_note:true = WooCommerce l'envoie par e-mail au client.
+  const nMatch = p.match(/^\/orders\/(\d+)\/notes$/);
+  if (nMatch && req.method === 'POST') {
+    const body = await readJson(req);
+    const n = { id: 9000 + orderNotes.length, order: Number(nMatch[1]), note: body.note, customer_note: body.customer_note === true };
+    orderNotes.push(n);
+    return send(201, n);
   }
   if (p === '/orders' && req.method === 'GET') {
     const cust = url.searchParams.get('customer');
@@ -330,6 +347,58 @@ const savedKey = process.env.WC_CONSUMER_KEY;
 process.env.WC_CONSUMER_KEY = '';
 check('config absente : wooConfigured() est faux', W.wooConfigured() === false);
 process.env.WC_CONSUMER_KEY = savedKey;
+
+// ---------------------------------------------------------------------------
+// E-mail obligatoire, origine des requêtes, confirmation au client.
+const SecLib = require('./lib/serverCatalog.js');
+check('e-mail : adresses valides acceptées', ['a@b.fr', 'jean.dupont+test@gmail.com', 'x@sous.domaine.co.uk'].every(SecLib.isEmail));
+check('e-mail : saisies fausses refusées', ['', 'a@b', 'a b@c.fr', 'a@@b.fr', 'a@b..fr', '@b.fr', 'a@b.f', null, undefined, 12].every((v) => !SecLib.isEmail(v)));
+const hdrReq = (h) => ({ headers: h });
+check('origine : une page du site est acceptée', SecLib.sameSiteRequest(hdrReq({ host: 'club151.fr', origin: 'https://club151.fr' })));
+check('origine : un autre site est refusé, même en *.vercel.app',
+  !SecLib.sameSiteRequest(hdrReq({ host: 'club151.fr', origin: 'https://pirate.vercel.app' })) && !SecLib.originAllowed('https://pirate.vercel.app'));
+check('origine : un aperçu appelle sa propre API', SecLib.sameSiteRequest(hdrReq({ host: 'boutique2-abc.vercel.app', origin: 'https://boutique2-abc.vercel.app' })));
+check('origine : sans Origin ni Referer → refus (strict), toléré pour le paiement',
+  !SecLib.sameSiteRequest(hdrReq({ host: 'club151.fr' })) && SecLib.sameSiteRequest(hdrReq({ host: 'club151.fr' }), false));
+check('origine : Origin étranger refusé même en mode toléré', !SecLib.sameSiteRequest(hdrReq({ host: 'club151.fr', origin: 'https://pirate.fr' }), false));
+
+const notifyHandler = require('./api/notify-order.js');
+const stubRes = () => ({ code: 200, headers: {}, body: null,
+  setHeader(k, v) { this.headers[k] = v; }, status(c) { this.code = c; return this; },
+  json(b) { this.body = b; return this; }, end() { return this; }, send(b) { this.body = b; return this; } });
+const sendPickup = async (headers, body) => {
+  const res = stubRes();
+  await notifyHandler({ method: 'POST', headers: Object.assign({ host: 'club151.fr' }, headers), body: body }, res);
+  return res;
+};
+const fromSite = (ip) => ({ origin: 'https://club151.fr', 'x-forwarded-for': ip });
+const pickupPayload = (email) => ({ method: 'pickup', orderRef: 'LC151-TEST1', customer: { name: 'Marie Durand', email: email, phone: '' }, items: [{ id: 'wp7', qty: 2 }] });
+const keptW3F = process.env.WEB3FORMS_KEY; delete process.env.WEB3FORMS_KEY;
+
+const r403 = await sendPickup({ 'x-forwarded-for': '10.0.0.1' }, pickupPayload('marie@exemple.fr'));
+check('commande : refusée si elle ne vient pas du site', r403.code === 403, String(r403.code));
+const rNoMail = await sendPickup(fromSite('10.0.0.2'), pickupPayload(''));
+check('commande : refusée sans e-mail', rNoMail.code === 400 && /e-mail/i.test(rNoMail.body.error), JSON.stringify(rNoMail.body));
+const rBadMail = await sendPickup(fromSite('10.0.0.3'), pickupPayload('marie@exemple'));
+check('commande : refusée avec un e-mail invalide', rBadMail.code === 400);
+const notesBefore = orderNotes.length;
+const rOk = await sendPickup(fromSite('10.0.0.4'), pickupPayload('marie@exemple.fr'));
+const pickupMade = orders[orders.length - 1];
+check('commande : acceptée avec un e-mail valide, enregistrée dans WooCommerce',
+  rOk.code === 200 && rOk.body.ok === true && rOk.body.orderNumber === pickupMade.number && pickupMade.billing.email === 'marie@exemple.fr',
+  JSON.stringify(rOk.body));
+check('commande : le stock n\'est pas touché (statut en attente de paiement)', pickupMade.status === 'pending');
+const lastNote = orderNotes[orderNotes.length - 1] || {};
+check('confirmation : un e-mail part au client (note client WooCommerce)',
+  rOk.body.emailed === true && orderNotes.length === notesBefore + 1 && lastNote.customer_note === true && lastNote.order === pickupMade.id);
+check('confirmation : le message porte le numéro, la référence et l\'adresse du magasin',
+  String(lastNote.note).includes(pickupMade.number) && /LC151-TEST1/.test(lastNote.note) && /28 rue Juiverie/.test(lastNote.note), String(lastNote.note));
+check('réponse : jamais mise en cache', rOk.headers['Cache-Control'] === 'no-store');
+await sendPickup(fromSite('10.0.0.5'), pickupPayload('marie@exemple.fr'));
+await sendPickup(fromSite('10.0.0.6'), pickupPayload('marie@exemple.fr'));
+const rFlood = await sendPickup(fromSite('10.0.0.7'), pickupPayload('MARIE@exemple.fr'));
+check('anti-abus : pas plus de 3 commandes par heure vers une même adresse', rFlood.code === 429, String(rFlood.code));
+if (keptW3F) process.env.WEB3FORMS_KEY = keptW3F;
 
 // ---------------------------------------------------------------------------
 // Quantité disponible : lue dans add_to_cart.maximum (Store API, produit).

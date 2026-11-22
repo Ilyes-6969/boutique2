@@ -924,6 +924,12 @@
     get: (id) => Store.get(id),
     productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
+    // Adresse e-mail plausible — MÊME règle que le serveur (lib/serverCatalog.js, isEmail).
+    isEmail: (v) => {
+      const t = typeof v === 'string' ? v.trim() : '';
+      if (!t || t.length > 160 || /\.\./.test(t)) return false;
+      return /^[^\s@<>()",;:\\]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)*\.[A-Za-z]{2,}$/.test(t);
+    },
     // Quantité disponible, telle qu'on l'écrit sur le site (« 3 en stock »).
     // Chaîne vide quand elle n'a pas de sens : rupture, précommande, stock inconnu.
     stockLabel: (p) => (p && p.inStock !== false && !p.preorder && typeof p.stock === 'number' && isFinite(p.stock) && p.stock > 0)

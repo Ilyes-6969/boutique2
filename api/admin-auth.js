@@ -12,12 +12,14 @@
 // ---------------------------------------------------------------------------
 
 const crypto = require('crypto');
-const { applyCors, rateLimit } = require('../lib/serverCatalog');
+const { applyCors, rateLimit, sameSiteRequest, noStore } = require('../lib/serverCatalog');
 
 module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  noStore(res);
+  if (!sameSiteRequest(req)) return res.status(403).json({ error: 'Requête refusée.' });
 
   // Bucket dédié, volontairement strict : 5 requêtes / 15 min / IP (anti brute-force).
   if (!rateLimit(req, 'admin-auth', 5, 15 * 60 * 1000)) {
@@ -42,6 +44,6 @@ module.exports = async function handler(req, res) {
     const sig = crypto.createHmac('sha256', expected).update('admin' + exp).digest('hex').slice(0, 32);
     return res.status(200).json({ ok: true, token: exp + '.' + sig });
   } catch (e) {
-    return res.status(400).json({ error: String((e && e.message) || e) });
+    return res.status(400).json({ error: 'Requête invalide.' });   // jamais le message d'erreur brut
   }
 };

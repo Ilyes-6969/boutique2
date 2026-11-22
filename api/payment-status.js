@@ -14,6 +14,7 @@ const { applyCors, rateLimit, maskEmail } = require('../lib/serverCatalog');
 module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
+  res.setHeader('Cache-Control', 'no-store');   // statut d'un paiement : jamais en cache
 
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante' });

@@ -163,6 +163,10 @@
         if (!r.ok) { console.warn('notify-order: HTTP ' + r.status); return false; }
         const j = await r.json().catch(function () { return {}; });
         if (!j || j.ok !== true) { console.warn('notify-order: non envoyée (WEB3FORMS_KEY manquante ?) — pas d\'alerte client'); }
+        // Le serveur dit si la confirmation est réellement partie chez le client
+        // (emailed) et sous quel numéro la commande est enregistrée : le site
+        // n'annonce un e-mail que dans ce cas. Lu par Checkout.jsx.
+        cfg.lastPickup = { emailed: !!(j && j.emailed), orderNumber: (j && j.orderNumber) || null };
         return true;   // 200 → transport ok, pas de bandeau d'alerte
       }).catch(function (e) {
         console.warn('notify-order:', (e && e.message) || e);

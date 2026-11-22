@@ -18,7 +18,7 @@
 // WC_CONSUMER_SECRET.
 // ---------------------------------------------------------------------------
 
-const { applyCors, rateLimit } = require('../../lib/serverCatalog');
+const { applyCors, rateLimit, sameSiteRequest, noStore } = require('../../lib/serverCatalog');
 const S = require('../../lib/session');
 const W = require('../../lib/wooCustomers');
 
@@ -42,6 +42,10 @@ function fail(res, err, where) {
 module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
+  noStore(res);
+  if (req.method === 'POST' && !sameSiteRequest(req)) {
+    return res.status(403).json({ ok: false, error: 'Requête refusée.' });
+  }
 
   const action = String((req.query && req.query.action) || '');
 

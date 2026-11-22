@@ -1,5 +1,37 @@
 # À reprendre — CLUB 151 (mémo pour la prochaine session)
 
+## Mise en service — état au 22/11/2026
+
+**Fait dans le code**
+- Aucune commande sans e-mail valide : refus côté site ET côté serveur (carte et retrait).
+- Confirmation au client : carte → e-mail WooCommerce « commande en cours » + reçu Stripe ;
+  retrait → note client WooCommerce envoyée par e-mail (`lib/wooCustomers.js`, `sendPickupConfirmation`).
+  Le courrier part du WordPress (o2switch), aucun service d'envoi en plus.
+- Retrait : l'adresse postale n'est plus demandée. `lib/vitrine.json` → `retraitReserveLeStock`
+  (false = le stock ne bouge pas tant que la boutique ne valide pas ; true = réservé dès la commande).
+- Sécurité : l'API n'accepte que les pages du site (plus tout `*.vercel.app`), 3 commandes
+  retrait par heure et par adresse, réponses client jamais en cache, React vérifié par
+  empreinte (SRI), en-têtes renforcés (`vercel.json`), admin et API hors moteurs de recherche.
+- Sitemap et liens canoniques : toujours `https://club151.fr` en production (ils pointaient
+  vers `boutique2-lac.vercel.app`).
+- Formulaire de commande sur mobile : les champs ne débordent plus de l'écran.
+
+**À faire par la boutique pour encaisser en réel (Vercel → Settings → Environment Variables, Production)**
+1. `STRIPE_SECRET_KEY` = clé secrète réelle (`sk_live_…`).
+2. `STRIPE_PUBLISHABLE_KEY` = clé publique réelle (`pk_live_…`).
+3. `STRIPE_WEBHOOK_SECRET` = secret du webhook réel (`whsec_…`). **Absent aujourd'hui** :
+   `/api/stripe-webhook` répond 500, donc un paiement ne crée ni commande ni alerte.
+   Stripe (mode réel) → Développeurs → Webhooks → ajouter `https://club151.fr/api/stripe-webhook`,
+   événement `payment_intent.succeeded`.
+4. Redéployer (Deployments → Redeploy), puis une vraie commande de test à petit prix.
+- `ADMIN_PASSWORD` est absent aussi : la page `/admin.html` reste fermée tant qu'il n'est pas défini.
+
+**À décider / vérifier**
+- Expéditeur des e-mails WooCommerce : aujourd'hui `boutiqueclub151@gmail.com` (risque de spam,
+  le courrier ne part pas de Gmail). Le domaine club151.fr autorise déjà le serveur (SPF o2switch).
+- La boîte `contact@club151.fr`, affichée sur le site, doit exister chez o2switch.
+- Médiateur de la consommation à ajouter aux CGV.
+
 ## Point du 21/11/2026 — site aligné sur la vraie boutique
 
 **Fait dans le code**

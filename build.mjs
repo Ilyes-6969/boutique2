@@ -28,8 +28,13 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 // du site n'a ni fiche statique ni ligne dans le sitemap.
 const { isVisible, typeFromCategories, decodeEntities } = createRequire(import.meta.url)('./lib/serverCatalog.js');
 const DIST = join(ROOT, 'dist');
+// Adresse publique du site, écrite dans le sitemap, les liens canoniques et les
+// fiches produit. En production c'est TOUJOURS le vrai domaine : avant, faute de
+// SITE_URL, on prenait VERCEL_PROJECT_PRODUCTION_URL — soit boutique2-lac.vercel.app —
+// et le sitemap envoyait Google sur l'adresse technique de Vercel au lieu de
+// club151.fr. Seul un aperçu (preview) utilise sa propre adresse.
 const SITE = (process.env.SITE_URL
-  || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? 'https://' + process.env.VERCEL_PROJECT_PRODUCTION_URL : '')
+  || (process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : '')
   || 'https://club151.fr').replace(/\/+$/, '');
 
 // Les pages /produits/ sont générées à partir du SEUL vrai catalogue
@@ -271,6 +276,16 @@ function transpile(source, filename) {
 // ---------------------------------------------------------------------------
 // 3. Transformation d'une page HTML
 // ---------------------------------------------------------------------------
+// Empreintes des scripts chargés depuis unpkg (React 18.3.1, fichiers figés par
+// version). Vérifiées le 22/11/2026 dans un vrai navigateur : chargement accepté
+// avec ces valeurs, refusé avec une valeur fausse. À recalculer si la version change.
+const CDN_SRI = {
+  'https://unpkg.com/react@18.3.1/umd/react.production.min.js':
+    'sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z',
+  'https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js':
+    'sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1',
+};
+
 function transformHtml(html, pageName) {
   let out = html;
 
@@ -280,8 +295,20 @@ function transformHtml(html, pageName) {
   // React / ReactDOM (unpkg) : defer — dans les pages construites, tous les
   // scripts qui utilisent React sont externes et déjà en defer (l'ordre du
   // document est préservé : react → react-dom → ds-components → bundles de page).
-  out = out.replace(/<script src="(https:\/\/unpkg\.com\/react[^"]*)"([^>]*)><\/script>/g,
-    '<script defer src="$1"$2></script>');
+  // + EMPREINTE (SRI) : le navigateur refuse d'exécuter le fichier si son contenu
+  // ne correspond pas octet pour octet — un CDN compromis ne peut donc pas
+  // injecter de code sur la page de paiement. Une URL sans empreinte connue
+  // arrête le build : on ne publie pas un script tiers non vérifié.
+  out = out.replace(/<script src="(https:\/\/unpkg\.com\/react[^"]*)"([^>]*)><\/script>/g, (m, url, rest) => {
+    const sri = CDN_SRI[url];
+    if (!sri) {
+      console.error('✖ Build interrompu : script tiers sans empreinte connue — ' + url);
+      console.error('  Ajoute son empreinte sha384 dans CDN_SRI (build.mjs) avant de publier.');
+      process.exit(1);
+    }
+    const attrs = /\sintegrity=/.test(rest) ? rest : ' integrity="' + sri + '"' + rest;
+    return '<script defer src="' + url + '"' + attrs + '></script>';
+  });
 
   // Bundle du design studio → version allégée (composants uniquement), en defer
   // (n'utilise React qu'au rendu, consommé uniquement par les bundles defer).

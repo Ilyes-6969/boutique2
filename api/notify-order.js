@@ -6,20 +6,19 @@
 // les articles et le total sont recalculés via lib/serverCatalog (JAMAIS de
 // prix client), puis un e-mail part au propriétaire via Web3Forms.
 //
-// Décision actée : PAS de création de commande WooCommerce ici — endpoint non
-// authentifié = vecteur d'épuisement de stock. Le stock des retraits est
-// décrémenté manuellement à la préparation.
+// La commande est aussi créée dans WooCommerce (statut « en attente de paiement »,
+// sans toucher au stock — voir lib/wooCustomers.js), et le CLIENT reçoit sa
+// confirmation par e-mail à l'adresse saisie. Sans adresse valide : refus.
 //
 // Variables d'environnement Vercel :
 //   WEB3FORMS_KEY = clé Web3Forms (sans elle : aucune notification, ok:false)
 // ---------------------------------------------------------------------------
 
-const { priceItems, applyCors, errorStatus, rateLimit } = require('../lib/serverCatalog');
-const { wooConfigured, createPickupOrder } = require('../lib/wooCustomers');
+const { priceItems, applyCors, errorStatus, rateLimit, rateLimitKey, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
+const { wooConfigured, createPickupOrder, sendPickupConfirmation } = require('../lib/wooCustomers');
 const { readSession } = require('../lib/session');
 
 const MAX_ITEMS = 30;
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const ID_RE = /^[A-Za-z0-9_-]{1,32}$/;
 const REF_RE = /^[A-Za-z0-9_-]{1,40}$/;
 
@@ -33,6 +32,10 @@ module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  noStore(res);
+  // Seules les pages du site peuvent déposer une commande ou un message : ce
+  // point d'entrée crée une commande et fait partir des e-mails.
+  if (!sameSiteRequest(req)) return res.status(403).json({ error: 'Requête refusée.' });
 
   // Bucket dédié, volontairement strict : 5 requêtes / 15 min / IP.
   if (!rateLimit(req, 'notify-order', 5, 15 * 60 * 1000)) {
@@ -78,7 +81,13 @@ module.exports = async function handler(req, res) {
     const phone = cleanText(c.phone, 40);
     const orderRef = REF_RE.test(String(body.orderRef || '')) ? String(body.orderRef) : '';
     if (!name) return res.status(400).json({ error: 'Nom invalide' });
-    if (!EMAIL_RE.test(email)) return res.status(400).json({ error: 'E-mail invalide' });
+    // Pas de commande sans adresse e-mail valide : c'est là que part la confirmation.
+    if (!isEmail(email)) return res.status(400).json({ error: 'Indiquez une adresse e-mail valide : la confirmation de commande y est envoyée.' });
+    // Une même adresse ne peut pas recevoir une rafale de confirmations (quelqu'un
+    // qui saisirait l'adresse d'un tiers pour l'inonder) : 3 commandes par heure.
+    if (!rateLimitKey('pickup-mail:' + email.toLowerCase(), 3, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Trop de commandes pour cette adresse — réessayez plus tard ou appelez la boutique.' });
+    }
     if (!Array.isArray(body.items) || !body.items.length || body.items.length > MAX_ITEMS) {
       return res.status(400).json({ error: 'Panier invalide (1 à ' + MAX_ITEMS + ' lignes)' });
     }
@@ -119,11 +128,25 @@ module.exports = async function handler(req, res) {
     }
     const ref = (wooOrder && wooOrder.number) || orderRef;
 
+    // --- Confirmation au CLIENT, à l'adresse qu'il a saisie ---
+    // Stock réservé ('on-hold') : WooCommerce envoie lui-même « commande bien
+    // reçue ». Sinon ('pending') il n'écrit rien : on ajoute une note au client,
+    // que WooCommerce envoie par e-mail avec le détail de la commande.
+    // `emailed` dit la vérité au site : il n'annonce un e-mail que s'il est parti.
+    let emailed = false;
+    if (wooOrder) {
+      if (wooOrder.reserved) emailed = true;
+      else {
+        try { emailed = await sendPickupConfirmation(wooOrder, orderRef); }
+        catch (e) { console.error('notify-order: confirmation client NON envoyée (commande ' + wooOrder.number + ') :', String((e && e.message) || e)); }
+      }
+    }
+
     const key = process.env.WEB3FORMS_KEY;
     // Web3Forms non configuré : si la commande Woo existe, l'essentiel EST
     // enregistré — on le dit honnêtement plutôt que de renvoyer un ok:false qui
     // laisserait croire à une perte totale.
-    if (!key) return res.status(200).json({ ok: !!wooOrder, orderNumber: ref || null });
+    if (!key) return res.status(200).json({ ok: !!wooOrder, orderNumber: ref || null, emailed: emailed });
 
     const articles = lines.map(function (l) {
       return '- ' + l.name + ' ×' + l.qty + ' : ' + ((l.unitAmount * l.qty) / 100).toFixed(2) + ' €';
@@ -141,11 +164,14 @@ module.exports = async function handler(req, res) {
       Articles: '\n' + articles,
       Total: total,
       Paiement: 'À régler au retrait en boutique (aucun paiement en ligne)',
+      'Confirmation au client': emailed ? 'E-mail de confirmation envoyé au client par WooCommerce.' : '⚠️ Aucun e-mail de confirmation n\'est parti au client — pensez à le prévenir.',
       // Dit explicitement si la commande est enregistrée dans WooCommerce ou si
       // cet e-mail est la SEULE trace — sans quoi le propriétaire ne saurait pas
       // qu'il doit la saisir à la main.
       WooCommerce: wooOrder
-        ? 'Commande n° ' + wooOrder.number + ' créée (statut « En attente » — le stock ne bougera qu\'au passage en préparation).'
+        ? (wooOrder.reserved
+          ? 'Commande n° ' + wooOrder.number + ' créée (statut « En attente ») — articles retirés du stock. Annulez-la si le client ne vient pas.'
+          : 'Commande n° ' + wooOrder.number + ' créée (statut « En attente de paiement » — le stock ne bougera qu\'au passage en préparation).')
         : (wooConfigured()
           ? '⚠️ Commande NON enregistrée dans WooCommerce — à saisir manuellement.'
           : 'WooCommerce non configuré — cet e-mail est la seule trace.'),
@@ -158,9 +184,12 @@ module.exports = async function handler(req, res) {
     });
     if (!r.ok) {
       console.error('notify-order: Web3Forms HTTP ' + r.status);
+      // La commande existe dans WooCommerce : on ne fait pas croire au client
+      // qu'elle est perdue parce que l'e-mail interne à la boutique a échoué.
+      if (wooOrder) return res.status(200).json({ ok: true, orderNumber: ref || null, emailed: emailed });
       return res.status(502).json({ error: 'Notification impossible pour le moment.' });
     }
-    return res.status(200).json({ ok: true, orderNumber: ref || null });
+    return res.status(200).json({ ok: true, orderNumber: ref || null, emailed: emailed });
   } catch (err) {
     const msg = String((err && err.message) || err);
     // WooCommerce injoignable (contrat WC_DOWN) → 503, message générique.

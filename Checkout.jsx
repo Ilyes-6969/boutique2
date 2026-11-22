@@ -118,11 +118,15 @@ function CheckoutModal({ onClose }) {
   const fmtCard = (v) => v.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
   const fmtExp = (v) => { const d = v.replace(/\D/g, '').slice(0, 4); return d.length > 2 ? d.slice(0, 2) + '/' + d.slice(2) : d; };
 
+  // Pas de commande sans e-mail valide (même règle que le serveur, qui refuse
+  // de toute façon) : c'est l'adresse de la confirmation. L'adresse postale n'est
+  // demandée que pour une livraison — un retrait en boutique n'en a pas besoin.
   const validateShip = () => {
     const e = {};
-    ['name', 'email', 'addr', 'city', 'zip'].forEach((k) => { if (!String(ship[k]).trim()) e[k] = 1; });
-    if (ship.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ship.email)) e.email = 1;
-    if (ship.zip && !/^\d{4,5}$/.test(ship.zip.trim())) e.zip = 1;
+    const need = ship.method === 'pickup' ? ['name', 'email'] : ['name', 'email', 'addr', 'city', 'zip'];
+    need.forEach((k) => { if (!String(ship[k]).trim()) e[k] = 1; });
+    if (!window.LC151.isEmail(ship.email)) e.email = 1;
+    if (ship.method !== 'pickup' && ship.zip && !/^\d{4,5}$/.test(ship.zip.trim())) e.zip = 1;
     setErrors(e); return Object.keys(e).length === 0;
   };
   // Paiement carte INTÉGRÉ au site (Stripe Payment Element) — pas de redirection.
@@ -196,6 +200,7 @@ function CheckoutModal({ onClose }) {
   // Retrait en boutique : passe à true si la notification serveur a échoué, pour
   // afficher un bandeau honnête sur l'écran de confirmation (voir finalize()).
   const [pickupNotifyFailed, setPickupNotifyFailed] = React.useState(false);
+  const [pickupEmailed, setPickupEmailed] = React.useState(false);   // vrai seulement si le serveur l'a confirmé
   const panelRef = React.useRef(null);
   // Aucune fermeture (Échap, scrim, ×) pendant la confirmation du paiement
   // (perte du contexte Stripe) — le hook relit cette closure à chaque rendu.
@@ -218,7 +223,7 @@ function CheckoutModal({ onClose }) {
       email: ship.email, name: ship.name,
       items: lines,
       subtotal, shipping: shippingCost, total,
-      method: ship.method, address: ship.addr + ', ' + ship.zip + ' ' + ship.city,
+      method: ship.method, address: ship.method === 'pickup' ? '' : (ship.addr + ', ' + ship.zip + ' ' + ship.city),
     };
     const finalize = (result) => {
       const o = Orders.add({
@@ -253,7 +258,11 @@ function CheckoutModal({ onClose }) {
           : Promise.resolve(false);
         try {
           Promise.resolve(notify)
-            .then((ok) => { if (!ok) setPickupNotifyFailed(true); })
+            .then((ok) => {
+              if (!ok) { setPickupNotifyFailed(true); return; }
+              const last = window.LCPay && window.LCPay.config && window.LCPay.config.lastPickup;
+              setPickupEmailed(!!(last && last.emailed));
+            })
             .catch(() => setPickupNotifyFailed(true));
         } catch (e) { setPickupNotifyFailed(true); }
       }
@@ -334,7 +343,8 @@ function CheckoutModal({ onClose }) {
     });
   };
 
-  const steps = [['livraison', 'Livraison'], ['paiement', 'Paiement'], ['confirme', 'Confirmation']];
+  // Retrait en boutique : rien à payer en ligne, l'étape 2 n'est qu'une validation.
+  const steps = [['livraison', 'Livraison'], ['paiement', ship.method === 'pickup' ? 'Validation' : 'Paiement'], ['confirme', 'Confirmation']];
   const stepIdx = steps.findIndex((s) => s[0] === step);
 
   // Rangée de réassurance paiement : moyens acceptés (SVG monochromes) + mention
@@ -375,15 +385,16 @@ function CheckoutModal({ onClose }) {
   //    création du PaymentIntent) → on peut annoncer l'e-mail.
   //  • Paiement en cours (prélèvement, notification différée) : rien n'est encore
   //    encaissé, donc aucun reçu n'est parti — le webhook tranchera.
-  //  • Retrait en boutique : PAS de Stripe, et /api/notify-order écrit au
-  //    COMMERÇANT, jamais au client. Promettre ici « un e-mail de confirmation a
-  //    été envoyé » était faux : le client attendait un message qui n'existe pas.
+  //  • Retrait en boutique : PAS de Stripe. /api/notify-order enregistre la
+  //    commande et fait envoyer la confirmation au client ; on ne l'annonce que
+  //    si le serveur a répondu qu'elle est partie (pickupEmailed).
   const confirmNote = !order ? '' : (
     order.paid
-      ? 'Paiement reçu. Un reçu Stripe a été envoyé à ' + order.email + '.'
+      ? 'Paiement reçu. Votre confirmation de commande est envoyée à ' + order.email + '.'
       : order.processing
         ? 'Paiement en cours de validation — vous recevrez un e-mail dès qu’il est confirmé.'
         : 'À régler au retrait en boutique. Présentez le n° ' + order.number + ' sur place : nous gardons votre commande de côté.'
+          + (pickupEmailed ? ' Un e-mail de confirmation vous a été envoyé à ' + order.email + '.' : '')
   );
 
   const summary = (
@@ -442,7 +453,7 @@ function CheckoutModal({ onClose }) {
         {/* head */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 18 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, letterSpacing: '-0.02em' }}>
-            {step === 'confirme' ? 'Commande confirmée' : 'Paiement sécurisé'}
+            {step === 'confirme' ? 'Commande confirmée' : (ship.method === 'pickup' ? 'Votre commande' : 'Paiement sécurisé')}
           </h3>
           <button onClick={guardedClose} aria-label="Fermer" style={{ marginLeft: 'auto', width: 34, height: 34, borderRadius: 'var(--radius-sm)', border: '1px solid var(--line-strong)', fontSize: 17, color: 'var(--ink)', cursor: 'pointer', background: 'transparent' }}>×</button>
         </div>
@@ -508,11 +519,6 @@ function CheckoutModal({ onClose }) {
                     <div><label style={lbl} htmlFor="lc-co-name">Nom complet</label><input id="lc-co-name" autoComplete="name" {...errProps('name')} style={errStyle('name')} {...focusProps('name')} value={ship.name} onChange={(e) => setS('name', e.target.value)} />{fieldErr('name')}</div>
                     <div><label style={lbl} htmlFor="lc-co-email">E-mail</label><input id="lc-co-email" type="email" required autoComplete="email" {...errProps('email')} style={errStyle('email')} {...focusProps('email')} value={ship.email} onChange={(e) => setS('email', e.target.value)} />{fieldErr('email')}</div>
                   </div>
-                  <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-addr">Adresse</label><input id="lc-co-addr" autoComplete="street-address" {...errProps('addr')} style={errStyle('addr')} {...focusProps('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" />{fieldErr('addr')}</div>
-                  <div className="lc-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
-                    <div><label style={lbl} htmlFor="lc-co-zip">Code postal</label><input id="lc-co-zip" autoComplete="postal-code" {...errProps('zip')} style={errStyle('zip')} {...focusProps('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} />{fieldErr('zip')}</div>
-                    <div><label style={lbl} htmlFor="lc-co-city">Ville</label><input id="lc-co-city" autoComplete="address-level2" {...errProps('city')} style={errStyle('city')} {...focusProps('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} />{fieldErr('city')}</div>
-                  </div>
                   <div style={{ marginBottom: 16 }}><label style={lbl} htmlFor="lc-co-phone">Téléphone (optionnel)</label><input id="lc-co-phone" type="tel" autoComplete="tel" style={errStyle('phone')} {...focusProps('phone')} value={ship.phone} onChange={(e) => setS('phone', e.target.value)} /></div>
                   <label style={lbl}>Mode de livraison</label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
@@ -521,8 +527,17 @@ function CheckoutModal({ onClose }) {
                       <ShipOption key={m.key} selected={ship.method === m.key} onSelect={() => setS('method', m.key)} label={m.label} eta={m.eta} cost={Orders.shippingCost(m.key, subtotal)} fmt={fmt} />
                     ))}
                   </div>
+                  {ship.method !== 'pickup' && (
+                    <React.Fragment>
+                    <div style={{ marginBottom: 12 }}><label style={lbl} htmlFor="lc-co-addr">Adresse</label><input id="lc-co-addr" autoComplete="street-address" {...errProps('addr')} style={errStyle('addr')} {...focusProps('addr')} value={ship.addr} onChange={(e) => setS('addr', e.target.value)} placeholder="N° et rue" />{fieldErr('addr')}</div>
+                    <div className="lc-field-pair" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12, marginBottom: 12 }}>
+                      <div><label style={lbl} htmlFor="lc-co-zip">Code postal</label><input id="lc-co-zip" autoComplete="postal-code" {...errProps('zip')} style={errStyle('zip')} {...focusProps('zip')} value={ship.zip} onChange={(e) => setS('zip', e.target.value)} />{fieldErr('zip')}</div>
+                      <div><label style={lbl} htmlFor="lc-co-city">Ville</label><input id="lc-co-city" autoComplete="address-level2" {...errProps('city')} style={errStyle('city')} {...focusProps('city')} value={ship.city} onChange={(e) => setS('city', e.target.value)} />{fieldErr('city')}</div>
+                    </div>
+                    </React.Fragment>
+                  )}
                   {DS.Button
-                    ? <DS.Button className="lc-press" variant="primary" size="lg" block onClick={goPay}>Continuer vers le paiement</DS.Button>
+                    ? <DS.Button className="lc-press" variant="primary" size="lg" block onClick={goPay}>{ship.method === 'pickup' ? 'Continuer' : 'Continuer vers le paiement'}</DS.Button>
                     : <button onClick={goPay} style={{ width: '100%', height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: 'pointer' }}>Continuer vers le paiement →</button>}
                 </React.Fragment>
               ) : (

@@ -9,10 +9,8 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit } = require('../lib/serverCatalog');
+const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
 const { readSession } = require('../lib/session');
-
-const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 // Coordonnées client : uniquement des chaînes, longueurs bornées. Renvoie null
 // si rien d'exploitable (compatibilité descendante : ancien client sans champ
@@ -62,6 +60,9 @@ module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  noStore(res);
+  // Appel venu d'un autre site → refusé (non strict : voir sameSiteRequest).
+  if (!sameSiteRequest(req, false)) return res.status(403).json({ error: 'Requête refusée.' });
 
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante' });
@@ -80,6 +81,15 @@ module.exports = async function handler(req, res) {
     const orderRef = (typeof body.orderRef === 'string' ? body.orderRef : '').slice(0, 120);
     const customer = cleanCustomer(body.customer);
 
+    // PAS DE COMMANDE SANS E-MAIL. C'est l'adresse du reçu Stripe et de la
+    // confirmation WooCommerce : sans elle le client paierait sans rien recevoir,
+    // et la boutique ne pourrait pas le joindre. Refus AVANT toute création de
+    // paiement — rien n'est débité.
+    const receiptEmail = ((customer && isEmail(customer.email)) ? customer.email : (isEmail(email) ? email : '')).trim();
+    if (!receiptEmail) {
+      return res.status(400).json({ error: 'Indiquez une adresse e-mail valide : la confirmation de commande y est envoyée.' });
+    }
+
     // Prix fixés par le serveur (le prix éventuellement envoyé par le client est ignoré).
     const { lines, subtotalCents } = await priceItems(body.items);
     // Panier démesuré → métadonnées Stripe tronquées → articles perdus dans la
@@ -93,12 +103,10 @@ module.exports = async function handler(req, res) {
 
     const itemsMeta = lines.map(function (l) { return l.id + 'x' + l.qty; }).join(',');
     const key = idemKey('pi', {
-      a: amount, m: method, e: email || '', c: customer || 0,
+      a: amount, m: method, e: receiptEmail, c: customer || 0,
       l: lines.map(function (l) { return [l.id, l.qty]; }),
     });
 
-    // Reçu Stripe : e-mail des coordonnées s'il est valide, sinon l'ancien champ.
-    const receiptEmail = (customer && EMAIL_RE.test(customer.email)) ? customer.email : email;
     // Adresse de livraison attachée au PaymentIntent → visible dans Stripe et
     // reprise par le webhook pour créer la commande WooCommerce.
     const shipping = (customer && customer.name && customer.addr) ? {

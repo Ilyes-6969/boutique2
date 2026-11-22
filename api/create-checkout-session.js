@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit } = require('../lib/serverCatalog');
+const { priceItems, shippingCost, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
 
 // La liste d'articles 'wpIDxQTY,...' peut dépasser 500 caractères (limite
 // Stripe PAR CLÉ de metadata) : on la répartit sur items, items2, items3…
@@ -45,6 +45,8 @@ module.exports = async function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  noStore(res);
+  if (!sameSiteRequest(req, false)) return res.status(403).json({ error: 'Requête refusée.' });
 
   if (!rateLimit(req, 'checkout', 15, 60 * 1000)) {
     return res.status(429).json({ error: 'Trop de tentatives — réessayez dans une minute.' });
@@ -69,7 +71,11 @@ module.exports = async function handler(req, res) {
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
-    const email = typeof body.email === 'string' ? body.email : undefined;
+    const email = typeof body.email === 'string' ? body.email.trim() : '';
+    // Pas de commande sans e-mail valide (reçu et confirmation) — refus avant toute session.
+    if (!isEmail(email)) {
+      return res.status(400).json({ error: 'Indiquez une adresse e-mail valide : la confirmation de commande y est envoyée.' });
+    }
     // Liste blanche : ce champ part dans les métadonnées Stripe (limite 500 car.).
     const method = ['standard', 'relais', 'pickup'].indexOf(body.method) >= 0 ? body.method : 'standard';
     const orderRef = typeof body.orderRef === 'string' ? body.orderRef : '';
