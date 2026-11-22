@@ -53,6 +53,35 @@ function Home({ navigate }) {
   const rowSingles = top(byPrice(by('single')));
   const rowGraded = top(byPrice(by('graded')));
   const rowGoodies = top(byPrice(by('goodies')));
+  // Rangée de saison (Noël) : des idées cadeaux prises dans le VRAI catalogue —
+  // coffrets, ETB, peluches, figurines… en stock, avec photo, entre 10 et 150 €,
+  // en alternant les rayons pour ne pas aligner douze fois le même. Elle n'existe
+  // que pendant la saison (LC151.season(), dates dans data.js).
+  const noel = !!(window.LC151 && window.LC151.season && window.LC151.season() === 'noel');
+  const rowGifts = (() => {
+    if (!noel) return [];
+    const wanted = ['coffret', 'peluche', 'etb', 'figurine', 'goodies', 'deck', 'tapis'];
+    const rank = (c) => { const i = wanted.findIndex((w) => String(c || '').toLowerCase().includes(w)); return i < 0 ? wanted.length : i; };
+    const pool = all.filter((p) => p.inStock !== false && p.image && p.type !== 'single' && p.type !== 'graded'
+      && p.price >= 10 && p.price <= 150 && !/display|booster|blister/i.test(p.cat || ''));
+    // Un même article peut exister en plusieurs exemplaires dans la caisse (même
+    // nom, codes différents) : on n'en montre qu'un par nom.
+    const seen = {};
+    const groups = {};
+    pool.forEach((p) => {
+      const k = String(p.name || '').trim().toLowerCase();
+      if (seen[k]) return;
+      seen[k] = 1;
+      (groups[p.cat] = groups[p.cat] || []).push(p);
+    });
+    const cats = Object.keys(groups).sort((a, b) => rank(a) - rank(b));
+    cats.forEach((c) => groups[c].sort((a, b) => b.price - a.price));
+    const out = [];
+    for (let round = 0; out.length < 12 && cats.some((c) => groups[c][round]); round += 1) {
+      cats.forEach((c) => { if (groups[c][round] && out.length < 12) out.push(groups[c][round]); });
+    }
+    return out;
+  })();
   // ---------- HABILLAGE « TRAIT FIN » ----------
   // La page est blanche ; ce sont des traits d'un pixel qui la structurent, comme
   // les pochettes d'un classeur. Chaque trait sépare deux choses réelles (deux
@@ -133,6 +162,7 @@ function Home({ navigate }) {
       {/* 3. LES RANGÉES DE PRODUITS (catalogue réel) ou l'état vide */}
       {has ? (
         <div className="container-wide" style={{ padding: '44px 24px 56px', display: 'flex', flexDirection: 'column', gap: 52 }}>
+          <ProductRow title="Idées cadeaux de Noël" products={rowGifts} navigate={navigate} onSeeAll={() => { window.location.href = '/boutique.html'; }} />
           <ProductRow title="Nouveautés" products={rowNew} navigate={navigate} onSeeAll={() => { window.location.href = '/boutique.html?tri=nouveau'; }} />
           <ProductRow title="Précommandes" products={preorders} navigate={navigate} onSeeAll={() => navigate('catalogue', 'preorder')} />
           <ProductRow title="Displays, ETB et coffrets" products={rowSealed} navigate={navigate} onSeeAll={() => navigate('catalogue', 'sealed')} />

@@ -33,7 +33,17 @@ const DIST = join(ROOT, 'dist');
 // SITE_URL, on prenait VERCEL_PROJECT_PRODUCTION_URL — soit boutique2-lac.vercel.app —
 // et le sitemap envoyait Google sur l'adresse technique de Vercel au lieu de
 // club151.fr. Seul un aperçu (preview) utilise sa propre adresse.
-const SITE = (process.env.SITE_URL
+// Garde-fou : si SITE_URL elle-même désigne une adresse technique (*.vercel.app)
+// alors qu'on publie la production, on l'ignore — c'est ce qui laissait encore
+// boutique2-lac.vercel.app dans le sitemap et les fiches produit.
+const isVercelHost = (u) => { try { return /\.vercel\.app$/i.test(new URL(u).hostname); } catch (e) { return false; } };
+let siteFromEnv = String(process.env.SITE_URL || '').trim();
+if (siteFromEnv && process.env.VERCEL_ENV === 'production' && isVercelHost(siteFromEnv)) {
+  console.warn('⚠ SITE_URL = ' + siteFromEnv + ' est une adresse technique Vercel : ignorée en production,');
+  console.warn('  le site est publié avec https://club151.fr. À corriger (ou supprimer) dans Vercel.');
+  siteFromEnv = '';
+}
+const SITE = (siteFromEnv
   || (process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : '')
   || 'https://club151.fr').replace(/\/+$/, '');
 

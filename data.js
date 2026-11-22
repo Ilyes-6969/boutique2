@@ -919,11 +919,27 @@
     return '/produit.html?id=' + encodeURIComponent(id);
   }
 
+  // ---- Habillage de saison : temporaire, il s'éteint tout seul ----
+  // Noël : du 22 novembre au 26 décembre 2026 inclus (date du visiteur). En dehors
+  // de ces dates rien ne s'affiche, et il n'y a aucune ligne à retirer du site :
+  // la guirlande sous l'en-tête, la phrase du bandeau et la rangée « Idées
+  // cadeaux » de l'accueil lisent toutes LC151.season().
+  // Arrêter plus tôt : avancer `until`. Recommencer l'an prochain : ajouter une ligne.
+  const SEASONS = [{ key: 'noel', from: '2026-11-22', until: '2026-12-26' }];
+  function currentSeason(now) {
+    const d = now instanceof Date ? now : new Date();
+    const ymd = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const hit = SEASONS.find((x) => ymd >= x.from && ymd <= x.until);
+    return hit ? hit.key : null;
+  }
+
   window.LC151 = {
     PRODUCTS, FILTERS, GAMES, gameUrl, Cart, Store, Auth, Alerts, Orders, Favorites, Recent, FREE_SHIP,
     get: (id) => Store.get(id),
     productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
+    // Habillage de saison en cours ('noel') ou null — voir SEASONS plus haut.
+    season: currentSeason,
     // Adresse e-mail plausible — MÊME règle que le serveur (lib/serverCatalog.js, isEmail).
     isEmail: (v) => {
       const t = typeof v === 'string' ? v.trim() : '';

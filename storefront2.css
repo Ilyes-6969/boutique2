@@ -524,3 +524,15 @@ main section:not(.lc-reveal), .lc-card, .lc-hero-in > * { animation: none !impor
   .lc-foot-reassure > div { border-left: 0 !important; padding: 14px 20px !important; }
   .lc-foot-reassure > div + div { border-top: 1px solid rgba(255,255,255,0.14); }
 }
+
+/* HABILLAGE DE SAISON (Noël) — guirlande sous l'en-tête, voir SeasonGarland dans
+   Chrome.jsx. Seule exception à la règle « rien ne bouge sans un geste » : les
+   halos s'allument lentement en alternance, et seulement si le visiteur n'a pas
+   demandé moins d'animations. Sans animation, la guirlande reste allumée, fixe. */
+.lc-garland-glow { opacity: 0.6; }
+@keyframes lc-twinkle { from { opacity: 0.15; } to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  .lc-garland-glow-a { animation: lc-twinkle 3.6s ease-in-out infinite alternate; }
+  .lc-garland-glow-b { animation: lc-twinkle 3.6s ease-in-out -1.8s infinite alternate-reverse; }
+}
+@media print { .lc-garland { display: none !important; } }

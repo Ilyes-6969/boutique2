@@ -26,6 +26,15 @@
 4. Redéployer (Deployments → Redeploy), puis une vraie commande de test à petit prix.
 - `ADMIN_PASSWORD` est absent aussi : la page `/admin.html` reste fermée tant qu'il n'est pas défini.
 
+**Ajouts du 22/11 (midi)**
+- Habillage de Noël TEMPORAIRE : guirlande sous l'en-tête, phrase du bandeau, rangée
+  « Idées cadeaux de Noël » sur l'accueil. Dates dans `data.js` (`SEASONS`) : du 22/11 au
+  26/12/2026 inclus, puis tout disparaît sans rien toucher. Arrêter plus tôt : avancer `until`.
+- `SITE_URL` vaut encore `https://boutique2-lac.vercel.app` dans Vercel : le build l'ignore
+  désormais en production (sitemap et fiches sur club151.fr). À corriger ou supprimer dans Vercel.
+- gestion.club151.fr : déjà en mode « Bientôt disponible » pour les visiteurs ; ajouté
+  « ne pas indexer ce site » (Réglages → Lecture). Le catalogue du site n'est pas touché.
+
 **À décider / vérifier**
 - Expéditeur des e-mails WooCommerce : aujourd'hui `boutiqueclub151@gmail.com` (risque de spam,
   le courrier ne part pas de Gmail). Le domaine club151.fr autorise déjà le serveur (SPF o2switch).

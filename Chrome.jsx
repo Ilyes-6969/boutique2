@@ -460,6 +460,7 @@ function Header({ navigate, active, onCart }) {
         <SearchBox compact />
       </div>
       <MegaNav navigate={navigate} active={active} />
+      <SeasonGarland />
       {/* C3 — drawer panier rendu via portal dans <body> : le header sticky
           (zIndex 50) crée un contexte d'empilement qui piégerait le zIndex 100
           du drawer sous la barre mobile .lc-sticky-cta (zIndex 80, contexte
@@ -588,9 +589,59 @@ function MegaNav({ navigate, active }) {
 function TopBar() {
   const L = window.LC151 || {};
   const shop = L.SHOP || {};
+  // Saison de Noël (dates dans data.js) : la phrase change, l'offre reste la même.
+  const noel = !!(L.season && L.season() === 'noel');
+  const today = new Date();
+  const eve = today.getMonth() === 11 && today.getDate() >= 24;   // du 24 décembre à la fin de la saison
   return (
     <div className="lc-topbar" style={{ background: 'var(--header-2)', color: 'rgba(255,255,255,0.86)', textAlign: 'center', padding: '6px 16px', fontSize: 12.5, fontWeight: 500, lineHeight: 1.4, borderBottom: '1px solid rgba(255,255,255,0.10)' }}>
-      Livraison offerte dès {L.FREE_SHIP || 100} €, retrait gratuit en magasin{shop.street ? <span className="lc-topbar-extra">{' au ' + shop.street + ', ' + shop.city}</span> : null}
+      {noel ? (eve ? 'Joyeux Noël ! Livraison' : 'Noël approche : livraison') : 'Livraison'} offerte dès {L.FREE_SHIP || 100} €, retrait gratuit en magasin{shop.street ? <span className="lc-topbar-extra">{' au ' + shop.street + ', ' + shop.city}</span> : null}
+    </div>
+  );
+}
+
+/* HABILLAGE DE SAISON — une guirlande lumineuse accrochée sous l'en-tête, comme
+   sur une devanture. Elle n'existe que pendant la saison (LC151.season() ===
+   'noel', dates dans data.js) : rien à retirer après les fêtes. Purement
+   décorative : cachée aux lecteurs d'écran, elle ne capte aucun clic et passe
+   sous les menus. Le scintillement est coupé si le visiteur a demandé moins
+   d'animations (storefront2.css). Un motif de 160 px répété sur la largeur :
+   le fil, six ampoules aux couleurs du logo, et leur halo sur deux calques qui
+   s'allument en alternance. */
+function SeasonGarland() {
+  const L = window.LC151 || {};
+  if (!L.season || L.season() !== 'noel') return null;
+  const lamps = [[20, 6.5, 'y'], [40, 8, 'r'], [60, 6.5, 'b'], [100, 6.5, 'g'], [120, 8, 'y'], [140, 6.5, 'r']];
+  const tint = { y: '#FACA07', r: '#E5484D', b: '#4F93FF', g: '#2FB673' };
+  const lamp = ([x, y, c], i) => (
+    <g key={i}>
+      <rect x={x - 1.1} y={y - 0.3} width="2.2" height="2.4" rx="0.5" fill="#24493C"></rect>
+      <ellipse cx={x} cy={y + 5.4} rx="2.7" ry="3.5" fill={tint[c]}></ellipse>
+    </g>
+  );
+  const halo = ([x, y, c], i) => <circle key={i} cx={x} cy={y + 5.4} r="9" fill={'url(#lc-gl-' + c + ')'}></circle>;
+  const tile = { width: 160, height: 28, patternUnits: 'userSpaceOnUse' };
+  return (
+    <div className="lc-garland" aria-hidden="true" style={{ position: 'absolute', left: 0, right: 0, top: '100%', height: 28, pointerEvents: 'none', overflow: 'hidden' }}>
+      <svg width="100%" height="28" focusable="false" style={{ display: 'block' }}>
+        <defs>
+          {Object.keys(tint).map((c) => (
+            <radialGradient key={c} id={'lc-gl-' + c}>
+              <stop offset="0" stopColor={tint[c]} stopOpacity="0.55"></stop>
+              <stop offset="1" stopColor={tint[c]} stopOpacity="0"></stop>
+            </radialGradient>
+          ))}
+          <pattern id="lc-gl-wire" {...tile}>
+            <path d="M0 2 Q40 14 80 2 Q120 14 160 2" fill="none" stroke="#2F6B55" strokeWidth="1"></path>
+            {lamps.map(lamp)}
+          </pattern>
+          <pattern id="lc-gl-a" {...tile}>{lamps.filter((l, i) => i % 2 === 0).map(halo)}</pattern>
+          <pattern id="lc-gl-b" {...tile}>{lamps.filter((l, i) => i % 2 === 1).map(halo)}</pattern>
+        </defs>
+        <rect className="lc-garland-glow lc-garland-glow-a" width="100%" height="28" fill="url(#lc-gl-a)"></rect>
+        <rect className="lc-garland-glow lc-garland-glow-b" width="100%" height="28" fill="url(#lc-gl-b)"></rect>
+        <rect width="100%" height="28" fill="url(#lc-gl-wire)"></rect>
+      </svg>
     </div>
   );
 }
