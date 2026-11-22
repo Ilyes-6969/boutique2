@@ -332,6 +332,21 @@ check('config absente : wooConfigured() est faux', W.wooConfigured() === false);
 process.env.WC_CONSUMER_KEY = savedKey;
 
 // ---------------------------------------------------------------------------
+// Quantité disponible : lue dans add_to_cart.maximum (Store API, produit).
+const SC = require('./lib/serverCatalog.js');
+const wooProd = (max, extra) => Object.assign({ id: 9, name: 'Booster test', sku: '0000000000017',
+  prices: { price: '599', regular_price: '599', currency_minor_unit: 2 }, is_in_stock: true,
+  categories: [{ name: 'Scellé — Boosters & blisters' }], add_to_cart: { maximum: max } }, extra || {});
+const m3 = SC.mapWooProduct(wooProd(3));
+check('stock : 3 en stock → stock=3, plafond panier 3, pas pièce unique', m3.stock === 3 && m3.maxQty === 3 && m3.unique === false, JSON.stringify([m3.stock, m3.maxQty, m3.unique]));
+const m1 = SC.mapWooProduct(wooProd(1));
+check('stock : 1 en stock → pièce unique, plafond 1', m1.stock === 1 && m1.maxQty === 1 && m1.unique === true);
+const mInf = SC.mapWooProduct(wooProd(9999));
+check('stock : 9999 (pas de limite Woo) → quantité inconnue, rien d\'affiché', mInf.stock === null && mInf.maxQty === 999);
+const mOut = SC.mapWooProduct(wooProd(2, { is_in_stock: false }));
+check('stock : rupture → inStock faux et stock 0', mOut.inStock === false && mOut.stock === 0);
+
+// ---------------------------------------------------------------------------
 console.log('\n' + passed + ' réussis, ' + failed + ' échoués');
 // process.exit() pendant la fermeture du serveur déclenche une assertion libuv
 // sous Windows (UV_HANDLE_CLOSING) : un test vert se terminait sur ce qui

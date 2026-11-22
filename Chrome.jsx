@@ -909,7 +909,9 @@ function StoreCard({ product, navigate }) {
   // Une carte à l'unité ou gradée est presque toujours une pièce unique : l'écrire sur
   // chacune n'apprend rien. « Dernier exemplaire » ne s'affiche donc que hors cartes.
   const isCardType = product.type === 'single' || product.type === 'graded';
-  // Demande de la boutique : on n'affiche jamais qu'il ne reste qu'un exemplaire.
+  // Demande de la boutique : la quantité disponible est affichée telle quelle
+  // (« 3 en stock »), sans formule d'urgence du type « plus qu'un exemplaire ».
+  const stockLabel = (window.LC151 && window.LC151.stockLabel) ? window.LC151.stockLabel(product) : '';
   const note = !product.inStock ? 'Rupture' : product.preorder ? 'Précommande' : '';
   const rayonCourt = ({ "Cartes à l'unité": 'Carte', 'Cartes gradées': 'Carte gradée' })[product.cat] || String(product.cat || '').replace(/^(Scellé|Accessoires) — /, '');
   return (
@@ -947,6 +949,7 @@ function StoreCard({ product, navigate }) {
           onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) { e.stopPropagation(); return; } e.preventDefault(); e.stopPropagation(); open(); }}
           style={{ textDecoration: 'none', color: 'var(--ink)', fontSize: 15, fontWeight: 500, lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{product.name}</a>
         <div style={{ fontSize: 12.5, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{rayonCourt}{note ? <span style={{ color: product.inStock ? 'var(--ink-2)' : 'var(--red-ink)' }}>{', ' + note.toLowerCase()}</span> : null}</div>
+        {stockLabel ? <div style={{ fontSize: 12.5, color: 'var(--ink-2)', fontVariantNumeric: 'tabular-nums' }}>{stockLabel}</div> : null}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginTop: 'auto', paddingTop: 10 }}>
           <span style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
             <span style={{ fontWeight: 600, fontSize: 16.5, color: 'var(--ink)', fontVariantNumeric: 'tabular-nums' }}>{fmt(product.price)}&nbsp;€</span>

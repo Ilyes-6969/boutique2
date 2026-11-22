@@ -275,6 +275,10 @@ function Product({ navigate, productId, onCart }) {
         ['Détail', extraSet],
         ['Référence', ref],
       ];
+  // Quantité disponible (demande de la boutique) : ligne du tableau, à côté de la
+  // pastille du haut. Rien quand elle est inconnue, en rupture ou en précommande.
+  const stockQty = window.LC151.stockLabel(product) ? product.stock : null;
+  rawSpecs.splice(rawSpecs.length - 1, 0, ['Quantité disponible', stockQty]);
   const specs = rawSpecs.filter(function (row) { var v = row[1]; return v && String(v).trim() && v !== '—'; });
 
   // CERTIFICATION « SLAB » (product.type === 'graded') — grade ROBUSTE. On déduit
@@ -364,7 +368,7 @@ function Product({ navigate, productId, onCart }) {
         <div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
             {product.badge && <DS.Badge tone={product.badge.tone}>{product.badge.label}</DS.Badge>}
-            <DS.Badge tone={product.inStock ? 'stock' : 'oos'}>{product.inStock ? 'En stock' : 'Rupture'}</DS.Badge>
+            <DS.Badge tone={product.inStock ? 'stock' : 'oos'}>{product.inStock ? (window.LC151.stockLabel(product) || 'En stock') : 'Rupture'}</DS.Badge>
           </div>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: 12 }}>{product.cat}{product.set && product.set !== product.cat ? ' · ' + product.set : ''}</div>
           <h1 className="display-2" style={{ marginBottom: 18 }}>{product.name}</h1>
@@ -375,7 +379,8 @@ function Product({ navigate, productId, onCart }) {
           </div>
           {product.desc ? <p style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--ink-2)', marginBottom: 28, maxWidth: 520 }}>{product.desc}</p> : null}
 
-          {/* Demande de la boutique : aucune mention « pièce unique / dernier exemplaire ». */}
+          {/* Demande de la boutique : la quantité disponible est écrite dans la pastille
+              du haut (« 3 en stock »), sans mention « dernier exemplaire ». */}
 
           <div ref={ctaRef} style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 14 }}>
             {!window.LC151.Cart.isUnique(product.id) && <DS.QtyStepper value={qty} onChange={setQty} max={Math.min(10, cart.qtyCap(product.id))} />}

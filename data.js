@@ -156,7 +156,7 @@
   // mêmes champs que lib/serverCatalog.js (mapWooProduct), pour que le chemin
   // direct WP (mode test admin) et /api/catalog produisent des objets identiques :
   // { id:'wp<ID>', name, price, oldPrice, image, thumb, desc, cat, set, num,
-  //   type, unique, preorder, inStock, stockLeft, maxQty }
+  //   type, unique, preorder, inStock, stockLeft, stock, maxQty }
   function mapWoo(p) {
     const minor = (p.prices && p.prices.currency_minor_unit != null) ? p.prices.currency_minor_unit : 2;
     const div = Math.pow(10, minor);
@@ -176,14 +176,18 @@
     const cat = dec((p.categories && p.categories[0] && p.categories[0].name) || 'Carte');
     const img = (p.images && p.images[0]) || null;
     const strip = (html) => (html || '').replace(/<[^>]*>/g, '').trim();
-    // quantity_limits.maximum fait foi (« Vendu individuellement » ou stock=1
-    // → maximum=1). Fallback pour les vieux Woo sans quantity_limits :
-    // « sold_individually », puis l'heuristique catégories historique.
-    const ql = (p.quantity_limits && p.quantity_limits.maximum != null) ? Number(p.quantity_limits.maximum) : null;
+    // Stock vendable : add_to_cart.maximum sur un produit de la Store API
+    // (9999 = pas de limite connue). Même lecture que lib/serverCatalog.js.
+    let ql = null;
+    [p.add_to_cart && p.add_to_cart.maximum, p.quantity_limits && p.quantity_limits.maximum].forEach((v) => {
+      if (ql != null || v == null) return;
+      const n = Number(v);
+      if (isFinite(n) && n >= 1 && n < 9999) ql = Math.floor(n);
+    });
     let maxQty = 999;
-    if (ql != null && isFinite(ql)) maxQty = Math.max(1, Math.min(999, ql));
+    if (ql != null) maxQty = Math.max(1, Math.min(999, ql));
     let unique;
-    if (ql != null && isFinite(ql)) {
+    if (ql != null) {
       unique = ql === 1;
     } else if (p.sold_individually === true) {
       unique = true;
@@ -217,6 +221,7 @@
       // circuit d'achat au lieu de l'afficher à 0 € (cf. hasValidPrice ci-dessus).
       inStock: hasValidPrice && p.is_in_stock !== false,
       stockLeft: stockLeft,
+      stock: (hasValidPrice && p.is_in_stock !== false) ? ql : (ql != null ? 0 : null),
       maxQty: maxQty,
       unique: unique,
       preorder: preorder,
@@ -919,6 +924,10 @@
     get: (id) => Store.get(id),
     productUrl,
     fmt: (n) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n) + ' €',
+    // Quantité disponible, telle qu'on l'écrit sur le site (« 3 en stock »).
+    // Chaîne vide quand elle n'a pas de sens : rupture, précommande, stock inconnu.
+    stockLabel: (p) => (p && p.inStock !== false && !p.preorder && typeof p.stock === 'number' && isFinite(p.stock) && p.stock > 0)
+      ? (p.stock + ' en stock') : '',
     notify: notifyForm,   // formulaires contact / newsletter → même réception que les commandes
     SHOP,                 // coordonnées boutique (téléphone, réseaux) — source unique, cf. plus haut
   };
