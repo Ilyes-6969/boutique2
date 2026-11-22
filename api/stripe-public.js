@@ -6,12 +6,14 @@
 // Variable d'environnement Vercel : STRIPE_PUBLISHABLE_KEY = pk_test_... / pk_live_...
 // ---------------------------------------------------------------------------
 
-const { applyCors } = require('../lib/serverCatalog');
+const { applyCors, cardPaymentsClosed } = require('../lib/serverCatalog');
 
 module.exports = function handler(req, res) {
   applyCors(req, res);
   if (req.method === 'OPTIONS') return res.status(204).end();
 
   res.setHeader('Cache-Control', 'public, max-age=300');
-  return res.status(200).json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '' });
+  // cardOpen:false → le site n'affiche pas le formulaire de carte (clés de test
+  // en production : voir cardPaymentsClosed dans lib/serverCatalog.js).
+  return res.status(200).json({ publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '', cardOpen: !cardPaymentsClosed() });
 };

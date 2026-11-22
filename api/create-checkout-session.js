@@ -11,7 +11,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { priceItems, shippingCost, discountCents, DISCOUNT, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
+const { priceItems, shippingCost, discountCents, DISCOUNT, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail, cardPaymentsClosed, CARD_CLOSED_MSG } = require('../lib/serverCatalog');
 
 // La liste d'articles 'wpIDxQTY,...' peut dépasser 500 caractères (limite
 // Stripe PAR CLÉ de metadata) : on la répartit sur items, items2, items3…
@@ -56,6 +56,8 @@ module.exports = async function handler(req, res) {
   if (!secret) {
     return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante (variable d\'environnement Vercel non configurée)' });
   }
+  // Clés de test sur le site public → aucun paiement « pour de faux ».
+  if (cardPaymentsClosed()) return res.status(503).json({ error: CARD_CLOSED_MSG, closed: true });
 
   const stripe = Stripe(secret);
   // URL de redirection Stripe (success_url / cancel_url). On PRÉFÈRE le domaine de

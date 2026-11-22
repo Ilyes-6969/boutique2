@@ -49,6 +49,8 @@ function CheckoutModal({ onClose }) {
   // Vrai tant que la boutique tourne avec des clés Stripe de TEST : les vraies
   // cartes sont alors refusées, on prévient le client au lieu de le laisser échouer.
   const [stripeTest, setStripeTest] = React.useState(false);
+  // Paiement par carte fermé par le serveur (clés Stripe de test sur le site public).
+  const [cardClosed, setCardClosed] = React.useState(false);
   // Numéro de la commande carte en cours, créé avant le paiement : le même numéro
   // est affiché au client, écrit chez Stripe et sur la commande WooCommerce.
   const cardRef = React.useRef(null);
@@ -163,8 +165,12 @@ function CheckoutModal({ onClose }) {
     (async () => {
       try {
         const stripe = await window.LCPay.ensureStripe();
-        if (!cancelled) setStripeTest(!!(window.LCPay.config && window.LCPay.config.stripe && window.LCPay.config.stripe.testMode));
+        const sc = (window.LCPay.config && window.LCPay.config.stripe) || {};
+        if (!cancelled) { setStripeTest(!!sc.testMode); setCardClosed(!!sc.cardClosed); }
         if (cancelled) return;
+        // Carte fermée : aucun paiement créé, aucun formulaire — le client est
+        // orienté vers le retrait en boutique (voir le bouton plus bas).
+        if (sc.cardClosed || !stripe) return;
         // Coordonnées transmises au serveur pour le reçu Stripe et l'adresse de
         // livraison du PaymentIntent (jamais pour le calcul du montant).
         if (!cardRef.current) cardRef.current = window.LC151.Orders.newNumber();
@@ -362,6 +368,13 @@ function CheckoutModal({ onClose }) {
 
   // Rangée de réassurance paiement : moyens acceptés (SVG monochromes) + mention
   // « 100% sécurisé ». Partagée par le formulaire carte manuel et le Payment Element.
+  // Carte fermée + livraison choisie : le bouton ne paie pas, il bascule sur le
+  // retrait en boutique (seul mode de commande ouvert tant que la carte est fermée).
+  const cardOff = cardClosed && ship.method !== 'pickup';
+  const payBusy = paying || (stripeEmbedded && !stripeReady && !cardOff);
+  const payLabel = paying ? 'Traitement…' : (cardOff ? 'Choisir le retrait' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total)));
+  const payClick = cardOff ? () => { setErrors({}); setS('method', 'pickup'); } : placeOrder;
+
   const payReassure = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16, color: 'var(--muted)' }}>
       <span style={{ display: 'inline-flex', gap: 6 }} aria-hidden="true">{payMark('cb')}{payMark('visa')}{payMark('mc')}</span>
@@ -564,18 +577,20 @@ function CheckoutModal({ onClose }) {
                   ) : stripeEmbedded ? (
                     <React.Fragment>
                       <div style={{ minHeight: 80, marginBottom: 12 }}>
-                        {stripeTest && (
-                          <div role="status" style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--ink)', background: 'var(--paper-2)', border: '1px solid var(--line-strong)', borderRadius: 'var(--radius-sm)', padding: '10px 12px', marginBottom: 12 }}>
-                            Le paiement par carte n'est pas encore ouvert : aucune carte n'est débitée pour le moment. Vous pouvez dès maintenant commander en <strong>retrait en boutique</strong> et régler sur place.
+                        {(stripeTest || cardClosed) && (
+                          <div role="status" style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink)', background: 'var(--paper-2)', border: '1px solid var(--line-strong)', borderRadius: 'var(--radius-sm)', padding: '12px 14px', marginBottom: 12 }}>
+                            {cardClosed
+                              ? <React.Fragment>Le paiement par carte et la livraison ouvrent très bientôt. Dès maintenant, vous pouvez commander en <strong>retrait en boutique</strong> à Vienne et régler sur place.</React.Fragment>
+                              : <React.Fragment>Le paiement par carte n'est pas encore ouvert : aucune carte n'est débitée pour le moment. Vous pouvez dès maintenant commander en <strong>retrait en boutique</strong> et régler sur place.</React.Fragment>}
                           </div>
                         )}
                         {/* Le formulaire de carte Stripe est monté ici (Payment Element) */}
                         <div ref={cardBoxRef}></div>
-                        {!stripeReady && !errors.pay && (
+                        {!stripeReady && !errors.pay && !cardClosed && (
                           <div style={{ fontSize: 13, color: 'var(--muted)', padding: '8px 2px' }}>Chargement du paiement sécurisé…</div>
                         )}
                       </div>
-                      {payReassure}
+                      {!cardClosed && payReassure}
                     </React.Fragment>
                   ) : (
                     <React.Fragment>
@@ -600,8 +615,8 @@ function CheckoutModal({ onClose }) {
                     {/* flex:1 porté par le wrapper — ne pas passer `style` à DS.Button
                         (son `style` calculé serait écrasé par le prop `rest`). */}
                     {DS.Button
-                      ? <div style={{ flex: 1, display: 'flex' }}><DS.Button className="lc-press" variant="primary" size="lg" block onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</DS.Button></div>
-                      : <button onClick={placeOrder} disabled={paying || (stripeEmbedded && !stripeReady)} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: (paying || (stripeEmbedded && !stripeReady)) ? 'wait' : 'pointer', opacity: (paying || (stripeEmbedded && !stripeReady)) ? 0.7 : 1 }}>{paying ? 'Traitement…' : (ship.method === 'pickup' ? 'Valider la commande' : 'Payer ' + fmt(total))}</button>}
+                      ? <div style={{ flex: 1, minWidth: 0, display: 'flex' }}><DS.Button className="lc-press" variant="primary" size="lg" block onClick={payClick} disabled={payBusy}>{payLabel}</DS.Button></div>
+                      : <button onClick={payClick} disabled={payBusy} style={{ flex: 1, height: 46, borderRadius: 'var(--radius-sm)', border: 'none', background: 'var(--accent)', color: 'var(--on-accent)', fontWeight: 600, fontSize: 15, cursor: payBusy ? 'wait' : 'pointer', opacity: payBusy ? 0.7 : 1 }}>{payLabel}</button>}
                   </div>
                 </React.Fragment>
               )}

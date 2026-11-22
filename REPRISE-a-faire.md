@@ -242,3 +242,19 @@ _État au 30/06/2026 : le paiement par carte INTÉGRÉ au site (Stripe Payment E
 ## Rappel technique utile
 - Astuce si le site semble « pas à jour » après un push : Vercel/cache. Vérifier dans **Vercel → Deployments** que le **dernier commit** est bien déployé (Ready), sinon re-pousser un petit changement. Côté navigateur : **Ctrl + Maj + R**.
 - Détails complets dans **`DEPLOIEMENT-PAIEMENT.md`**.
+
+## Contrôle anti-fraude — 22/11/2026 (13 h)
+
+Vérifié en ligne : prix envoyé par le navigateur ignoré, quantité négative ou décimale ramenée à 1, mode de livraison inconnu facturé au tarif standard, article inconnu refusé, commandes « payées » créées uniquement par le webhook Stripe signé, suivi de commande = numéro + e-mail, comptes par cookie signé. Côté WooCommerce : aucun moyen de paiement actif (personne ne peut commander en passant directement par gestion.club151.fr), aucun code promo, inscription fermée.
+
+Corrigé dans ce lot :
+- **Carte en mode test** : avec les clés Stripe de test, un numéro de carte de test (4242…) suffisait à obtenir l'écran « commande confirmée » sans rien payer. Tant que `STRIPE_SECRET_KEY` commence par `sk_test_` en production, le paiement par carte est fermé (`cardPaymentsClosed`, `/api/stripe-public` renvoie `cardOpen:false`) et le site propose le retrait. Il s'ouvre tout seul dès que les clés réelles sont dans Vercel.
+- **Même article sur plusieurs lignes** : contournait le plafond de stock (3 exemplaires acceptés pour 1 en stock). Les lignes sont regroupées avant contrôle.
+- **Nom et téléphone** : réduits aux caractères d'un nom / d'un numéro, pour qu'une confirmation de retrait ne puisse pas servir à envoyer un lien à l'adresse d'un tiers.
+- **Réservations sans paiement** (lib/vitrine.json) : 20 articles maximum par réservation, 3 réservations en attente maximum par adresse e-mail, et au-delà de 15 réservations en une heure les commandes sont enregistrées sans retirer le stock (la boutique reçoit un message).
+- Webhook : un événement Stripe du mode test est ignoré en production.
+
+Ce que le code ne peut pas faire à la place du comptoir :
+- Ne remettre un article que sur la foi de WooCommerce : « En cours » = payé par carte ; « En attente » = à encaisser au comptoir. Jamais sur un e-mail ou une capture d'écran.
+- La remise de 10 % vaut pour un achat réel de 250 € ou plus : si le client ne prend qu'une partie de sa réservation, recalculer.
+- Annuler les réservations non retirées (le stock revient tout seul).

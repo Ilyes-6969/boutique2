@@ -22,7 +22,7 @@
 // WC_CONSUMER_KEY, WC_CONSUMER_SECRET.
 // ---------------------------------------------------------------------------
 
-const { applyCors, rateLimit, sameSiteRequest, noStore, isEmail } = require('../../lib/serverCatalog');
+const { applyCors, rateLimit, sameSiteRequest, noStore, isEmail, cleanName, cleanPhone } = require('../../lib/serverCatalog');
 const S = require('../../lib/session');
 const W = require('../../lib/wooCustomers');
 
@@ -111,7 +111,7 @@ module.exports = async function handler(req, res) {
         // le bénéfice.
         return res.status(409).json({ ok: false, error: 'Un compte existe déjà avec cette adresse — connectez-vous.' });
       }
-      const customer = await W.createCustomer(email, password, typeof body.name === 'string' ? body.name : '');
+      const customer = await W.createCustomer(email, password, cleanName(body.name, 80));
       if (!customer || !customer.id) throw new Error('création client sans identifiant');
       S.setSessionCookie(res, S.signSession(customer.id, email));
       return res.status(200).json({ ok: true });
@@ -210,7 +210,7 @@ module.exports = async function handler(req, res) {
     const sess = S.readSession(req);
     if (!sess) return res.status(401).json({ ok: false, error: 'Connectez-vous pour modifier votre adresse.' });
     const body = readBody(req);
-    const full = cleanText(body.name, LIMITS.name);
+    const full = cleanName(cleanText(body.name, LIMITS.name), 80);
     const sp = full.indexOf(' ');
     const addr = {
       firstName: sp > 0 ? full.slice(0, sp) : full,
@@ -218,7 +218,7 @@ module.exports = async function handler(req, res) {
       addr: cleanText(body.addr, LIMITS.addr),
       zip: cleanText(body.zip, LIMITS.zip),
       city: cleanText(body.city, LIMITS.city),
-      phone: cleanText(body.phone, LIMITS.phone),
+      phone: cleanPhone(cleanText(body.phone, LIMITS.phone)),
     };
     if (addr.zip && !/^\d{4,5}$/.test(addr.zip)) {
       return res.status(400).json({ ok: false, error: 'Code postal invalide : 4 ou 5 chiffres.' });

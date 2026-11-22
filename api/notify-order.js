@@ -14,8 +14,8 @@
 //   WEB3FORMS_KEY = clé Web3Forms (sans elle : aucune notification, ok:false)
 // ---------------------------------------------------------------------------
 
-const { priceItems, discountCents, DISCOUNT, applyCors, errorStatus, rateLimit, rateLimitKey, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
-const { wooConfigured, createPickupOrder, sendPickupConfirmation, sendShopMessage } = require('../lib/wooCustomers');
+const { priceItems, discountCents, DISCOUNT, applyCors, errorStatus, rateLimit, rateLimitKey, sameSiteRequest, noStore, isEmail, cleanName, cleanPhone } = require('../lib/serverCatalog');
+const { wooConfigured, createPickupOrder, sendPickupConfirmation, sendShopMessage, pickupLimits, pickupLoad, pickupReservesStock } = require('../lib/wooCustomers');
 const { readSession } = require('../lib/session');
 
 const MAX_ITEMS = 30;
@@ -88,9 +88,12 @@ module.exports = async function handler(req, res) {
     // --- Validation stricte (endpoint public → aucune confiance) ---
     if (body.method !== 'pickup') return res.status(400).json({ error: 'Méthode invalide' });
     const c = (body.customer && typeof body.customer === 'object') ? body.customer : {};
-    const name = cleanText(c.name, 120);
+    // Nom et téléphone réduits aux caractères d'un nom / d'un numéro : la
+    // confirmation part à l'adresse saisie SANS paiement, elle ne doit pas
+    // pouvoir servir à envoyer un lien à quelqu'un d'autre.
+    const name = cleanName(cleanText(c.name, 200), 80);
     const email = cleanText(c.email, 160);
-    const phone = cleanText(c.phone, 40);
+    const phone = cleanPhone(cleanText(c.phone, 40));
     const orderRef = REF_RE.test(String(body.orderRef || '')) ? String(body.orderRef) : '';
     if (!name) return res.status(400).json({ error: 'Nom invalide' });
     // Pas de commande sans adresse e-mail valide : c'est là que part la confirmation.
@@ -125,6 +128,27 @@ module.exports = async function handler(req, res) {
     // 'processing'. En échange, le retrait devient une VRAIE commande — suivie,
     // numérotée, visible dans « Mes commandes » et dans l'admin de la boutique —
     // au lieu d'un simple e-mail qu'un filtre anti-spam pouvait engloutir.
+    // --- Garde-fous : une réservation retire du stock SANS paiement ---
+    const limits = pickupLimits();
+    const units = lines.reduce(function (n, l) { return n + l.qty; }, 0);
+    if (units > limits.maxUnits) {
+      return res.status(400).json({ error: 'Une réservation sans paiement est limitée à ' + limits.maxUnits + ' articles. Pour une commande plus importante, contactez la boutique.' });
+    }
+    let reserve;                              // undefined = réglage normal (vitrine.json)
+    if (wooConfigured() && pickupReservesStock()) {
+      try {
+        const load = await pickupLoad(email);
+        if (load.mine >= limits.maxPerEmail) {
+          return res.status(429).json({ error: 'Vous avez déjà ' + load.mine + ' commandes en attente de retrait. Venez les retirer ou contactez la boutique avant d’en passer une nouvelle.' });
+        }
+        // Afflux anormal : on continue d'enregistrer les commandes, sans bloquer le stock.
+        if (load.lastHour >= limits.maxPerHour) reserve = false;
+      } catch (e) {
+        // Contrôle indisponible : on n'empêche jamais une vraie commande pour ça.
+        console.error('notify-order: contrôle des réservations indisponible :', String((e && e.message) || e));
+      }
+    }
+
     let wooOrder = null;
     if (wooConfigured()) {
       try {
@@ -132,7 +156,7 @@ module.exports = async function handler(req, res) {
         wooOrder = await createPickupOrder({
           email: email, name: name, phone: phone, lines: lines, ref: orderRef,
           discountCents: discCents, discountLabel: DISCOUNT.label,
-          customerId: sess ? sess.cid : 0,
+          customerId: sess ? sess.cid : 0, reserve: reserve,
         });
       } catch (e) {
         // On NE bloque PAS : l'e-mail au propriétaire reste le filet de secours.
@@ -155,6 +179,19 @@ module.exports = async function handler(req, res) {
         try { emailed = await sendPickupConfirmation(wooOrder, orderRef); }
         catch (e) { console.error('notify-order: confirmation client NON envoyée (commande ' + wooOrder.number + ') :', String((e && e.message) || e)); }
       }
+    }
+
+    // Commande enregistrée SANS réservation à cause de l'afflux : WooCommerce
+    // n'envoie alors pas « Nouvelle commande » — la boutique est prévenue par un
+    // message (même relais que le formulaire de contact).
+    if (wooOrder && reserve === false && !process.env.WEB3FORMS_KEY) {
+      try {
+        await sendShopMessage('Commande à retirer n° ' + wooOrder.number + ' — stock NON réservé (afflux de réservations)', {
+          Client: name, 'E-mail': email, 'Téléphone': phone || '—', Total: total,
+          Articles: lines.map(function (l) { return l.name + ' ×' + l.qty; }).join(' ; '),
+          'À faire': 'Vérifiez les réservations récentes dans WooCommerce : plus de ' + limits.maxPerHour + ' en une heure.',
+        });
+      } catch (e) { console.error('notify-order: alerte boutique NON envoyée :', String((e && e.message) || e)); }
     }
 
     const key = process.env.WEB3FORMS_KEY;

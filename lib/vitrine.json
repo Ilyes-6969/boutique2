@@ -6,5 +6,9 @@
   ],
   "seulement": [],
   "retraitReserveLeStock": true,
-  "_lisezmoi_retrait": "retraitReserveLeStock : true = une commande a retirer en boutique passe en « En attente » dans WooCommerce : l'article est retire du stock tout de suite, et WooCommerce envoie lui-meme l'e-mail « Nouvelle commande » a la boutique et « Commande en attente » au client (verifie le 22/11/2026). Si le client ne vient pas, ANNULER la commande dans WooCommerce : le stock revient tout seul. false = la commande reste « En attente de paiement », le stock ne bouge pas, et la boutique n'est prevenue que si la cle Web3Forms est configuree."
+  "_lisezmoi_retrait": "retraitReserveLeStock : true = une commande a retirer en boutique passe en « En attente » dans WooCommerce : l'article est retire du stock tout de suite, et WooCommerce envoie lui-meme l'e-mail « Nouvelle commande » a la boutique et « Commande en attente » au client (verifie le 22/11/2026). Si le client ne vient pas, ANNULER la commande dans WooCommerce : le stock revient tout seul. false = la commande reste « En attente de paiement », le stock ne bouge pas, et la boutique n'est prevenue que si la cle Web3Forms est configuree.",
+  "retraitMaxArticles": 20,
+  "retraitMaxEnAttenteParEmail": 3,
+  "retraitMaxParHeure": 15,
+  "_lisezmoi_limites_retrait": "Garde-fous des commandes a retirer (elles reservent du stock SANS paiement). retraitMaxArticles : nombre d'articles maximum dans une meme reservation ; au-dela le client est invite a contacter la boutique. retraitMaxEnAttenteParEmail : une meme adresse e-mail ne peut pas avoir plus de N reservations « En attente » a la fois. retraitMaxParHeure : au-dela de N reservations en une heure (afflux anormal), les commandes suivantes sont toujours enregistrees et confirmees au client, mais SANS retirer l'article du stock ; la boutique recoit alors un message par commande."
 }

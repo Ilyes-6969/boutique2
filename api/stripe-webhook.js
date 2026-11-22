@@ -105,6 +105,12 @@ module.exports = async function handler(req, res) {
     return res.status(400).send('Signature invalide : ' + String((err && err.message) || err));
   }
 
+  // Un événement du mode TEST de Stripe ne doit jamais créer une vraie commande
+  // « payée » sur le site public (cas d'un secret de webhook de test resté en place).
+  if (process.env.VERCEL_ENV === 'production' && event && event.livemode === false) {
+    return res.status(200).json({ received: true, ignored: 'mode-test' });
+  }
+
   // BRANCHE DORMANTE — mode redirection (page Stripe Checkout hébergée). Elle se
   // contente de PRÉVENIR le propriétaire : elle ne crée AUCUNE commande
   // WooCommerce et ne décrémente donc aucun stock. La création Woo est faite

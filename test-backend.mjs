@@ -151,8 +151,10 @@ const woo = createServer(async (req, res) => {
   if (p === '/orders' && req.method === 'GET') {
     const cust = url.searchParams.get('customer');
     const search = url.searchParams.get('search');
+    const status = url.searchParams.get('status');
     let list = orders;
     if (cust) list = list.filter((o) => String(o.customer_id) === String(cust));
+    if (status && status !== 'any') list = list.filter((o) => o.status === status);
     // Le vrai ?search de Woo est flou : on l'imite en LARGE, ce qui garantit que
     // le filtrage strict (numéro + e-mail) est bien fait côté lib, pas ici.
     if (search) list = list.filter((o) => JSON.stringify(o).includes(search));
@@ -434,6 +436,66 @@ const fee = (bigOrder.fee_lines || [])[0] || {};
 check('remise : un retrait de 360 € porte une ligne de remise de 36 € dans WooCommerce',
   rBig.code === 200 && rBig.body.ok === true && fee.total === '-36.00' && /10 %/.test(fee.name || ''), JSON.stringify([rBig.code, bigOrder.fee_lines]));
 check('remise : aucune ligne de remise sous 250 €', (pickupMade.fee_lines || []).length === 0);
+
+// ---------------------------------------------------------------------------
+// Anti-fraude (contrôle du 22/11/2026).
+// 1) Le même article sur plusieurs lignes ne contourne plus le plafond de stock.
+const dup = await SecLib.priceItems([{ id: 'wp7', qty: 1 }, { id: 'wp7', qty: 1 }, { id: 'wp7', qty: 5 }]);
+check('fraude : un article répété sur 3 lignes est regroupé et plafonné au stock (3)',
+  dup.lines.length === 1 && dup.lines[0].qty === 3 && dup.subtotalCents === 8997, JSON.stringify(dup));
+let protoErr = '';
+try { await SecLib.priceItems([{ id: '__proto__', qty: 1 }]); } catch (e) { protoErr = String(e.message); }
+check('fraude : un identifiant piégé (__proto__) est un article inconnu', /inconnu/.test(protoErr), protoErr);
+// 2) Un nom ne peut pas transporter l'adresse d'un site dans un e-mail de la boutique.
+check('fraude : nom réduit aux caractères d\'un nom',
+  SecLib.cleanName('Jean-Pierre  O’Neil d\'Été') === 'Jean-Pierre O’Neil d\'Été'
+  && !/[.:/<>@]/.test(SecLib.cleanName('Gagnez un iPhone http://evil.example/x <b>www.spam.com</b> a@b.fr'))
+  && SecLib.cleanName('   ') === '' && SecLib.cleanName(null) === '');
+check('fraude : téléphone réduit aux caractères d\'un numéro', SecLib.cleanPhone('+33 6 12 34 56 78 voir http://x.y') === '+33 6 12 34 56 78');
+const rSpamName = await sendPickup(fromSite('10.0.2.1'), { method: 'pickup', orderRef: 'LC151-TEST3', customer: { name: 'Cadeau http://evil.example/gagne', email: 'cible@exemple.fr', phone: 'tel http://x.y' }, items: [{ id: 'wp7', qty: 1 }] });
+const spamOrder = orders[orders.length - 1];
+check('fraude : la commande enregistrée ne contient aucun lien dans le nom ni le téléphone',
+  rSpamName.code === 200 && !/[.:/]/.test(spamOrder.billing.first_name + spamOrder.billing.last_name) && spamOrder.billing.phone === '', JSON.stringify(spamOrder.billing));
+const rNoName = await sendPickup(fromSite('10.0.2.2'), { method: 'pickup', customer: { name: '://..//', email: 'cible2@exemple.fr' }, items: [{ id: 'wp7', qty: 1 }] });
+check('fraude : un nom sans aucune lettre est refusé', rNoName.code === 400, String(rNoName.code));
+// 3) Réservations sans paiement : garde-fous lus dans WooCommerce.
+const vit = require('./lib/vitrine.json');
+const keptLimits = [vit.retraitMaxArticles, vit.retraitMaxParHeure];
+vit.retraitMaxArticles = 4;
+const rTooMany = await sendPickup(fromSite('10.0.2.3'), { method: 'pickup', customer: { name: 'Gros Panier', email: 'gros@exemple.fr' }, items: [{ id: 'wp7', qty: 3 }, { id: 'wp8', qty: 2 }] });
+check('réservation : trop d\'articles sans paiement → refus, le client est renvoyé vers la boutique', rTooMany.code === 400 && /contactez la boutique/.test(rTooMany.body.error), JSON.stringify(rTooMany.body));
+vit.retraitMaxArticles = keptLimits[0];
+const heldOrder = (email, when) => ({ id: 5000 + orders.length, number: String(5000 + orders.length), status: 'on-hold', total: '29.99', currency: 'EUR',
+  date_created_gmt: when, billing: { email: email }, line_items: [], shipping_lines: [], meta_data: [{ key: '_lc151_fulfilment', value: 'pickup' }] });
+for (let i = 0; i < 3; i++) orders.push(heldOrder('Habitue@Exemple.fr', '2026-07-01T10:00:00'));
+const ordersBeforeCap = orders.length;
+const rCap = await sendPickup(fromSite('10.0.2.4'), pickupPayload('habitue@exemple.fr'));
+check('réservation : pas plus de 3 commandes en attente de retrait pour une même adresse (compté dans WooCommerce)',
+  rCap.code === 429 && /en attente de retrait/.test(rCap.body.error) && orders.length === ordersBeforeCap, JSON.stringify(rCap.body));
+vit.retraitMaxParHeure = 2;
+const nowGmt = new Date().toISOString().slice(0, 19);
+orders.push(heldOrder('x1@exemple.fr', nowGmt), heldOrder('x2@exemple.fr', nowGmt));
+const notesBeforeRush = orderNotes.length;
+const rRush = await sendPickup(fromSite('10.0.2.5'), pickupPayload('nouveau@exemple.fr'));
+const rushOrder = orders[orders.length - 1];
+const rushNotes = orderNotes.slice(notesBeforeRush);
+check('réservation : afflux anormal → la commande est enregistrée et confirmée, SANS retirer le stock',
+  rRush.code === 200 && rRush.body.ok === true && rRush.body.emailed === true && rushOrder.status === 'pending' && rushOrder.billing.email === 'nouveau@exemple.fr', JSON.stringify([rRush.body, rushOrder.status]));
+check('réservation : afflux anormal → la boutique est prévenue par un message',
+  rushNotes.some((n) => n.order === rushOrder.id && n.customer_note === true) && rushNotes.some((n) => n.order !== rushOrder.id && /stock NON réservé/.test(n.note) && n.note.includes(rushOrder.number)), JSON.stringify(rushNotes.map((n) => n.note.slice(0, 60))));
+vit.retraitMaxParHeure = keptLimits[1];
+// 4) Clés Stripe de test sur le site public : paiement par carte fermé.
+const keptEnv = [process.env.VERCEL_ENV, process.env.STRIPE_SECRET_KEY];
+const pubHandler = require('./api/stripe-public.js');
+const askPub = () => { const res = stubRes(); pubHandler({ method: 'GET', headers: { host: 'club151.fr' } }, res); return res.body; };
+process.env.VERCEL_ENV = 'production'; process.env.STRIPE_SECRET_KEY = 'sk_test_exemple';
+check('carte : clés de test en production → paiement fermé, le site n\'affiche pas de formulaire', SecLib.cardPaymentsClosed() === true && askPub().cardOpen === false);
+process.env.STRIPE_SECRET_KEY = 'sk_live_exemple';
+check('carte : clés réelles en production → paiement ouvert', SecLib.cardPaymentsClosed() === false && askPub().cardOpen === true);
+process.env.VERCEL_ENV = 'preview'; process.env.STRIPE_SECRET_KEY = 'sk_test_exemple';
+check('carte : un aperçu reste testable avec les clés de test', SecLib.cardPaymentsClosed() === false);
+if (keptEnv[0] === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = keptEnv[0];
+if (keptEnv[1] === undefined) delete process.env.STRIPE_SECRET_KEY; else process.env.STRIPE_SECRET_KEY = keptEnv[1];
 if (keptW3F) process.env.WEB3FORMS_KEY = keptW3F;
 
 // ---------------------------------------------------------------------------

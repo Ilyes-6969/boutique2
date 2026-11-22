@@ -9,7 +9,7 @@
 // ---------------------------------------------------------------------------
 
 const Stripe = require('stripe');
-const { priceItems, shippingCost, discountCents, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail } = require('../lib/serverCatalog');
+const { priceItems, shippingCost, discountCents, applyCors, idemKey, errorStatus, rateLimit, sameSiteRequest, noStore, isEmail, cleanName, cleanPhone, cardPaymentsClosed, CARD_CLOSED_MSG } = require('../lib/serverCatalog');
 const { readSession } = require('../lib/session');
 
 // Coordonnées client : uniquement des chaînes, longueurs bornées. Renvoie null
@@ -25,6 +25,9 @@ function cleanCustomer(raw) {
     // la commande WooCommerce et les e-mails (anti-injection de lignes).
     out[k] = typeof v === 'string' ? v.replace(/[\x00-\x1f\x7f]+/g, ' ').trim().slice(0, CUSTOMER_LIMITS[k]) : '';
   });
+  // Nom et téléphone : caractères d'un nom / d'un numéro uniquement (pas d'adresse de site).
+  out.name = cleanName(out.name, CUSTOMER_LIMITS.name);
+  out.phone = cleanPhone(out.phone);
   if (!out.name && !out.email && !out.addr) return null;
   return out;
 }
@@ -66,6 +69,8 @@ module.exports = async function handler(req, res) {
 
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) return res.status(500).json({ error: 'STRIPE_SECRET_KEY manquante' });
+  // Clés de test sur le site public → aucun paiement « pour de faux ».
+  if (cardPaymentsClosed()) return res.status(503).json({ error: CARD_CLOSED_MSG, closed: true });
 
   if (!rateLimit(req, 'pi', 15, 60 * 1000)) {
     return res.status(429).json({ error: 'Trop de tentatives — réessayez dans une minute.' });
