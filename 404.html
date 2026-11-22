@@ -5,39 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex,follow">
 <meta name="theme-color" content="#1E3265">
-<link rel="preconnect" href="https://unpkg.com" crossorigin>
-<link rel="preconnect" href="https://gestion.club151.fr">
 <title>Page introuvable — CLUB 151</title>
-<link rel="icon" type="image/svg+xml" href="assets/brand/favicon.svg">
+<link rel="icon" type="image/svg+xml" href="/assets/brand/favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<!-- Page autonome : mêmes couleurs, polices et traits fins que le reste du site
+     (tokens/colors.css), recopiés ici pour qu'elle s'affiche même si rien d'autre
+     ne se charge. Liens en chemins absolus : une adresse introuvable peut être
+     n'importe où dans l'arborescence. -->
 <style>
-  :root { --navy:#15224F; --brand:#3363A9; --yellow:#FFCB05; --paper:#F7F2E7; --ink:#1a1a1a; }
+  :root { --ink:#15224F; --ink-2:#586089; --muted:#626A88; --paper:#FFFFFF; --paper-2:#F4F5F8;
+    --line:#D9DDE8; --line-strong:#AEB5C8; --accent:#3363A9; }
   * { box-sizing: border-box; }
-  body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color:var(--ink);
-    background: radial-gradient(circle at 50% 38%, #fffdf8 0%, var(--paper) 70%); text-align:center; }
-  .wrap { max-width:520px; }
-  .ball { width:96px; height:96px; margin:0 auto 22px; animation: spin 6s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  h1 { font-size: clamp(64px, 16vw, 110px); line-height:1; margin:0; font-weight:800; letter-spacing:-0.04em; color:var(--navy); }
-  h2 { font-size: 22px; margin:10px 0 8px; font-weight:800; }
-  p { font-size: 15.5px; line-height:1.6; color:#4a4a4a; margin:0 auto 26px; max-width:420px; }
-  .btns { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
-  a.btn { text-decoration:none; font-weight:600; font-size:15px; padding:13px 22px; border-radius:10px; display:inline-block; }
-  .primary { background:var(--brand); color:#fff; }
-  .outline { border:1.5px solid #d8d2c2; color:var(--ink); }
-  a.btn:hover { transform: translateY(-1px); }
+  html, body { height: 100%; }
+  body { margin: 0; display: flex; flex-direction: column; background: var(--paper); color: var(--ink);
+    font-family: 'Hanken Grotesk', system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+  header { border-bottom: 1px solid var(--line); padding: 18px 24px; display: flex; justify-content: center; }
+  header img { height: 34px; width: auto; display: block; }
+  main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 24px; }
+  .card { width: 100%; max-width: 560px; border: 1px solid var(--line); border-radius: 14px; padding: 44px 36px 40px; text-align: center; }
+  .code { font-family: 'Poppins', 'Hanken Grotesk', system-ui, sans-serif; font-weight: 300; font-size: clamp(72px, 20vw, 128px);
+    line-height: 1; letter-spacing: -0.03em; margin: 0; color: var(--ink); }
+  h1 { font-family: 'Poppins', 'Hanken Grotesk', system-ui, sans-serif; font-weight: 400; font-size: 24px; line-height: 1.25; margin: 18px 0 10px; }
+  p { font-size: 16px; line-height: 1.6; color: var(--ink-2); margin: 0 auto 28px; max-width: 42ch; }
+  .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  a.btn { text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1; padding: 15px 22px; border-radius: 8px;
+    border: 1px solid var(--ink); transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+  a.primary { background: var(--ink); color: #fff; }
+  a.primary:hover { background: var(--accent); border-color: var(--accent); }
+  a.outline { background: transparent; color: var(--ink); border-color: var(--line-strong); }
+  a.outline:hover { border-color: var(--ink); }
+  a.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  footer { border-top: 1px solid var(--line); padding: 16px 24px; text-align: center; font-size: 13.5px; color: var(--muted); }
+  footer a { color: var(--ink); }
+  @media (max-width: 480px) { .card { padding: 34px 22px 30px; } a.btn { flex: 1 1 100%; text-align: center; } }
+  @media (prefers-reduced-motion: reduce) { a.btn { transition: none; } }
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <svg class="ball" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="47" fill="#3363A9"/><text x="50" y="53" text-anchor="middle" dominant-baseline="central" font-family="system-ui,sans-serif" font-weight="800" font-style="italic" font-size="52" letter-spacing="-3" fill="#FACA07" stroke="#1E3265" stroke-width="5" paint-order="stroke" stroke-linejoin="round">151</text></svg>
-    <h1>404</h1>
-    <h2>Cette carte a disparu du classeur</h2>
-    <p>La page que vous cherchez n'existe pas ou a été déplacée. Pas de panique — le reste de la collection vous attend.</p>
-    <div class="btns">
-      <a class="btn primary" href="index.html">Retour à l'accueil</a>
-      <a class="btn outline" href="boutique.html">Voir la boutique</a>
+  <header>
+    <a href="/" aria-label="CLUB 151 — retour à l'accueil"><img src="/assets/brand/logo-club151-horizontal.svg" alt="CLUB 151" width="97" height="34"></a>
+  </header>
+  <main>
+    <div class="card">
+      <p class="code" aria-hidden="true">404</p>
+      <h1>Cette page est introuvable</h1>
+      <p>Le lien est peut-être ancien, ou l'article n'est plus en vente. Le reste de la boutique est à deux pas.</p>
+      <div class="btns">
+        <a class="btn primary" href="/">Retour à l'accueil</a>
+        <a class="btn outline" href="/boutique.html">Voir la boutique</a>
+      </div>
     </div>
-  </div>
+  </main>
+  <footer>CLUB 151, 28 rue Juiverie, 38200 Vienne. Téléphone : <a href="tel:+33658988116">06 58 98 81 16</a></footer>
 </body>
 </html>

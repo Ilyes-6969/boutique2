@@ -265,3 +265,12 @@ Ce que le code ne peut pas faire à la place du comptoir :
 - **Conséquence tant que Stripe n'est pas ouvert** (clés de test dans Vercel) : personne ne peut commander. La fenêtre de commande affiche « La commande en ligne ouvre très bientôt » avec l'adresse, les horaires et le téléphone du magasin. Tout s'ouvre seul dès que les clés réelles sont dans Vercel.
 - **Aucune reprise ni échange.** CGV article 6 et FAQ réécrits ; la mention « Retours sous 14 jours » a disparu de la fenêtre de commande. Pour les commandes payées EN LIGNE, le Code de la consommation impose un délai de rétractation de 14 jours qu'un vendeur ne peut pas supprimer : les CGV le limitent au strict minimum légal (article scellé et intact, frais de renvoi au client, dépréciation déduite pour un produit ouvert). **À faire valider par un juriste ou l'expert-comptable.**
 - Les garde-fous des réservations (20 articles, 3 par e-mail, 15 par heure) restent dans le code mais ne servent plus tant que la réservation est fermée.
+
+## Finitions du 22/11/2026 (soir)
+
+- Page 404 refaite aux couleurs du site (blanc, traits fins, logo), liens en chemins absolus.
+- CGV article 6 : modèle de formulaire de rétractation ajouté (information obligatoire en vente à distance).
+- Message du serveur quand la carte est fermée : ne parle plus de régler sur place.
+- Contrôle complet : 15 pages × bureau et mobile, aucune erreur JavaScript, aucun lien interne cassé, aucun débordement, 96 tests.
+
+**Blocage Stripe constaté le 22/11 à 19 h** — statut « Suspendu », tâche « justificatif de l'activité de l'entreprise » en retard : le document envoyé (un fichier nommé identity_document) a été refusé car « les informations du compte ne correspondent pas ». Dans Stripe, la dénomination sociale et le nom commercial sont saisis « SAS » (c'est la forme juridique, pas le nom). À faire par la boutique : mettre la dénomination exacte du Kbis, vérifier que la personne déclarée dirigeant est bien celle du Kbis, puis charger le Kbis (ou l'avis de situation SIRENE) comme justificatif.
