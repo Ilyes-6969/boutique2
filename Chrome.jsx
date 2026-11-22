@@ -844,7 +844,7 @@ function Footer({ navigate }) {
         {/* divider + copyright / language */}
         <div style={{ paddingTop: 26, borderTop: '1px solid rgba(255,255,255,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14, marginBottom: 22 }}>
           <span style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>{t('f_copyright')}</span>
-          <LangSelect />
+          {window.lcI18n && window.lcI18n.showSwitch ? <LangSelect /> : null}
         </div>
 
         {/* socials + legal links */}

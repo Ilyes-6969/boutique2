@@ -120,7 +120,13 @@
     },
   };
 
+  // Le choix de langue est MASQUÉ : seuls le menu et le pied de page sont traduits,
+  // tout le reste (accueil, fiches, panier, commande, pages légales) est en
+  // français. Passer une langue donnait un site à moitié traduit. Remettre à
+  // true le jour où les pages le sont vraiment.
+  var SWITCH_ON = false;
   function getLang() {
+    if (!SWITCH_ON) return 'fr';
     try { return localStorage.getItem('lc151_lang') || 'fr'; } catch (e) { return 'fr'; }
   }
   function setLang(code) {
@@ -136,5 +142,5 @@
   // apply saved lang attribute on load
   try { document.documentElement.setAttribute('lang', getLang()); } catch (e) {}
 
-  window.lcI18n = { DICT: DICT, t: t, getLang: getLang, setLang: setLang, langs: [['fr','Français','🇫🇷'],['en','English','🇬🇧'],['es','Español','🇪🇸'],['de','Deutsch','🇩🇪'],['it','Italiano','🇮🇹'],['nl','Nederlands','🇳🇱']] };
+  window.lcI18n = { showSwitch: SWITCH_ON, DICT: DICT, t: t, getLang: getLang, setLang: setLang, langs: [['fr','Français','🇫🇷'],['en','English','🇬🇧'],['es','Español','🇪🇸'],['de','Deutsch','🇩🇪'],['it','Italiano','🇮🇹'],['nl','Nederlands','🇳🇱']] };
 })();

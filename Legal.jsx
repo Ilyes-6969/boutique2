@@ -30,7 +30,7 @@ const COMPANY = {
   returnCost: 'du client',  // frais de retour : "du client" ou "du vendeur"
 };
 // Date de dernière révision des pages légales (à actualiser à chaque modification).
-const LEGAL_UPDATED = '21/11/2026';
+const LEGAL_UPDATED = '22/11/2026';
 
 function LegalPage({ navigate, kind }) {
   const F = ({ children }) => (
@@ -104,7 +104,7 @@ function LegalPage({ navigate, kind }) {
             <H>Article 1 — Objet</H>
             <P>Les présentes conditions générales de vente (CGV) régissent les ventes de cartes à collectionner, produits scellés, mangas, accessoires et objets de collection réalisées sur le site CLUB 151 entre <V v={COMPANY.name} ph="Nom de l'entreprise" /> (le vendeur) et tout acheteur particulier (le client).</P>
             <H>Article 2 — Produits</H>
-            <P>Les produits sont des articles <strong>authentiques</strong> (cartes à l'unité, cartes gradées, produits scellés, accessoires). Les cartes à l'unité et gradées sont des <strong>pièces uniques</strong> : une fois vendues, elles ne sont plus disponibles. Les photographies sont les plus fidèles possibles ; de légères variations d'état peuvent exister et sont précisées dans la fiche produit.</P>
+            <P>Les produits sont des articles <strong>authentiques</strong> (cartes à l'unité, cartes gradées, produits scellés, accessoires). Les cartes à l'unité et gradées sont le plus souvent des <strong>pièces uniques</strong> : une fois vendues, elles ne sont plus disponibles. La quantité disponible est indiquée sur chaque fiche et le panier ne peut pas la dépasser. Les photographies sont les plus fidèles possibles ; de légères variations d'état peuvent exister et sont précisées dans la fiche produit.</P>
             <H>Article 3 — Prix</H>
             <P>Les prix sont indiqués en euros toutes taxes comprises (TTC). <V v={COMPANY.name} ph="Nom de l'entreprise" /> se réserve le droit de modifier ses prix à tout moment ; les produits sont facturés sur la base des tarifs en vigueur au moment de la commande. Une remise de <strong>10 %</strong> est appliquée automatiquement sur le montant des articles de toute commande atteignant <strong>250 €</strong> d'articles (hors frais de livraison), en livraison comme en retrait en boutique.</P>
             <H>Article 4 — Commande & paiement</H>
@@ -118,7 +118,7 @@ function LegalPage({ navigate, kind }) {
             <H>Article 8 — Données personnelles</H>
             <P>Les données sont traitées conformément à notre <a href="confidentialite.html" style={{ color: 'var(--accent)', fontWeight: 600 }}>politique de confidentialité</a> et au RGPD.</P>
             <H>Article 9 — Litiges & droit applicable</H>
-            <P>Les présentes CGV sont soumises au droit français. En cas de litige, une solution amiable sera recherchée avant toute action ; le client peut recourir gratuitement à un médiateur de la consommation (<V v={COMPANY.mediator} ph="nom + site du médiateur" />). À défaut, les tribunaux compétents seront ceux du ressort de <V v={COMPANY.jurisdiction} ph="Ville" />.</P>
+            <P>Les présentes CGV sont soumises au droit français. En cas de litige, une solution amiable sera recherchée avant toute action ; conformément à l'article L. 612-1 du Code de la consommation, le client a le droit de recourir gratuitement à un médiateur de la consommation{COMPANY.mediator ? <React.Fragment> : {COMPANY.mediator}</React.Fragment> : null}. Il est invité à adresser d'abord sa réclamation par écrit à la boutique (<V v={COMPANY.email} ph="contact@club151.fr" />). À défaut, les tribunaux compétents seront ceux du ressort de <V v={COMPANY.jurisdiction} ph="Ville" />.</P>
           </React.Fragment>
         )}
 
@@ -178,8 +178,8 @@ function LegalPage({ navigate, kind }) {
             <P>Oui : <strong>10 % de remise</strong> sont appliqués automatiquement dès <strong>250 € d'articles</strong> dans le panier, en livraison comme en retrait en boutique. La remise porte sur les articles, pas sur les frais de livraison.</P>
             <H>Vos cartes sont-elles authentiques ?</H>
             <P>Oui. Chaque pièce de valeur est vérifiée avant mise en vente, et les cartes gradées sont vendues sous coque, certifiées (PSA, BGS, CGC). L'état est précisé sur chaque fiche produit.</P>
-            <H>Qu'est-ce qu'une « pièce unique » (1/1) ?</H>
-            <P>Les cartes à l'unité et gradées sont des exemplaires uniques : une fois vendues, elles ne sont plus disponibles. Elles ne peuvent être ajoutées qu'en un seul exemplaire au panier.</P>
+            <H>Combien d'exemplaires sont disponibles ?</H>
+            <P>La quantité en stock est indiquée sur chaque article (« 3 en stock »), et le panier ne peut pas la dépasser. Les cartes à l'unité et gradées sont le plus souvent des exemplaires uniques : une fois vendues, elles ne sont plus disponibles.</P>
             <H>Puis-je retourner un article ?</H>
             <P>Vous disposez de <strong>14 jours</strong> après réception pour exercer votre droit de rétractation. Les produits scellés doivent être retournés non ouverts et dans leur état d'origine. Voir le détail dans nos <a href="cgv.html" style={{ color: 'var(--accent)', fontWeight: 600 }}>CGV</a>.</P>
             <H>Le paiement est-il sécurisé ?</H>

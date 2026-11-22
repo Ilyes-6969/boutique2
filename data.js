@@ -1029,9 +1029,12 @@
 })();
 
 /* ---- Mesure d'audience Vercel (anonyme, sans cookie) ----
-   Activez « Web Analytics » dans votre projet Vercel (gratuit) pour voir les
-   visites. Si ce n'est pas activé, le script est simplement ignoré. */
+   ÉTEINTE : « Web Analytics » n'est pas activé sur le projet Vercel, donc chaque
+   page demandait un script qui n'existe pas (erreur 404 dans la console).
+   Pour l'allumer : activer Web Analytics dans Vercel, puis passer à true. */
 (function () {
+  var ANALYTICS_ON = false;
+  if (!ANALYTICS_ON) return;
   try {
     window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
     var s = document.createElement('script');

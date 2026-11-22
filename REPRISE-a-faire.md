@@ -42,6 +42,18 @@
   changer les deux. La remise est portée sur la commande WooCommerce (ligne de frais négative).
 - Corrigé : le panier ouvert directement pouvait rester à « 0,00 € » (abonnement au catalogue).
 
+**Finitions (22/11, 12 h 30)**
+- Noms d'articles : 47 fautes corrigées À L'AFFICHAGE (`lib/noms-affiches.json`), « Pokémon » toujours
+  avec son accent. La caisse et WooCommerce gardent leurs noms : à corriger aussi à la source.
+- CGV : la clause de médiation ne montre plus de trou surligné ; le NOM du médiateur reste à ajouter
+  (`COMPANY.mediator` dans `Legal.jsx`), c'est une obligation légale.
+- Choix de langue masqué (`SWITCH_ON` dans `i18n.js`) : seuls le menu et le pied de page étaient traduits.
+- Mesure d'audience Vercel éteinte (`ANALYTICS_ON` dans `data.js`) : elle n'est pas activée chez Vercel
+  et chaque page demandait un script introuvable.
+- Stripe : compte en mode production mais paiements « Suspendu » (vérification en cours chez Stripe).
+  Webhooks créés : `club151-site` (réel) et `club151-site-test` (test). Les trois valeurs restent à
+  coller dans Vercel une fois le compte validé.
+
 **À décider / vérifier**
 - Expéditeur des e-mails WooCommerce : aujourd'hui `boutiqueclub151@gmail.com` (risque de spam,
   le courrier ne part pas de Gmail). Le domaine club151.fr autorise déjà le serveur (SPF o2switch).

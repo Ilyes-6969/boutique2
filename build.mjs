@@ -26,7 +26,7 @@ import { transformSync } from 'esbuild';
 const ROOT = dirname(fileURLToPath(import.meta.url));
 // Mêmes règles de vitrine que /api/catalog (lib/vitrine.json) : un article écarté
 // du site n'a ni fiche statique ni ligne dans le sitemap.
-const { isVisible, typeFromCategories, decodeEntities } = createRequire(import.meta.url)('./lib/serverCatalog.js');
+const { isVisible, typeFromCategories, decodeEntities, displayName } = createRequire(import.meta.url)('./lib/serverCatalog.js');
 const DIST = join(ROOT, 'dist');
 // Adresse publique du site, écrite dans le sitemap, les liens canoniques et les
 // fiches produit. En production c'est TOUJOURS le vrai domaine : avant, faute de
@@ -156,7 +156,7 @@ async function wooProducts() {
     const price = (Number(p.prices && p.prices.price) || 0) / Math.pow(10, minor);
     return {
       id: 'wp' + p.id,
-      name: decodeEntities(p.name),
+      name: displayName(p.name),   // même nom corrigé que sur le site (lib/noms-affiches.json)
       game: gameOf(p),
       price: Math.round(price * 100) / 100,
       desc: strip(p.short_description) || strip(p.description),
